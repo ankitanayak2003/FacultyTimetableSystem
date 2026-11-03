@@ -1,0 +1,45 @@
+"""Firestore repositories module."""
+
+from app.repositories.base import BaseFirestoreRepository
+from app.repositories.collections import (
+    user_repository,
+    faculty_repository,
+    subject_repository,
+    room_repository,
+    lab_repository,
+    allotment_repository,
+    timetable_repository,
+    timetable_slot_repository,
+    workload_record_repository,
+    UserRepository,
+    FacultyRepository,
+    SubjectRepository,
+    RoomRepository,
+    LabRepository,
+    AllotmentRepository,
+    TimetableRepository,
+    TimetableSlotRepository,
+    WorkloadRecordRepository,
+)
+
+__all__ = [
+    "BaseFirestoreRepository",
+    "user_repository",
+    "faculty_repository",
+    "subject_repository",
+    "room_repository",
+    "lab_repository",
+    "allotment_repository",
+    "timetable_repository",
+    "timetable_slot_repository",
+    "workload_record_repository",
+    "UserRepository",
+    "FacultyRepository",
+    "SubjectRepository",
+    "RoomRepository",
+    "LabRepository",
+    "AllotmentRepository",
+    "TimetableRepository",
+    "TimetableSlotRepository",
+    "WorkloadRecordRepository",
+]

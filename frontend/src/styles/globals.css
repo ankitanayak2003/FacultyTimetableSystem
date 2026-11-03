@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  
+  body {
+    background-color: #fff8f2;
+    color: #231b1b;
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Academic Subtle Grid Backdrop */
+  .academic-grid-pattern {
+    background-image: radial-gradient(#e7d9c8 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
