@@ -4,14 +4,19 @@ import { InstitutionalHeader } from '../components/common/InstitutionalHeader';
 import { LoginForm } from '../components/login/LoginForm';
 import { StudentRegistration } from '../components/login/StudentRegistration';
 import { SchedulePreview } from '../components/login/SchedulePreview';
+import { UserRole } from '../types/auth';
 
 type AuthView = 'login' | 'student-registration';
 
 export interface LoginPageProps {
-  onLoginAsStudent?: () => void;
+  onLoginSuccess?: (role: UserRole) => void;
+  onNavigateToClassSchedule?: () => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginAsStudent }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({
+  onLoginSuccess,
+  onNavigateToClassSchedule,
+}) => {
   const [currentView, setCurrentView] = useState<AuthView>('login');
   const [prefilledEmail, setPrefilledEmail] = useState('');
 
@@ -76,7 +81,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginAsStudent }) => {
                 {currentView === 'login' ? (
                   <LoginForm
                     initialEmail={prefilledEmail}
-                    onLoginAsStudent={onLoginAsStudent}
+                    onLoginSuccess={onLoginSuccess}
+                    onNavigateToClassSchedule={onNavigateToClassSchedule}
                     onNavigateToStudentRegistration={() =>
                       setCurrentView('student-registration')
                     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, LogIn, Loader2, Info, CheckCircle2, UserPlus, ArrowRight } from 'lucide-react';
+import { Mail, LogIn, Loader2, Info, CheckCircle2, UserPlus } from 'lucide-react';
 import { RoleSelector } from './RoleSelector';
 import { PasswordInput } from './PasswordInput';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
@@ -8,18 +8,20 @@ import { UserRole, LoginFormData, FormErrors } from '../../types/auth';
 interface LoginFormProps {
   onNavigateToStudentRegistration: () => void;
   initialEmail?: string;
-  onLoginAsStudent?: () => void;
+  onLoginSuccess?: (role: UserRole) => void;
+  onNavigateToClassSchedule?: () => void;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({
   onNavigateToStudentRegistration,
   initialEmail = '',
-  onLoginAsStudent,
+  onLoginSuccess,
+  onNavigateToClassSchedule,
 }) => {
   const [formData, setFormData] = useState<LoginFormData>({
     email: initialEmail || '',
     password: '',
-    role: 'Student',
+    role: 'Faculty',
     rememberMe: false,
   });
 
@@ -58,15 +60,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       newErrors.role = 'Please designate your institutional role.';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Institutional email is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = 'Please enter a valid academic email address.';
     }
 
-    if (!formData.password) {
-      newErrors.password = 'Password is required.';
-    } else if (formData.password.length < 6) {
+    if (formData.password && formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters.';
     }
 
@@ -106,18 +104,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setIsLoading(true);
     setAuthFeedback(null);
 
-    // Frontend-only simulation (1.2 seconds)
+    // Small loading state for demonstration, then role-based navigation
     setTimeout(() => {
       setIsLoading(false);
-      setAuthFeedback({
-        type: 'success',
-        message: `Client validation verified for ${formData.role}!`,
-        details:
-          formData.role === 'Student' && onLoginAsStudent
-            ? 'Credentials verified client-side. Click below to launch your Student Timetable Dashboard.'
-            : 'Frontend phase active. Credentials validated client-side; no backend authentication or database session is initiated in this phase.',
-      });
-    }, 1200);
+      if (onLoginSuccess) {
+        onLoginSuccess(formData.role);
+      }
+    }, 600);
   };
 
   return (
@@ -141,25 +134,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <div className="p-1 rounded-full bg-success-container/70 text-success flex-shrink-0 mt-0.5">
             <CheckCircle2 className="w-4 h-4" />
           </div>
-          <div className="text-xs flex-1">
+          <div className="text-xs">
             <div className="font-semibold text-ink">{authFeedback.message}</div>
             <div className="text-ink-muted mt-0.5 leading-relaxed">
               {authFeedback.details}
             </div>
-
-            {formData.role === 'Student' && onLoginAsStudent && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={onLoginAsStudent}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded hover:bg-primary-hover transition-colors shadow-crisp"
-                >
-                  <span>Launch Student Dashboard</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
             <div className="mt-2 flex items-center gap-2">
               <span className="font-mono text-[10px] uppercase px-2 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
                 Role: {formData.role}
@@ -286,28 +265,31 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 Enrolled Student?
               </span>
               <span className="text-[11px] text-ink-muted">
-                Create an account or view your class schedule
+                <button
+                  type="button"
+                  onClick={onNavigateToStudentRegistration}
+                  className="hover:underline hover:text-primary transition-colors text-left"
+                >
+                  Create an account
+                </button>{' '}
+                or{' '}
+                <button
+                  type="button"
+                  onClick={onNavigateToClassSchedule}
+                  className="hover:underline hover:text-primary font-medium text-primary transition-colors text-left"
+                >
+                  view your class schedule
+                </button>
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {onLoginAsStudent && (
-              <button
-                type="button"
-                onClick={onLoginAsStudent}
-                className="w-full sm:w-auto px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded transition-colors shadow-crisp-sm hover:bg-primary-hover flex-shrink-0"
-              >
-                View Dashboard
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onNavigateToStudentRegistration}
-              className="w-full sm:w-auto px-3 py-1.5 bg-surface text-primary hover:bg-canvas-dim border border-border-beige text-xs font-semibold rounded transition-colors shadow-crisp-sm flex-shrink-0"
-            >
-              Register
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onNavigateToStudentRegistration}
+            className="w-full sm:w-auto px-3.5 py-1.5 bg-surface text-primary hover:bg-primary hover:text-white border border-border-beige text-xs font-semibold rounded transition-colors shadow-crisp-sm flex-shrink-0"
+          >
+            Register as Student
+          </button>
         </div>
 
         {/* Information Callout */}
