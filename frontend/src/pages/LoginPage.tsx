@@ -7,7 +7,11 @@ import { SchedulePreview } from '../components/login/SchedulePreview';
 
 type AuthView = 'login' | 'student-registration';
 
-export const LoginPage: React.FC = () => {
+export interface LoginPageProps {
+  onLoginAsStudent?: () => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginAsStudent }) => {
   const [currentView, setCurrentView] = useState<AuthView>('login');
   const [prefilledEmail, setPrefilledEmail] = useState('');
 
@@ -72,6 +76,7 @@ export const LoginPage: React.FC = () => {
                 {currentView === 'login' ? (
                   <LoginForm
                     initialEmail={prefilledEmail}
+                    onLoginAsStudent={onLoginAsStudent}
                     onNavigateToStudentRegistration={() =>
                       setCurrentView('student-registration')
                     }

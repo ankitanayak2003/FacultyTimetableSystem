@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, LogIn, Loader2, Info, CheckCircle2, UserPlus } from 'lucide-react';
+import { Mail, LogIn, Loader2, Info, CheckCircle2, UserPlus, ArrowRight } from 'lucide-react';
 import { RoleSelector } from './RoleSelector';
 import { PasswordInput } from './PasswordInput';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
@@ -8,16 +8,18 @@ import { UserRole, LoginFormData, FormErrors } from '../../types/auth';
 interface LoginFormProps {
   onNavigateToStudentRegistration: () => void;
   initialEmail?: string;
+  onLoginAsStudent?: () => void;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({
   onNavigateToStudentRegistration,
   initialEmail = '',
+  onLoginAsStudent,
 }) => {
   const [formData, setFormData] = useState<LoginFormData>({
     email: initialEmail || '',
     password: '',
-    role: 'Faculty',
+    role: 'Student',
     rememberMe: false,
   });
 
@@ -45,7 +47,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       case 'Faculty':
         return 'faculty.name@sode-edu.in';
       case 'Student':
-        return '4mw21cs045@sode-edu.in';
+        return 'ananya.22ai@sode-edu.in';
     }
   };
 
@@ -111,7 +113,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         type: 'success',
         message: `Client validation verified for ${formData.role}!`,
         details:
-          'Frontend phase active. Credentials validated client-side; no backend authentication or database session is initiated in this phase.',
+          formData.role === 'Student' && onLoginAsStudent
+            ? 'Credentials verified client-side. Click below to launch your Student Timetable Dashboard.'
+            : 'Frontend phase active. Credentials validated client-side; no backend authentication or database session is initiated in this phase.',
       });
     }, 1200);
   };
@@ -137,11 +141,25 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <div className="p-1 rounded-full bg-success-container/70 text-success flex-shrink-0 mt-0.5">
             <CheckCircle2 className="w-4 h-4" />
           </div>
-          <div className="text-xs">
+          <div className="text-xs flex-1">
             <div className="font-semibold text-ink">{authFeedback.message}</div>
             <div className="text-ink-muted mt-0.5 leading-relaxed">
               {authFeedback.details}
             </div>
+
+            {formData.role === 'Student' && onLoginAsStudent && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={onLoginAsStudent}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded hover:bg-primary-hover transition-colors shadow-crisp"
+                >
+                  <span>Launch Student Dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             <div className="mt-2 flex items-center gap-2">
               <span className="font-mono text-[10px] uppercase px-2 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
                 Role: {formData.role}
@@ -268,17 +286,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 Enrolled Student?
               </span>
               <span className="text-[11px] text-ink-muted">
-                Create a student account to view class schedules
+                Create an account or view your class schedule
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onNavigateToStudentRegistration}
-            className="w-full sm:w-auto px-3.5 py-1.5 bg-surface text-primary hover:bg-primary hover:text-white border border-border-beige text-xs font-semibold rounded transition-colors shadow-crisp-sm flex-shrink-0"
-          >
-            Register as Student
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {onLoginAsStudent && (
+              <button
+                type="button"
+                onClick={onLoginAsStudent}
+                className="w-full sm:w-auto px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded transition-colors shadow-crisp-sm hover:bg-primary-hover flex-shrink-0"
+              >
+                View Dashboard
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onNavigateToStudentRegistration}
+              className="w-full sm:w-auto px-3 py-1.5 bg-surface text-primary hover:bg-canvas-dim border border-border-beige text-xs font-semibold rounded transition-colors shadow-crisp-sm flex-shrink-0"
+            >
+              Register
+            </button>
+          </div>
         </div>
 
         {/* Information Callout */}
