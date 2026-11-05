@@ -3,7 +3,6 @@ import {
   Menu,
   LogOut,
   Calendar,
-  Bell,
   UserCheck,
 } from 'lucide-react';
 import sodeLogo from '../../assets/sode_group_logo.png';
@@ -15,8 +14,6 @@ interface FacultyHeaderProps {
   activeTab: FacultyTab;
   onOpenMobileMenu: () => void;
   onLogout: () => void;
-  unreadNotifsCount: number;
-  onNavigateToNotifications: () => void;
 }
 
 export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
@@ -24,8 +21,6 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
   activeTab,
   onOpenMobileMenu,
   onLogout,
-  unreadNotifsCount,
-  onNavigateToNotifications,
 }) => {
   const getTabLabel = (tab: FacultyTab) => {
     switch (tab) {
@@ -39,8 +34,6 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
         return 'Workload Distribution';
       case 'leaves':
         return 'Leave Management';
-      case 'notifications':
-        return 'Department Announcements';
       case 'profile':
         return 'Faculty Profile';
     }
@@ -82,7 +75,7 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Academic Term, Notifications, Avatar, Logout */}
+        {/* Right: Academic Term, Logos, Avatar, Logout */}
         <div className="flex items-center gap-3">
           {/* Academic Term Tag */}
           <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-canvas-muted border border-border-subtle text-[11px] font-mono text-ink-muted">
@@ -96,22 +89,6 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
             alt="Sode Group"
             className="h-7 w-auto object-contain hidden lg:block opacity-90"
           />
-
-          {/* Notification Bell Button */}
-          <button
-            type="button"
-            onClick={onNavigateToNotifications}
-            title={`${unreadNotifsCount} unread department notifications`}
-            aria-label="Notifications"
-            className="relative p-2 rounded-card text-ink-muted hover:text-primary hover:bg-canvas-muted transition-colors border border-border-beige"
-          >
-            <Bell className="w-4 h-4" />
-            {unreadNotifsCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] font-mono font-bold flex items-center justify-center shadow-crisp-sm">
-                {unreadNotifsCount}
-              </span>
-            )}
-          </button>
 
           {/* User Profile Pill */}
           <div className="flex items-center gap-2 pl-2 border-l border-border-subtle">

@@ -9,15 +9,15 @@ import {
   ArrowRight,
   Info,
   Calendar,
-  Bell,
   CheckCircle2,
+  FileCheck,
+  GraduationCap,
 } from 'lucide-react';
 import {
   FacultyProfileData,
   FACULTY_ODD_TIMETABLE,
   FACULTY_WORKLOAD_BREAKDOWN,
   INITIAL_LEAVE_REQUESTS,
-  FacultyNotificationItem,
 } from '../../data/facultyDemoData';
 import { FacultyTab } from './FacultySidebar';
 
@@ -25,22 +25,17 @@ interface FacultyOverviewProps {
   faculty: FacultyProfileData;
   onNavigateToTab: (tab: FacultyTab) => void;
   preferenceStatus: string;
-  notifications: FacultyNotificationItem[];
 }
 
 export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
   faculty,
   onNavigateToTab,
   preferenceStatus,
-  notifications,
 }) => {
   // Monday's teaching slots
   const todaysSchedule = FACULTY_ODD_TIMETABLE.filter(
     (s) => s.day === 'Monday'
   ).sort((a, b) => a.period - b.period);
-
-  // Recent 3 notifications
-  const recentNotifs = notifications.slice(0, 3);
 
   // Active leaves summary
   const pendingLeaves = INITIAL_LEAVE_REQUESTS.filter((l) => l.status === 'Pending').length;
@@ -94,7 +89,7 @@ export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
         </div>
       </div>
 
-      {/* 5 Summary Cards Grid */}
+      {/* 5 Summary Cards Grid - All Intact */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Card 1: Assigned Workload */}
         <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp">
@@ -192,7 +187,7 @@ export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
         </div>
       </div>
 
-      {/* Main Grid: Today's Schedule + Notifications/Upcoming */}
+      {/* Main Grid: Today's Schedule + Academic Guidelines */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 8 Cols: Today's Schedule */}
         <div className="lg:col-span-8 bg-surface rounded-card border border-border-beige shadow-crisp p-5 sm:p-6">
@@ -286,47 +281,45 @@ export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
           </div>
         </div>
 
-        {/* Right 4 Cols: Department Announcements */}
+        {/* Right 4 Cols: Department Guidelines & Academic Milestones */}
         <div className="lg:col-span-4 space-y-4">
           <div className="p-5 bg-surface rounded-card border border-border-beige shadow-crisp">
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-border-subtle">
               <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary" />
+                <GraduationCap className="w-4 h-4 text-primary" />
                 <h4 className="font-headline font-semibold text-sm text-ink">
-                  Department Notices
+                  Academic Guidelines
                 </h4>
               </div>
-              <button
-                type="button"
-                onClick={() => onNavigateToTab('notifications')}
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                View All
-              </button>
+              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-primary-subtle text-primary font-medium">
+                VTU Norms
+              </span>
             </div>
 
             <div className="space-y-3">
-              {recentNotifs.map((n) => (
-                <div
-                  key={n.id}
-                  className="p-3 rounded-card bg-canvas-paper border border-border-subtle hover:border-primary/40 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-surface text-ink-light border border-border-subtle">
-                      {n.category}
-                    </span>
-                    <span className="text-[10px] font-mono text-ink-light">
-                      {n.timestamp}
-                    </span>
-                  </div>
-                  <h5 className="text-xs font-headline font-semibold text-ink leading-snug line-clamp-1">
-                    {n.title}
-                  </h5>
-                  <p className="text-[11px] text-ink-muted leading-tight mt-1 line-clamp-2">
-                    {n.message}
-                  </p>
+              <div className="p-3 rounded-card bg-canvas-paper border border-border-subtle">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileCheck className="w-3.5 h-3.5 text-accent-teal" />
+                  <span className="text-xs font-headline font-semibold text-ink">
+                    Attendance Monitoring
+                  </span>
                 </div>
-              ))}
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  Minimum 75% student attendance required per course. Enter weekly attendance records before Friday 5:00 PM.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-card bg-canvas-paper border border-border-subtle">
+                <div className="flex items-center gap-2 mb-1">
+                  <BookOpen className="w-3.5 h-3.5 text-accent-violet" />
+                  <span className="text-xs font-headline font-semibold text-ink">
+                    Laboratory Continuous Evaluation
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  Verify and grade student lab records in the same week of experiment conduction as per VTU rubric.
+                </p>
+              </div>
             </div>
           </div>
 
