@@ -3,6 +3,11 @@ import {
   Printer,
   MapPin,
   CheckCircle2,
+  Calendar,
+  Building,
+  GraduationCap,
+  Layers,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   FACULTY_ODD_TIMETABLE,
@@ -19,7 +24,6 @@ export const FacultyTimetable: React.FC = () => {
     semesterTerm === 'Odd' ? FACULTY_ODD_TIMETABLE : FACULTY_EVEN_TIMETABLE;
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
-  const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 
   const getSlot = (day: string, period: number) => {
     return slots.find((s) => s.day === day && s.period === period);
@@ -30,21 +34,21 @@ export const FacultyTimetable: React.FC = () => {
   };
 
   return (
-    <div className="w-full space-y-5 animate-fade-in">
+    <div className="w-full space-y-6 animate-fade-in">
       {/* Top Header & Controls */}
-      <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 bg-surface rounded-card border border-border-beige shadow-crisp flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[10px] uppercase font-mono tracking-wider text-ink-light">
               Academic Schedule Engine
             </span>
-            <span className="text-xs font-mono text-primary font-semibold">• {semesterTerm} Term</span>
+            <span className="text-xs font-mono text-[#993366] font-semibold">• {semesterTerm} Semester</span>
           </div>
-          <h3 className="font-headline text-xl font-semibold text-primary">
+          <h3 className="font-headline text-xl font-bold text-[#993366]">
             Instructional Timetable Portal
           </h3>
           <p className="text-xs text-ink-muted mt-0.5">
-            View your individual teaching allocation and departmental class timetables. (Read-Only)
+            Institutional timetable based on accredited Data Science curriculum format.
           </p>
         </div>
 
@@ -57,7 +61,7 @@ export const FacultyTimetable: React.FC = () => {
               onClick={() => setTimetableMode('personal')}
               className={`px-3 py-1.5 rounded text-xs font-semibold transition-all ${
                 timetableMode === 'personal'
-                  ? 'bg-surface text-primary shadow-crisp-sm'
+                  ? 'bg-[#993366] text-white shadow-crisp-sm'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -68,11 +72,11 @@ export const FacultyTimetable: React.FC = () => {
               onClick={() => setTimetableMode('classwise')}
               className={`px-3 py-1.5 rounded text-xs font-semibold transition-all ${
                 timetableMode === 'classwise'
-                  ? 'bg-surface text-primary shadow-crisp-sm'
+                  ? 'bg-[#993366] text-white shadow-crisp-sm'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
-              Class-Wise Timetables
+              Class-Wise (DS-3rd Sem Reference)
             </button>
           </div>
 
@@ -87,7 +91,7 @@ export const FacultyTimetable: React.FC = () => {
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
-              Odd Semester
+              Odd Sem
             </button>
             <button
               type="button"
@@ -98,7 +102,7 @@ export const FacultyTimetable: React.FC = () => {
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
-              Even Semester
+              Even Sem
             </button>
           </div>
 
@@ -119,163 +123,508 @@ export const FacultyTimetable: React.FC = () => {
       {timetableMode === 'classwise' ? (
         <ClassTimetableView />
       ) : (
-        <div className="space-y-4">
-          {/* Status Strip */}
-          <div className="p-3 bg-canvas-muted rounded-card border border-border-subtle flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-success" />
-              <span className="font-semibold text-ink">
-                Official Ratified Allocation — {semesterTerm} Semester AY 2026–27
-              </span>
+        <div className="space-y-6">
+          {/* Institutional Status & Compliance Strip */}
+          <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="font-semibold text-ink">
+                  Ratified Faculty Allocation — Department of Artificial Intelligence &amp; Data Science
+                </span>
+              </div>
+              <div className="flex items-center gap-3 font-mono text-[11px] text-ink-light">
+                <span>AY 2025–26</span>
+                <span>•</span>
+                <span>Scheme: 2022</span>
+                <span>•</span>
+                <span className="text-[#993366] font-bold">16 Teaching Hours</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 font-mono text-[11px] text-ink-light">
-              <span>HOD Approved (Dr. Vasudeva)</span>
-              <span>•</span>
-              <span>16 Teaching Hours Allocated</span>
+
+            <div className="mt-3 pt-3 border-t border-border-subtle grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#993366]" />
+                <div>
+                  <span className="text-[10px] font-mono text-ink-light block uppercase">Academic Cycle</span>
+                  <strong className="text-ink font-semibold">{semesterTerm} Semester</strong>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Building className="w-4 h-4 text-[#993366]" />
+                <div>
+                  <span className="text-[10px] font-mono text-ink-light block uppercase">Faculty In-Charge</span>
+                  <strong className="text-ink font-semibold">Dr. Ashwini Rao (F-042)</strong>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-[#993366]" />
+                <div>
+                  <span className="text-[10px] font-mono text-ink-light block uppercase">Affiliation</span>
+                  <strong className="text-ink font-semibold">VTU Belagavi</strong>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#993366]" />
+                <div>
+                  <span className="text-[10px] font-mono text-ink-light block uppercase">Working Days</span>
+                  <strong className="text-ink font-semibold">Monday – Saturday</strong>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Table Container */}
-          <div className="overflow-x-auto rounded-card border border-border-beige shadow-crisp bg-surface">
-            <table className="w-full border-collapse min-w-[950px] text-left text-xs">
-              <thead>
-                <tr className="bg-canvas-paper border-b border-border-beige text-primary font-mono">
-                  <th className="p-3 w-32 border-r border-border-beige">Day / Period</th>
-                  {PERIODS.map((p) => (
-                    <th key={p} className="p-3 border-r border-border-subtle last:border-r-0 min-w-[125px]">
-                      <div className="font-bold">Period {p}</div>
-                      <div className="text-[10px] text-ink-light font-normal">
-                        {p === 1 && '09:00 - 10:00 AM'}
-                        {p === 2 && '10:00 - 11:00 AM'}
-                        {p === 3 && '11:15 - 12:15 PM'}
-                        {p === 4 && '12:15 - 01:15 PM'}
-                        {p === 5 && '02:00 - 03:00 PM'}
-                        {p === 6 && '03:00 - 04:00 PM'}
-                        {p === 7 && '04:00 - 05:00 PM'}
-                      </div>
+          {/* TABLE: Faculty Personal Timetable Matrix */}
+          <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
+            <div className="px-5 py-3 border-b border-border-beige bg-canvas-muted/40 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-4 h-4 text-[#993366]" />
+                <h4 className="font-headline font-semibold text-sm text-[#993366]">
+                  Faculty Teaching Schedule Grid
+                </h4>
+              </div>
+              <span className="text-[11px] font-mono text-ink-light hidden sm:inline">
+                Period Timings: 9:00 AM – 4:45 PM
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[1000px] text-xs">
+                <thead>
+                  <tr className="bg-[#993366] text-white">
+                    <th className="p-3 border border-[#7a2851] text-center font-bold tracking-wide w-28 uppercase text-[11px]">
+                      DAY / TIME
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-subtle">
-                {DAYS.map((day) => {
-                  let skipPeriods = 0;
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold min-w-[95px]">
+                      <div>9.00 - 9.55</div>
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold min-w-[95px]">
+                      <div>9.55 - 10.50</div>
+                    </th>
+                    <th className="p-2 border border-[#7a2851] text-center font-bold w-12 bg-[#802450]">
+                      <div>10.50 - 11.10</div>
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold min-w-[95px]">
+                      <div>11.10 - 12.05</div>
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold min-w-[95px]">
+                      <div>12.05 - 1.00</div>
+                    </th>
+                    <th className="p-2 border border-[#7a2851] text-center font-bold w-12 bg-[#802450]">
+                      <div>1.00 - 1.55</div>
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold min-w-[95px]">
+                      <div>1.55 - 2.50</div>
+                    </th>
+                    <th className="p-2 border border-[#7a2851] text-center font-bold w-10 bg-[#802450]">
+                      <div>2.50 - 3.00</div>
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold min-w-[95px]">
+                      <div>3.00 - 3.55</div>
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold min-w-[95px]">
+                      <div>3.55 - 4.45</div>
+                    </th>
+                  </tr>
+                </thead>
 
-                  return (
-                    <tr key={day} className="hover:bg-canvas-muted/20 transition-colors">
-                      <th className="p-3 bg-canvas-paper border-r border-border-beige font-headline font-semibold text-primary">
-                        <div>{day}</div>
-                        <span className="text-[10px] font-mono text-ink-light font-normal">
-                          {day === 'Saturday' ? 'Half-Day' : 'Full-Day'}
-                        </span>
-                      </th>
+                <tbody>
+                  {DAYS.map((day, dayIndex) => {
+                    const isSaturday = day === 'Saturday';
 
-                      {PERIODS.map((period) => {
-                        if (skipPeriods > 0) {
-                          skipPeriods--;
-                          return null;
-                        }
+                    return (
+                      <tr key={day} className="border-b border-border-subtle hover:bg-canvas-muted/20">
+                        {/* Day Column with Burgundy Header */}
+                        <th className="p-3 bg-[#993366] text-white font-bold text-center border border-[#7a2851] uppercase text-[11px]">
+                          {day}
+                        </th>
 
-                        const slot = getSlot(day, period);
-                        if (!slot) {
+                        {/* Period 1 */}
+                        {(() => {
+                          const slot = getSlot(day, 1);
                           return (
-                            <td
-                              key={period}
-                              className="p-2 border-r border-border-subtle last:border-r-0 bg-surface/50 text-center"
-                            >
-                              <div className="h-full min-h-[85px] flex items-center justify-center">
-                                <span className="text-xs text-ink-light/40 font-mono">—</span>
-                              </div>
+                            <td className="p-2 border border-border-subtle text-center align-middle">
+                              {slot ? (
+                                <div className="p-1.5 rounded bg-surface border border-border-beige shadow-crisp-sm">
+                                  <div className="font-mono font-bold text-[#993366] text-[11px]">
+                                    {slot.courseCode}
+                                  </div>
+                                  <div className="text-[10px] text-ink truncate font-medium">
+                                    {slot.classSection}
+                                  </div>
+                                  <div className="text-[9px] font-mono text-ink-muted flex items-center justify-center gap-0.5 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-primary" />
+                                    {slot.room}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-ink-light/40 font-mono text-xs">—</span>
+                              )}
                             </td>
                           );
-                        }
+                        })()}
 
-                        const span = slot.duration || 1;
-                        if (span > 1) {
-                          skipPeriods = span - 1;
-                        }
-
-                        const isLab = slot.type === 'Laboratory';
-                        const isMentorship = slot.type === 'Mentorship';
-
-                        return (
-                          <td
-                            key={period}
-                            colSpan={span}
-                            className="p-2 border-r border-border-subtle last:border-r-0 align-top"
-                          >
-                            <div
-                              className={`h-full min-h-[85px] p-2.5 rounded-card border flex flex-col justify-between transition-all ${
-                                isLab
-                                  ? 'bg-accent-teal/10 border-accent-teal/30 border-l-4 border-l-accent-teal text-ink shadow-crisp-sm'
-                                  : isMentorship
-                                  ? 'bg-accent-violet/10 border-accent-violet/30 border-l-4 border-l-accent-violet text-ink shadow-crisp-sm'
-                                  : 'bg-surface border-border-beige hover:border-primary/40 shadow-crisp-sm text-ink'
-                              }`}
-                            >
-                              <div>
-                                <div className="flex items-center justify-between gap-1 mb-1">
-                                  <span
-                                    className={`text-[11px] font-mono font-bold ${
-                                      isLab
-                                        ? 'text-accent-teal'
-                                        : isMentorship
-                                        ? 'text-accent-violet'
-                                        : 'text-primary'
-                                    }`}
-                                  >
+                        {/* Period 2 */}
+                        {(() => {
+                          const slot = getSlot(day, 2);
+                          return (
+                            <td className="p-2 border border-border-subtle text-center align-middle">
+                              {slot ? (
+                                <div className="p-1.5 rounded bg-surface border border-border-beige shadow-crisp-sm">
+                                  <div className="font-mono font-bold text-[#993366] text-[11px]">
                                     {slot.courseCode}
-                                  </span>
-                                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-surface border border-border-subtle text-ink-light">
+                                  </div>
+                                  <div className="text-[10px] text-ink truncate font-medium">
                                     {slot.classSection}
-                                  </span>
+                                  </div>
+                                  <div className="text-[9px] font-mono text-ink-muted flex items-center justify-center gap-0.5 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-primary" />
+                                    {slot.room}
+                                  </div>
                                 </div>
-                                <h5 className="font-headline text-xs font-semibold text-ink leading-tight line-clamp-2">
-                                  {slot.courseTitle}
-                                </h5>
-                              </div>
+                              ) : (
+                                <span className="text-ink-light/40 font-mono text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        })()}
 
-                              <div className="pt-1.5 mt-1 border-t border-border-subtle/60 flex items-center justify-between text-[10px] text-ink-muted">
-                                <span className="font-mono">{slot.time.split(' - ')[0]}</span>
-                                <span className="font-mono text-ink-light flex items-center gap-0.5">
-                                  <MapPin className="w-2.5 h-2.5 text-primary" />
-                                  {slot.room}
-                                </span>
-                              </div>
+                        {/* TEA BREAK (rowSpan 6 on dayIndex === 0) */}
+                        {dayIndex === 0 && (
+                          <td
+                            rowSpan={6}
+                            className="p-1 border border-[#d6a5bc] bg-[#EFCDDE] text-[#993366] font-bold text-center align-middle select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] tracking-widest text-xs uppercase font-extrabold mx-auto py-2">
+                              TEA BREAK
                             </div>
                           </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        )}
+
+                        {/* Period 3 */}
+                        {(() => {
+                          const slot = getSlot(day, 3);
+                          return (
+                            <td className="p-2 border border-border-subtle text-center align-middle">
+                              {slot ? (
+                                <div className="p-1.5 rounded bg-surface border border-border-beige shadow-crisp-sm">
+                                  <div className="font-mono font-bold text-[#993366] text-[11px]">
+                                    {slot.courseCode}
+                                  </div>
+                                  <div className="text-[10px] text-ink truncate font-medium">
+                                    {slot.classSection}
+                                  </div>
+                                  <div className="text-[9px] font-mono text-ink-muted flex items-center justify-center gap-0.5 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-primary" />
+                                    {slot.room}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-ink-light/40 font-mono text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        })()}
+
+                        {/* Period 4 */}
+                        {(() => {
+                          const slot = getSlot(day, 4);
+                          return (
+                            <td className="p-2 border border-border-subtle text-center align-middle">
+                              {slot ? (
+                                <div className="p-1.5 rounded bg-surface border border-border-beige shadow-crisp-sm">
+                                  <div className="font-mono font-bold text-[#993366] text-[11px]">
+                                    {slot.courseCode}
+                                  </div>
+                                  <div className="text-[10px] text-ink truncate font-medium">
+                                    {slot.classSection}
+                                  </div>
+                                  <div className="text-[9px] font-mono text-ink-muted flex items-center justify-center gap-0.5 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-primary" />
+                                    {slot.room}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-ink-light/40 font-mono text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        })()}
+
+                        {/* LUNCH BREAK (rowSpan 6 on dayIndex === 0) */}
+                        {dayIndex === 0 && (
+                          <td
+                            rowSpan={6}
+                            className="p-1 border border-[#d6a5bc] bg-[#F0D0E0] text-[#993366] font-bold text-center align-middle select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] tracking-widest text-xs uppercase font-extrabold mx-auto py-2">
+                              LUNCH BREAK
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period 5 */}
+                        {(() => {
+                          if (isSaturday) {
+                            return (
+                              <td className="p-2 border border-border-subtle text-center text-ink-light/40 font-mono text-xs">
+                                —
+                              </td>
+                            );
+                          }
+                          const slot = getSlot(day, 5);
+                          return (
+                            <td className="p-2 border border-border-subtle text-center align-middle">
+                              {slot ? (
+                                <div className="p-1.5 rounded bg-surface border border-border-beige shadow-crisp-sm">
+                                  <div className="font-mono font-bold text-[#993366] text-[11px]">
+                                    {slot.courseCode}
+                                  </div>
+                                  <div className="text-[10px] text-ink truncate font-medium">
+                                    {slot.classSection}
+                                  </div>
+                                  <div className="text-[9px] font-mono text-ink-muted flex items-center justify-center gap-0.5 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-primary" />
+                                    {slot.room}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-ink-light/40 font-mono text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        })()}
+
+                        {/* LEISURE (rowSpan 6 on dayIndex === 0) */}
+                        {dayIndex === 0 && (
+                          <td
+                            rowSpan={6}
+                            className="p-1 border border-[#d6a5bc] bg-[#F0D0E0] text-[#993366] font-bold text-center align-middle select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] tracking-widest text-xs uppercase font-extrabold mx-auto py-2">
+                              LEISURE
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period 6 */}
+                        {(() => {
+                          if (isSaturday) {
+                            return (
+                              <td className="p-2 border border-border-subtle text-center text-ink-light/40 font-mono text-xs">
+                                —
+                              </td>
+                            );
+                          }
+                          const slot = getSlot(day, 6);
+                          const isLab = slot?.type === 'Laboratory';
+                          return (
+                            <td className="p-2 border border-border-subtle text-center align-middle">
+                              {slot ? (
+                                <div
+                                  className={`p-1.5 rounded border shadow-crisp-sm ${
+                                    isLab
+                                      ? 'bg-accent-teal/10 border-accent-teal/40'
+                                      : 'bg-surface border-border-beige'
+                                  }`}
+                                >
+                                  <div className="font-mono font-bold text-[#993366] text-[11px]">
+                                    {slot.courseCode}
+                                  </div>
+                                  <div className="text-[10px] text-ink truncate font-medium">
+                                    {slot.classSection}
+                                  </div>
+                                  <div className="text-[9px] font-mono text-ink-muted flex items-center justify-center gap-0.5 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-primary" />
+                                    {slot.room}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-ink-light/40 font-mono text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        })()}
+
+                        {/* Period 7 */}
+                        {(() => {
+                          if (isSaturday) {
+                            return (
+                              <td className="p-2 border border-border-subtle text-center text-ink-light/40 font-mono text-xs">
+                                —
+                              </td>
+                            );
+                          }
+                          const slot = getSlot(day, 7);
+                          const isLab = slot?.type === 'Laboratory';
+                          return (
+                            <td className="p-2 border border-border-subtle text-center align-middle">
+                              {slot ? (
+                                <div
+                                  className={`p-1.5 rounded border shadow-crisp-sm ${
+                                    isLab
+                                      ? 'bg-accent-teal/10 border-accent-teal/40'
+                                      : 'bg-surface border-border-beige'
+                                  }`}
+                                >
+                                  <div className="font-mono font-bold text-[#993366] text-[11px]">
+                                    {slot.courseCode}
+                                  </div>
+                                  <div className="text-[10px] text-ink truncate font-medium">
+                                    {slot.classSection}
+                                  </div>
+                                  <div className="text-[9px] font-mono text-ink-muted flex items-center justify-center gap-0.5 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-primary" />
+                                    {slot.room}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-ink-light/40 font-mono text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        })()}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Schedule Footer Legend */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface rounded-card border border-border-beige text-xs text-ink-muted">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="font-semibold text-ink font-mono text-[11px] uppercase tracking-wide">
-                Legend:
+          {/* TABLE 2: Faculty Assigned Courses Reference Table */}
+          <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
+            <div className="px-5 py-3 border-b border-border-beige bg-canvas-muted/40 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-[#993366]" />
+                <h4 className="font-headline font-semibold text-sm text-[#993366]">
+                  Assigned Course Details &amp; Workload Mapping
+                </h4>
+              </div>
+              <span className="text-[11px] font-mono text-ink-light">
+                Faculty: Dr. Ashwini Rao (F-042)
               </span>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-surface border border-primary/40 inline-block"></span>
-                <span>Theory Lecture</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-accent-teal/30 border border-accent-teal inline-block"></span>
-                <span>Laboratory Session</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-accent-violet/30 border border-accent-violet inline-block"></span>
-                <span>Student Mentorship / Proctorial</span>
-              </div>
             </div>
 
-            <span className="text-[11px] font-mono text-ink-light">
-              Academic Dean Ratification • SMVITM Timetable Cell
-            </span>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[850px] text-xs">
+                <thead>
+                  <tr className="bg-[#993366] text-white">
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold w-16">
+                      Sl. No.
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-left font-bold w-28">
+                      Course Code
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-left font-bold min-w-[220px]">
+                      Course Title
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold w-20">
+                      L:T:P
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold w-24">
+                      Course Type
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-center font-bold w-16">
+                      Credit
+                    </th>
+                    <th className="p-2.5 border border-[#7a2851] text-left font-bold min-w-[200px]">
+                      Class &amp; Laboratory Batches
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-subtle">
+                  <tr className="hover:bg-canvas-muted/30 transition-colors">
+                    <td className="p-2.5 text-center font-mono font-bold text-ink border-r border-border-subtle">
+                      1
+                    </td>
+                    <td className="p-2.5 font-mono font-bold text-[#993366] border-r border-border-subtle">
+                      BCS303
+                    </td>
+                    <td className="p-2.5 font-semibold text-ink border-r border-border-subtle">
+                      Operating Systems
+                    </td>
+                    <td className="p-2.5 text-center font-mono text-ink-muted border-r border-border-subtle">
+                      3:1:2
+                    </td>
+                    <td className="p-2.5 text-center font-mono text-xs border-r border-border-subtle">
+                      <span className="px-1.5 py-0.5 rounded bg-canvas-muted border border-border-subtle text-ink">
+                        IPCC
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-center font-mono font-bold text-primary border-r border-border-subtle">
+                      4
+                    </td>
+                    <td className="p-2.5 text-ink text-xs font-medium">
+                      Sem 3 DS • Batches B1 &amp; B2 (With NF1)
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-canvas-muted/30 transition-colors">
+                    <td className="p-2.5 text-center font-mono font-bold text-ink border-r border-border-subtle">
+                      2
+                    </td>
+                    <td className="p-2.5 font-mono font-bold text-[#993366] border-r border-border-subtle">
+                      BCS304
+                    </td>
+                    <td className="p-2.5 font-semibold text-ink border-r border-border-subtle">
+                      Data Structures and Applications
+                    </td>
+                    <td className="p-2.5 text-center font-mono text-ink-muted border-r border-border-subtle">
+                      3:0:0
+                    </td>
+                    <td className="p-2.5 text-center font-mono text-xs border-r border-border-subtle">
+                      <span className="px-1.5 py-0.5 rounded bg-canvas-muted border border-border-subtle text-ink">
+                        PCC
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-center font-mono font-bold text-primary border-r border-border-subtle">
+                      3
+                    </td>
+                    <td className="p-2.5 text-ink text-xs font-medium">
+                      Sem 3 DS • Theory Lecture
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-canvas-muted/30 transition-colors">
+                    <td className="p-2.5 text-center font-mono font-bold text-ink border-r border-border-subtle">
+                      3
+                    </td>
+                    <td className="p-2.5 font-mono font-bold text-[#993366] border-r border-border-subtle">
+                      BCSL305
+                    </td>
+                    <td className="p-2.5 font-semibold text-ink border-r border-border-subtle">
+                      Data Structures Laboratory
+                    </td>
+                    <td className="p-2.5 text-center font-mono text-ink-muted border-r border-border-subtle">
+                      0:0:2
+                    </td>
+                    <td className="p-2.5 text-center font-mono text-xs border-r border-border-subtle">
+                      <span className="px-1.5 py-0.5 rounded bg-canvas-muted border border-border-subtle text-ink">
+                        PCCL
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-center font-mono font-bold text-primary border-r border-border-subtle">
+                      1
+                    </td>
+                    <td className="p-2.5 text-ink text-xs font-medium">
+                      Lab 2 • Batch B2 (SL, AK)
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footnote matching Reference Document */}
+            <div className="p-3.5 bg-canvas-muted/50 border-t border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-ink-muted">
+              <div>
+                <strong className="text-ink font-semibold">Explanatory Notes: </strong>
+                <span>
+                  L: Lecture, T: Tutorial, P: Practical, IPCC: Integrated Professional Core Course, PCC: Professional Core Course, ESC: Engineering Science Course
+                </span>
+              </div>
+              <span className="font-mono text-ink-light flex-shrink-0">
+                Department of AI &amp; DS • SMVITM
+              </span>
+            </div>
           </div>
         </div>
       )}
