@@ -39,7 +39,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onLogout }) 
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Top Header - Sticky on scroll */}
         <FacultyHeader
           faculty={FACULTY_PROFILE}

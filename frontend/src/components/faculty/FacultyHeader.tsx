@@ -40,7 +40,7 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-surface/95 backdrop-blur-sm border-b border-border-beige px-4 sm:px-6 py-2.5 shadow-crisp-sm">
+    <header className="sticky top-0 z-30 w-full bg-surface/95 backdrop-blur-md border-b border-border-beige px-4 sm:px-6 py-2.5 shadow-crisp-sm transition-all duration-200">
       <div className="flex items-center justify-between gap-4">
         {/* Left: Mobile Toggle & Breadcrumb */}
         <div className="flex items-center gap-3">
