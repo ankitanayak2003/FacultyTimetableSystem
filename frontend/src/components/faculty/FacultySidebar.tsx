@@ -10,7 +10,6 @@ import {
   LogOut,
   X,
   UserCheck,
-  ShieldAlert,
 } from 'lucide-react';
 import smvitmLogo from '../../assets/smvitm_logo.webp';
 import { FacultyProfileData } from '../../data/facultyDemoData';
@@ -214,17 +213,6 @@ export const FacultySidebar: React.FC<FacultySidebarProps> = ({
               );
             })}
           </nav>
-
-          {/* Institutional Compliance Notice */}
-          <div className="p-3.5 mx-3 mt-2 rounded-card bg-canvas-paper border border-border-beige text-[11px] text-ink-muted space-y-1">
-            <div className="flex items-center gap-1.5 text-primary font-semibold">
-              <ShieldAlert className="w-3.5 h-3.5" />
-              <span>Academic Governance</span>
-            </div>
-            <p className="leading-snug text-ink-light">
-              Timetable modifications and course allocations are ratified by the Department Coordinator &amp; HOD.
-            </p>
-          </div>
         </div>
 
         {/* Bottom Profile Summary & Logout */}

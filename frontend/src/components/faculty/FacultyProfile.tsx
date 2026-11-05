@@ -142,7 +142,7 @@ export const FacultyProfile: React.FC<FacultyProfileProps> = ({ faculty }) => {
           <Lock className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             <strong className="text-primary font-semibold">Institutional Security Notice:</strong>{' '}
-            Faculty academic service records, designations, and maximum workload thresholds are authenticated directly through the Principal's Office and University ERP. Profile editing is administratively restricted.
+            Faculty academic service records, designations, and maximum workload thresholds are authenticated directly through the University Academic Office and ERP. Profile editing is administratively restricted.
           </p>
         </div>
       </div>
