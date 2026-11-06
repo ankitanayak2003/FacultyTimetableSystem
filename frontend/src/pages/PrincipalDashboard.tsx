@@ -8,7 +8,7 @@ import { PrincipalOverview } from '../components/principal/PrincipalOverview';
 import { InstitutionalTimetableView } from '../components/principal/InstitutionalTimetableView';
 import { DepartmentsMonitoring } from '../components/principal/DepartmentsMonitoring';
 import { FacultyWorkloadSummary } from '../components/principal/FacultyWorkloadSummary';
-import { PublishedTimetablesView } from '../components/principal/PublishedTimetablesView';
+import { PrincipalVTUTimetableView } from '../components/principal/PrincipalVTUTimetableView';
 
 interface PrincipalDashboardProps {
   onLogout: () => void;
@@ -52,7 +52,7 @@ export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ onLogout
 
           {activeTab === 'faculty' && <FacultyWorkloadSummary />}
 
-          {activeTab === 'published' && <PublishedTimetablesView />}
+          {activeTab === 'published' && <PrincipalVTUTimetableView />}
         </main>
       </div>
     </div>
