@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Bell, ShieldCheck, LogOut, CheckCircle2 } from 'lucide-react';
+import { Menu, ShieldCheck, LogOut, CheckCircle2 } from 'lucide-react';
 import { PrincipalTab } from './PrincipalSidebar';
 
 interface PrincipalHeaderProps {
@@ -7,15 +7,12 @@ interface PrincipalHeaderProps {
   onOpenMobileSidebar: () => void;
   onLogout: () => void;
   onSelectTab: (tab: PrincipalTab) => void;
-  unreadCount?: number;
 }
 
 export const PrincipalHeader: React.FC<PrincipalHeaderProps> = ({
   activeTab,
   onOpenMobileSidebar,
   onLogout,
-  onSelectTab,
-  unreadCount = 2,
 }) => {
   const getTabTitle = (tab: PrincipalTab) => {
     switch (tab) {
@@ -27,14 +24,8 @@ export const PrincipalHeader: React.FC<PrincipalHeaderProps> = ({
         return 'Department Timetable Monitoring';
       case 'faculty':
         return 'Institution-Wide Faculty Workload';
-      case 'workflow':
-        return 'Timetable Governance Pipeline';
       case 'published':
         return 'Officially Published Timetables';
-      case 'notifications':
-        return 'Institutional Announcements & Circulars';
-      case 'profile':
-        return 'Principal Office Profile';
       default:
         return 'Principal Dashboard';
     }
@@ -64,26 +55,13 @@ export const PrincipalHeader: React.FC<PrincipalHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Quick actions & profile */}
+        {/* Right: Compliance badge & profile */}
         <div className="flex items-center gap-3">
           {/* Institutional Compliance Badge */}
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary-subtle text-primary border border-primary/20 text-xs font-mono font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>VTU Academic Cal. 2026–27</span>
           </div>
-
-          {/* Notifications shortcut */}
-          <button
-            type="button"
-            onClick={() => onSelectTab('notifications')}
-            className="relative p-2 text-ink-muted hover:text-primary hover:bg-canvas-muted rounded-card transition-colors"
-            title="Institutional Notifications"
-          >
-            <Bell className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-gold" />
-            )}
-          </button>
 
           {/* Principal Info & Exit */}
           <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border-subtle text-xs">
@@ -99,8 +77,8 @@ export const PrincipalHeader: React.FC<PrincipalHeaderProps> = ({
           <button
             type="button"
             onClick={onLogout}
-            className="p-2 text-ink-light hover:text-error hover:bg-error/10 rounded-card transition-colors"
-            title="Exit Session"
+            title="Sign out of Principal Portal"
+            className="p-2 text-ink-muted hover:text-error hover:bg-error/10 rounded-card transition-colors border border-border-beige hover:border-error/20"
           >
             <LogOut className="w-4 h-4" />
           </button>

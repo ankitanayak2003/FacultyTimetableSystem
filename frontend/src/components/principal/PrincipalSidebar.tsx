@@ -4,10 +4,7 @@ import {
   Building,
   GraduationCap,
   Users,
-  CheckCircle2,
   CalendarRange,
-  Bell,
-  User,
   LogOut,
   X,
   ShieldCheck,
@@ -19,16 +16,12 @@ export type PrincipalTab =
   | 'institutional'
   | 'departments'
   | 'faculty'
-  | 'workflow'
-  | 'published'
-  | 'notifications'
-  | 'profile';
+  | 'published';
 
 interface PrincipalSidebarProps {
   activeTab: PrincipalTab;
   onSelectTab: (tab: PrincipalTab) => void;
   onLogout: () => void;
-  unreadCount?: number;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
 }
@@ -37,7 +30,6 @@ export const PrincipalSidebar: React.FC<PrincipalSidebarProps> = ({
   activeTab,
   onSelectTab,
   onLogout,
-  unreadCount = 2,
   isOpenMobile = false,
   onCloseMobile,
 }) => {
@@ -71,32 +63,11 @@ export const PrincipalSidebar: React.FC<PrincipalSidebarProps> = ({
       badge: null,
     },
     {
-      id: 'workflow' as PrincipalTab,
-      label: 'Timetable Governance Pipeline',
-      shortLabel: 'Workflow Status',
-      icon: CheckCircle2,
-      badge: 'Step 4/4',
-    },
-    {
       id: 'published' as PrincipalTab,
       label: 'Published Timetables',
       shortLabel: 'Published View',
       icon: CalendarRange,
       badge: 'Official',
-    },
-    {
-      id: 'notifications' as PrincipalTab,
-      label: 'Institutional Circulars',
-      shortLabel: 'Notifications',
-      icon: Bell,
-      badge: unreadCount > 0 ? `${unreadCount} New` : null,
-    },
-    {
-      id: 'profile' as PrincipalTab,
-      label: 'Principal Office Profile',
-      shortLabel: 'Profile',
-      icon: User,
-      badge: null,
     },
   ];
 
