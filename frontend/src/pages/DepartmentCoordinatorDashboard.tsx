@@ -28,6 +28,7 @@ export const DepartmentCoordinatorDashboard: React.FC<
 > = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<DeptCoordinatorTab>('overview');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
 
@@ -57,9 +58,11 @@ export const DepartmentCoordinatorDashboard: React.FC<
         onLogout={onLogout}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         <DeptCoordinatorHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}

@@ -13,6 +13,7 @@ interface StudentDashboardProps {
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<StudentTab>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isPublished, setIsPublished] = useState(true);
 
   const togglePublished = () => {
@@ -29,10 +30,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
         student={STUDENT_PROFILE}
         isOpenMobile={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         {/* Top Header */}
         <StudentHeader
           student={STUDENT_PROFILE}
@@ -64,13 +67,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
             <StudentProfile student={STUDENT_PROFILE} />
           )}
 
-          {/* Simple Academic Footer */}
+          {/* Academic Portal Footer */}
           <footer className="mt-12 pt-6 border-t border-border-beige text-center text-xs text-ink-muted">
             <p>
               © {new Date().getFullYear()} Shri Madhwa Vadiraja Institute of Technology &amp; Management (SMVITM).
             </p>
             <p className="mt-1 text-[11px] text-ink-light font-mono">
-              Autonomous Workload Balancing &amp; Timetable Generation Engine • VTU Belagavi
+              Class Timetable Access Portal • Affiliated to VTU Belagavi
             </p>
           </footer>
         </main>

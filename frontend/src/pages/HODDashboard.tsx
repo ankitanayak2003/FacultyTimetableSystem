@@ -18,6 +18,7 @@ interface HODDashboardProps {
 export const HODDashboard: React.FC<HODDashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<HODTab>('overview');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const {
     facultyWorkload,
@@ -37,9 +38,11 @@ export const HODDashboard: React.FC<HODDashboardProps> = ({ onLogout }) => {
         onLogout={onLogout}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         <HODHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}

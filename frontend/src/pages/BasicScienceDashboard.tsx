@@ -29,6 +29,7 @@ export const BasicScienceDashboard: React.FC<BasicScienceDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<BasicScienceTab>('overview');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLockModalOpen, setIsLockModalOpen] = useState(false);
   const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
 
@@ -67,9 +68,11 @@ export const BasicScienceDashboard: React.FC<BasicScienceDashboardProps> = ({
         onLogout={onLogout}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         <BasicScienceHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}

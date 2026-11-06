@@ -25,6 +25,7 @@ interface DeanDashboardProps {
 export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<DeanTab>('overview');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { institutionalSlots } = useWorkflow();
 
   return (
@@ -36,10 +37,12 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onLogout }) => {
         onLogout={onLogout}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         <DeanHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
