@@ -72,7 +72,7 @@ export const BasicScienceDashboard: React.FC<BasicScienceDashboardProps> = ({
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-0 relative transition-all duration-300">
         <BasicScienceHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}

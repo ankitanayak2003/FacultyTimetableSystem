@@ -62,7 +62,7 @@ export const DepartmentCoordinatorDashboard: React.FC<
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-0 relative transition-all duration-300">
         <DeptCoordinatorHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}

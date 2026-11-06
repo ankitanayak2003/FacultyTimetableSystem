@@ -52,7 +52,7 @@ export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-sm border-b border-border-beige py-3 px-4 sm:px-6 shadow-crisp-sm">
+    <header className="sticky top-0 z-30 w-full bg-surface/95 backdrop-blur-md border-b border-border-beige py-3 px-4 sm:px-6 shadow-crisp-sm transition-all duration-200">
       <div className="flex items-center justify-between gap-4">
         {/* Left: Mobile hamburger & Title */}
         <div className="flex items-center gap-3">
