@@ -1,18 +1,16 @@
 import React from 'react';
-import { Menu, ShieldCheck, LogOut, CheckCircle2 } from 'lucide-react';
+import { Menu, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { PrincipalTab } from './PrincipalSidebar';
 
 interface PrincipalHeaderProps {
   activeTab: PrincipalTab;
   onOpenMobileSidebar: () => void;
-  onLogout: () => void;
   onSelectTab: (tab: PrincipalTab) => void;
 }
 
 export const PrincipalHeader: React.FC<PrincipalHeaderProps> = ({
   activeTab,
   onOpenMobileSidebar,
-  onLogout,
 }) => {
   const getTabTitle = (tab: PrincipalTab) => {
     switch (tab) {
@@ -63,7 +61,7 @@ export const PrincipalHeader: React.FC<PrincipalHeaderProps> = ({
             <span>VTU Academic Cal. 2026–27</span>
           </div>
 
-          {/* Principal Info & Exit */}
+          {/* Principal Info */}
           <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border-subtle text-xs">
             <div className="text-right">
               <span className="font-semibold text-ink block">Dr. Thirumaleshwara Bhat</span>
@@ -73,15 +71,6 @@ export const PrincipalHeader: React.FC<PrincipalHeaderProps> = ({
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            title="Sign out of Principal Portal"
-            className="p-2 text-ink-muted hover:text-error hover:bg-error/10 rounded-card transition-colors border border-border-beige hover:border-error/20"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

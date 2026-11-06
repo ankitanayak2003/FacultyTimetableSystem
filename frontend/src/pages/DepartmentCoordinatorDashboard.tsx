@@ -66,7 +66,6 @@ export const DepartmentCoordinatorDashboard: React.FC<
         <DeptCoordinatorHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          onLogout={onLogout}
           onSelectTab={setActiveTab}
         />
 

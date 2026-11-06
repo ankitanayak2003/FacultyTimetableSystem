@@ -1,12 +1,11 @@
 import React from 'react';
-import { Menu, Bell, ShieldCheck, LogOut, Lock, Unlock, AlertTriangle } from 'lucide-react';
+import { Menu, Bell, ShieldCheck, Lock, Unlock, AlertTriangle } from 'lucide-react';
 import { BasicScienceTab } from './BasicScienceSidebar';
 import { useWorkflow } from '../../context/WorkflowContext';
 
 interface BasicScienceHeaderProps {
   activeTab: BasicScienceTab;
   onOpenMobileSidebar: () => void;
-  onLogout: () => void;
   onSelectTab: (tab: BasicScienceTab) => void;
   unreadCount?: number;
 }
@@ -14,7 +13,6 @@ interface BasicScienceHeaderProps {
 export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
   activeTab,
   onOpenMobileSidebar,
-  onLogout,
   onSelectTab,
   unreadCount = 1,
 }) => {
@@ -25,23 +23,23 @@ export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
   const getTabTitle = (tab: BasicScienceTab) => {
     switch (tab) {
       case 'overview':
-        return 'Basic Science Coordination Overview';
+        return 'First-Year Basic Science Coordination';
       case 'institutional':
-        return 'Dean Certified Institutional Assignments (Read-Only)';
+        return 'Dean Institutional Constraints';
       case 'sections':
-        return 'First-Year Academic Sections';
+        return 'First-Year Section Matrix';
       case 'cycles':
-        return 'Physics & Chemistry Cycle Rotations';
+        return 'Physics / Chemistry Cycle Allocation';
       case 'faculty':
-        return 'Basic Science Faculty Allocation';
+        return 'Basic Science Faculty Workload';
       case 'preview':
-        return 'First-Year Consolidated Timetable Preview';
+        return 'Stage 2 Integrated Schedule Preview';
       case 'clashes':
-        return 'Clash & Resource Constraint Validation';
+        return 'Cross-Department Clash Audit';
       case 'lock':
-        return 'Lock Basic Science Timetable';
+        return 'Stage 2 Lock Certification';
       case 'versions':
-        return 'Basic Science Version History';
+        return 'Schedule Version Audit Log';
       case 'notifications':
         return 'First-Year Academic Circulars';
       case 'profile':
@@ -65,9 +63,9 @@ export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
           </button>
           <div>
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-ink-light">
-              <span>Stage 2 Governance</span>
+              <span>Academic Affairs</span>
               <span>/</span>
-              <span className="text-primary font-semibold">1st Year Basic Science</span>
+              <span className="text-primary font-semibold">Stage 2: Basic Science</span>
             </div>
             <h1 className="font-headline text-lg sm:text-xl font-semibold text-primary truncate">
               {getTabTitle(activeTab)}
@@ -75,37 +73,34 @@ export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Status Pill & Profile */}
+        {/* Right: Gated status & profile */}
         <div className="flex items-center gap-3">
-          {/* Status pill */}
+          {/* Gating warning if Stage 1 not locked */}
+          {isGated && (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-50 text-amber-800 border border-amber-300 text-xs font-mono font-medium animate-pulse">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+              <span>Awaiting Dean Lock</span>
+            </div>
+          )}
+
+          {/* Stage Status Badge */}
           <div
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-semibold border ${
-              isGated
-                ? 'bg-canvas-muted text-ink-light border-border-subtle'
-                : basicScienceStatus === 'LOCKED'
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-medium border ${
+              basicScienceStatus === 'LOCKED'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                 : 'bg-amber-50 text-amber-800 border-amber-300'
             }`}
           >
-            {isGated ? (
-              <>
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span>Stage 2: GATED (Dean Pending)</span>
-              </>
-            ) : basicScienceStatus === 'LOCKED' ? (
-              <>
-                <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Stage 2: LOCKED ({basicScienceVersion})</span>
-              </>
+            {basicScienceStatus === 'LOCKED' ? (
+              <Lock className="w-3.5 h-3.5 text-emerald-700" />
             ) : (
-              <>
-                <Unlock className="w-3.5 h-3.5 text-amber-600" />
-                <span>Stage 2: DRAFT</span>
-              </>
+              <Unlock className="w-3.5 h-3.5 text-amber-700" />
             )}
+            <span>
+              Stage 2: {basicScienceStatus} ({basicScienceVersion})
+            </span>
           </div>
 
-          {/* Notifications */}
           <button
             type="button"
             onClick={() => onSelectTab('notifications')}
@@ -128,15 +123,6 @@ export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            className="p-2 text-ink-light hover:text-error hover:bg-error/10 rounded-card transition-colors"
-            title="Exit Session"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

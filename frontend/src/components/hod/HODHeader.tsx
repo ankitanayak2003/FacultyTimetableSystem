@@ -1,12 +1,10 @@
 import React from 'react';
-import { Menu, Bell, ShieldCheck, LogOut, CheckCircle2 } from 'lucide-react';
+import { Menu, Bell, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { HODTab } from './HODSidebar';
-import { useWorkflow } from '../../context/WorkflowContext';
 
 interface HODHeaderProps {
   activeTab: HODTab;
   onOpenMobileSidebar: () => void;
-  onLogout: () => void;
   onSelectTab: (tab: HODTab) => void;
   unreadCount?: number;
 }
@@ -14,28 +12,25 @@ interface HODHeaderProps {
 export const HODHeader: React.FC<HODHeaderProps> = ({
   activeTab,
   onOpenMobileSidebar,
-  onLogout,
   onSelectTab,
   unreadCount = 2,
 }) => {
-  const { departmentStatus } = useWorkflow();
-
   const getTabTitle = (tab: HODTab) => {
     switch (tab) {
       case 'overview':
-        return 'Department Executive Overview (AI & DS)';
+        return 'Department Executive Overview';
       case 'timetable':
-        return 'Department Master Timetable (Read-Only)';
+        return 'Department Master Timetable';
       case 'faculty':
-        return 'Department Faculty Roster & Workload';
+        return 'Faculty Allocation & Workload';
       case 'allocations':
-        return 'Subject Allocation Monitoring';
+        return 'Subject Allocation Monitor';
       case 'workload':
-        return 'Faculty Teaching Load Distribution';
+        return 'Faculty Workload Equity Audit';
       case 'preferences':
-        return 'Faculty Subject Preference Submissions';
+        return 'Faculty Teaching Preferences';
       case 'progress':
-        return 'Department Timetable Preparation Progress';
+        return 'Department Scheduling Progress';
       case 'published':
         return 'Officially Published Timetable';
       case 'notifications':
@@ -61,9 +56,9 @@ export const HODHeader: React.FC<HODHeaderProps> = ({
           </button>
           <div>
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-ink-light">
-              <span>Department Leadership</span>
+              <span>Department of AI &amp; DS</span>
               <span>/</span>
-              <span className="text-primary font-semibold">AIDS Department Oversight</span>
+              <span className="text-primary font-semibold">Head of Department</span>
             </div>
             <h1 className="font-headline text-lg sm:text-xl font-semibold text-primary truncate">
               {getTabTitle(activeTab)}
@@ -71,11 +66,11 @@ export const HODHeader: React.FC<HODHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right */}
+        {/* Right: Quick actions & profile */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary-subtle text-primary border border-primary/20 text-xs font-mono font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>AIDS Status: {departmentStatus}</span>
+            <span>Academic Year 2026–27</span>
           </div>
 
           <button
@@ -99,15 +94,6 @@ export const HODHeader: React.FC<HODHeaderProps> = ({
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            className="p-2 text-ink-light hover:text-error hover:bg-error/10 rounded-card transition-colors"
-            title="Exit Session"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

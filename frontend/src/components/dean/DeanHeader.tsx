@@ -1,12 +1,11 @@
 import React from 'react';
-import { Menu, Bell, ShieldCheck, LogOut, Lock, Unlock } from 'lucide-react';
+import { Menu, Bell, ShieldCheck, Lock, Unlock } from 'lucide-react';
 import { DeanTab } from './DeanSidebar';
 import { useWorkflow } from '../../context/WorkflowContext';
 
 interface DeanHeaderProps {
   activeTab: DeanTab;
   onOpenMobileSidebar: () => void;
-  onLogout: () => void;
   onSelectTab: (tab: DeanTab) => void;
   unreadCount?: number;
 }
@@ -14,28 +13,27 @@ interface DeanHeaderProps {
 export const DeanHeader: React.FC<DeanHeaderProps> = ({
   activeTab,
   onOpenMobileSidebar,
-  onLogout,
   onSelectTab,
   unreadCount = 2,
 }) => {
-  const { deanStatus, deanVersion } = useWorkflow();
+  const { deanStatus, deanVersion, deanLockedTimestamp } = useWorkflow();
 
   const getTabTitle = (tab: DeanTab) => {
     switch (tab) {
       case 'overview':
-        return 'Dean Academics Overview';
+        return 'Dean Academic Oversight & Governance';
       case 'institutional':
-        return 'Master Institutional Schedule';
+        return 'Institutional Schedule Grid';
       case 'fixed-slots':
-        return 'Fixed Slot Configuration';
+        return 'Fixed Slot Management';
       case 'faculty':
-        return 'Institutional Faculty Assignments';
+        return 'Institution-Wide Faculty Roster';
       case 'activities':
-        return 'Academic & Extension Activities';
+        return 'College-Wide Activity Matrix';
       case 'preview':
-        return 'Weekly Grid Preview & Clash Detection';
+        return 'Master Schedule Preview';
       case 'lock-reopen':
-        return 'Lock / Reopen Governance Control';
+        return 'Schedule Freeze & Revision Gateway';
       case 'versions':
         return 'Schedule Version History';
       case 'notifications':
@@ -61,9 +59,9 @@ export const DeanHeader: React.FC<DeanHeaderProps> = ({
           </button>
           <div>
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-ink-light">
-              <span>Stage 1 Governance</span>
+              <span>Office of Academic Affairs</span>
               <span>/</span>
-              <span className="text-primary font-semibold">Institutional Allocation</span>
+              <span className="text-primary font-semibold">Dean Portfolio</span>
             </div>
             <h1 className="font-headline text-lg sm:text-xl font-semibold text-primary truncate">
               {getTabTitle(activeTab)}
@@ -71,27 +69,27 @@ export const DeanHeader: React.FC<DeanHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Lock Status Pill & Profile */}
+        {/* Right: Stage lock indicator & profile */}
         <div className="flex items-center gap-3">
-          {/* Lock status pill */}
+          {/* Stage Status Badge */}
           <div
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-semibold border ${
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-medium border ${
               deanStatus === 'LOCKED'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                 : 'bg-amber-50 text-amber-800 border-amber-300'
             }`}
+            title={`Last locked: ${deanLockedTimestamp}`}
           >
             {deanStatus === 'LOCKED' ? (
-              <Lock className="w-3.5 h-3.5 text-emerald-600" />
+              <Lock className="w-3.5 h-3.5 text-emerald-700" />
             ) : (
-              <Unlock className="w-3.5 h-3.5 text-amber-600" />
+              <Unlock className="w-3.5 h-3.5 text-amber-700" />
             )}
             <span>
               Stage 1: {deanStatus} ({deanVersion})
             </span>
           </div>
 
-          {/* Notifications */}
           <button
             type="button"
             onClick={() => onSelectTab('notifications')}
@@ -114,15 +112,6 @@ export const DeanHeader: React.FC<DeanHeaderProps> = ({
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            className="p-2 text-ink-light hover:text-error hover:bg-error/10 rounded-card transition-colors"
-            title="Exit Session"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

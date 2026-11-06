@@ -1,12 +1,11 @@
 import React from 'react';
-import { Menu, Bell, ShieldCheck, LogOut, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Menu, Bell, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { DeptCoordinatorTab } from './DeptCoordinatorSidebar';
 import { useWorkflow } from '../../context/WorkflowContext';
 
 interface DeptCoordinatorHeaderProps {
   activeTab: DeptCoordinatorTab;
   onOpenMobileSidebar: () => void;
-  onLogout: () => void;
   onSelectTab: (tab: DeptCoordinatorTab) => void;
   unreadCount?: number;
 }
@@ -14,7 +13,6 @@ interface DeptCoordinatorHeaderProps {
 export const DeptCoordinatorHeader: React.FC<DeptCoordinatorHeaderProps> = ({
   activeTab,
   onOpenMobileSidebar,
-  onLogout,
   onSelectTab,
   unreadCount = 2,
 }) => {
@@ -25,27 +23,27 @@ export const DeptCoordinatorHeader: React.FC<DeptCoordinatorHeaderProps> = ({
   const getTabTitle = (tab: DeptCoordinatorTab) => {
     switch (tab) {
       case 'overview':
-        return 'Department Timetable Coordinator Overview';
+        return 'Department Timetable Coordination';
       case 'institutional':
-        return 'Dean Institutional Locked Assignments (Read-Only)';
+        return 'Institutional Constraint Slots';
       case 'basic-science':
-        return 'Basic Science Locked Cycles (Read-Only)';
+        return 'First-Year Basic Science Rotation';
       case 'faculty':
-        return 'Department Faculty Management';
+        return 'Department Faculty Roster';
       case 'preferences':
-        return 'Faculty Subject Preference Review';
+        return 'Faculty Preference Evaluation';
       case 'workload':
-        return 'Workload Balancing & Quota Monitoring';
+        return 'Workload Distribution Audit';
       case 'allocations':
-        return 'Subject & Laboratory Allocation Mapping';
+        return 'Subject Allocation Matrix';
       case 'builder':
-        return 'Interactive Weekly Timetable Builder';
+        return 'Interactive Schedule Builder';
       case 'clashes':
-        return 'Clash & Resource Constraint Engine';
+        return 'Real-Time Conflict Audit';
       case 'final':
-        return 'Final Timetable Verification & Publication';
+        return 'Finalize & HOD Submission Gateway';
       case 'export':
-        return 'Timetable Export & PDF Printing';
+        return 'Official Publication & Export';
       case 'notifications':
         return 'Coordinator Announcements';
       case 'profile':
@@ -69,9 +67,9 @@ export const DeptCoordinatorHeader: React.FC<DeptCoordinatorHeaderProps> = ({
           </button>
           <div>
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-ink-light">
-              <span>Stage 3 Preparation</span>
+              <span>Department of AI &amp; DS</span>
               <span>/</span>
-              <span className="text-primary font-semibold">AIDS Timetable Builder</span>
+              <span className="text-primary font-semibold">Stage 3: Department Coordination</span>
             </div>
             <h1 className="font-headline text-lg sm:text-xl font-semibold text-primary truncate">
               {getTabTitle(activeTab)}
@@ -79,26 +77,22 @@ export const DeptCoordinatorHeader: React.FC<DeptCoordinatorHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right */}
+        {/* Right: Gated status & profile */}
         <div className="flex items-center gap-3">
-          <div
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-semibold border ${
-              isGated
-                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-            }`}
-          >
-            {isGated ? (
-              <>
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span>Stage 3: GATED</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>AIDS: {departmentStatus}</span>
-              </>
-            )}
+          {/* Gating alert if Stage 2 not locked */}
+          {isGated && (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-50 text-amber-800 border border-amber-300 text-xs font-mono font-medium animate-pulse">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+              <span>Awaiting Basic Science Lock</span>
+            </div>
+          )}
+
+          {/* Department Stage Status Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary-subtle text-primary border border-primary/20 text-xs font-mono font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>
+              Stage 3: {departmentStatus}
+            </span>
           </div>
 
           <button
@@ -122,15 +116,6 @@ export const DeptCoordinatorHeader: React.FC<DeptCoordinatorHeaderProps> = ({
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            className="p-2 text-ink-light hover:text-error hover:bg-error/10 rounded-card transition-colors"
-            title="Exit Session"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

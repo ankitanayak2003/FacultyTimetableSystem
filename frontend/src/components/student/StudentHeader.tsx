@@ -1,11 +1,10 @@
 import React from 'react';
 import {
   Menu,
-  LogOut,
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
   GraduationCap,
+  Calendar,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import sodeLogo from '../../assets/sode_group_logo.png';
 import { StudentProfileData } from '../../data/studentDemoData';
@@ -15,8 +14,7 @@ interface StudentHeaderProps {
   student: StudentProfileData;
   activeTab: StudentTab;
   onOpenMobileMenu: () => void;
-  onLogout: () => void;
-  isPublished: boolean;
+  isPublished?: boolean;
   onTogglePublished?: () => void;
 }
 
@@ -24,8 +22,7 @@ export const StudentHeader: React.FC<StudentHeaderProps> = ({
   student,
   activeTab,
   onOpenMobileMenu,
-  onLogout,
-  isPublished,
+  isPublished = true,
   onTogglePublished,
 }) => {
   const getTabLabel = (tab: StudentTab) => {
@@ -69,43 +66,44 @@ export const StudentHeader: React.FC<StudentHeaderProps> = ({
               </span>
               <span className="hidden md:inline">•</span>
               <span className="font-mono text-ink-light">
-                {student.semester} ({student.section})
+                {student.usn} ({student.semester} - {student.section})
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right: Academic Status, Student Avatar & Logout */}
+        {/* Right: Academic Context, Logos, Avatar */}
         <div className="flex items-center gap-3">
-          {/* Publication Status Pill */}
-          <button
-            type="button"
-            onClick={onTogglePublished}
-            title="Click to toggle publication preview status (Demonstration)"
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-medium border transition-colors ${
-              isPublished
-                ? 'bg-success-container/60 border-success/30 text-success'
-                : 'bg-error-container/60 border-error/30 text-error'
-            }`}
-          >
-            {isPublished ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                <span className="hidden sm:inline">Official:</span>
-                <span>Published</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="w-3.5 h-3.5 text-error" />
-                <span>Unpublished</span>
-              </>
-            )}
-          </button>
+          {/* Published vs Draft toggle pill */}
+          {onTogglePublished && (
+            <button
+              type="button"
+              onClick={onTogglePublished}
+              title="Toggle timetable status (Demo mode)"
+              className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono transition-colors border ${
+                isPublished
+                  ? 'bg-success-container/40 text-success border-success/30 hover:bg-success-container/70'
+                  : 'bg-warning-container/40 text-warning border-warning/30 hover:bg-warning-container/70'
+              }`}
+            >
+              {isPublished ? (
+                <>
+                  <Lock className="w-3 h-3 text-success" />
+                  <span>Official Release</span>
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-3 h-3 text-warning" />
+                  <span>Draft Preview</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Academic Term Tag */}
           <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-canvas-muted border border-border-subtle text-[11px] font-mono text-ink-muted">
             <Calendar className="w-3 h-3 text-primary" />
-            <span>Odd Sem 2026–27</span>
+            <span>AY {student.academicYear} • Odd Sem</span>
           </div>
 
           {/* Sode Group Logo */}
@@ -130,17 +128,6 @@ export const StudentHeader: React.FC<StudentHeaderProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Logout Button */}
-          <button
-            type="button"
-            onClick={onLogout}
-            title="Sign out of student portal"
-            aria-label="Sign out"
-            className="p-1.5 rounded-card text-ink-muted hover:text-error hover:bg-error-container/40 transition-colors border border-border-beige hover:border-error/30"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

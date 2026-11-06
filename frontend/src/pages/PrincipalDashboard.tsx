@@ -37,7 +37,6 @@ export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ onLogout
         <PrincipalHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          onLogout={onLogout}
           onSelectTab={setActiveTab}
         />
 

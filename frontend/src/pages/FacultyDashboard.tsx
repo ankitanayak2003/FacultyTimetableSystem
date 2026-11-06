@@ -45,7 +45,6 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onLogout }) 
           faculty={FACULTY_PROFILE}
           activeTab={activeTab}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-          onLogout={onLogout}
         />
 
         {/* Dynamic Main Body */}

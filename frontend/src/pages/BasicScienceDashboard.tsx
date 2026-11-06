@@ -76,7 +76,6 @@ export const BasicScienceDashboard: React.FC<BasicScienceDashboardProps> = ({
         <BasicScienceHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          onLogout={onLogout}
           onSelectTab={setActiveTab}
         />
 

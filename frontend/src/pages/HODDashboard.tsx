@@ -46,7 +46,6 @@ export const HODDashboard: React.FC<HODDashboardProps> = ({ onLogout }) => {
         <HODHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          onLogout={onLogout}
           onSelectTab={setActiveTab}
         />
 

@@ -46,7 +46,6 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onLogout }) => {
         <DeanHeader
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          onLogout={onLogout}
           onSelectTab={setActiveTab}
         />
 

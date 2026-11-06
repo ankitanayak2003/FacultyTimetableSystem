@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Menu,
-  LogOut,
   Calendar,
   UserCheck,
 } from 'lucide-react';
@@ -13,14 +12,12 @@ interface FacultyHeaderProps {
   faculty: FacultyProfileData;
   activeTab: FacultyTab;
   onOpenMobileMenu: () => void;
-  onLogout: () => void;
 }
 
 export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
   faculty,
   activeTab,
   onOpenMobileMenu,
-  onLogout,
 }) => {
   const getTabLabel = (tab: FacultyTab) => {
     switch (tab) {
@@ -75,7 +72,7 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Academic Term, Logos, Avatar, Logout */}
+        {/* Right: Academic Term, Logos, Avatar */}
         <div className="flex items-center gap-3">
           {/* Academic Term Tag */}
           <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-canvas-muted border border-border-subtle text-[11px] font-mono text-ink-muted">
@@ -105,17 +102,6 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Logout Action */}
-          <button
-            type="button"
-            onClick={onLogout}
-            title="Sign out of faculty portal"
-            aria-label="Sign out"
-            className="p-1.5 rounded-card text-ink-muted hover:text-error hover:bg-error-container/40 transition-colors border border-border-beige hover:border-error/30"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

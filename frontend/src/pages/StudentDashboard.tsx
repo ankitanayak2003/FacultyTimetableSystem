@@ -41,7 +41,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
           student={STUDENT_PROFILE}
           activeTab={activeTab}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-          onLogout={onLogout}
           isPublished={isPublished}
           onTogglePublished={togglePublished}
         />
