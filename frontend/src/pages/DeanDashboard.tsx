@@ -36,7 +36,7 @@ export const DeanDashboard: React.FC<DeanDashboardProps> = ({ onLogout }) => {
           onSelectTab={setActiveTab}
         />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-3.5 sm:p-5 lg:p-5 max-w-7xl w-full mx-auto space-y-4">
           {activeTab === 'subject-allocation' && <SubjectFacultyAllocation />}
 
           {activeTab === 'timetable-editor' && <DeanTimetableEditor />}

@@ -476,10 +476,10 @@ export const DeanTimetableEditor: React.FC = () => {
       )}
 
       {/* Top Controls & Selectors Card */}
-      <div className="p-5 bg-surface rounded-card border border-border-beige shadow-crisp space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border-beige">
+      <div className="p-3.5 sm:p-4 bg-surface rounded-card border border-border-beige shadow-crisp space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-border-beige">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[10px] font-mono uppercase tracking-wider text-ink-light">
                 Institutional Timetable Planning
               </span>
@@ -493,7 +493,7 @@ export const DeanTimetableEditor: React.FC = () => {
                 {isLocked ? 'Locked & Finalized' : 'Draft (Editable)'}
               </span>
             </div>
-            <h2 className="font-headline text-2xl font-semibold text-primary">
+            <h2 className="font-headline text-xl sm:text-2xl font-semibold text-primary">
               Timetable Editor
             </h2>
             <p className="text-xs text-ink-muted mt-0.5">
@@ -502,11 +502,11 @@ export const DeanTimetableEditor: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleCheckClashes}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded bg-canvas-muted hover:bg-canvas-paper text-ink border border-border-beige transition-colors shadow-crisp-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-canvas-muted hover:bg-canvas-paper text-ink border border-border-beige transition-colors shadow-crisp-sm"
               title="Validate faculty schedule conflicts across institutional timetables"
             >
               <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
@@ -517,7 +517,7 @@ export const DeanTimetableEditor: React.FC = () => {
               type="button"
               onClick={handleSaveDraft}
               disabled={isLocked}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded border transition-colors shadow-crisp-sm ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded border transition-colors shadow-crisp-sm ${
                 isLocked
                   ? 'bg-canvas-muted text-ink-light border-border-beige cursor-not-allowed'
                   : 'bg-canvas-paper hover:bg-canvas text-primary border-primary hover:border-primary-hover'
@@ -531,7 +531,7 @@ export const DeanTimetableEditor: React.FC = () => {
               <button
                 type="button"
                 onClick={handleUnlockTimetable}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded bg-amber-600 hover:bg-amber-700 text-white transition-colors shadow-crisp-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-amber-600 hover:bg-amber-700 text-white transition-colors shadow-crisp-sm"
               >
                 <Unlock className="w-3.5 h-3.5" />
                 <span>Unlock for Editing</span>
@@ -540,7 +540,7 @@ export const DeanTimetableEditor: React.FC = () => {
               <button
                 type="button"
                 onClick={handleLockTimetable}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded bg-primary hover:bg-primary-hover text-white transition-colors shadow-crisp-sm"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded bg-primary hover:bg-primary-hover text-white transition-colors shadow-crisp-sm"
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span>Lock Timetable</span>
@@ -550,16 +550,16 @@ export const DeanTimetableEditor: React.FC = () => {
         </div>
 
         {/* 5 Selectors Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-0.5">
           {/* Academic Year */}
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
               Academic Year
             </label>
             <select
               value={selectedAcademicYear}
               onChange={(e) => setSelectedAcademicYear(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
+              className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
             >
               {ACADEMIC_YEARS.map((y) => (
                 <option key={y} value={y}>
@@ -571,13 +571,13 @@ export const DeanTimetableEditor: React.FC = () => {
 
           {/* Student Year */}
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
               Student Year
             </label>
             <select
               value={selectedStudentYear}
               onChange={(e) => setSelectedStudentYear(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
+              className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
             >
               {STUDENT_YEARS.map((sy) => (
                 <option key={sy} value={sy}>
@@ -589,13 +589,13 @@ export const DeanTimetableEditor: React.FC = () => {
 
           {/* Semester */}
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
               Semester
             </label>
             <select
               value={selectedSemester}
               onChange={(e) => setSelectedSemester(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
+              className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
             >
               {SEMESTERS.map((sem) => (
                 <option key={sem} value={sem}>
@@ -607,7 +607,7 @@ export const DeanTimetableEditor: React.FC = () => {
 
           {/* Department */}
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
               Department
             </label>
             <select
@@ -617,7 +617,7 @@ export const DeanTimetableEditor: React.FC = () => {
                 const nextSections = sectionsByDept[e.target.value] || ['Section A'];
                 setSelectedSection(nextSections[0]);
               }}
-              className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
+              className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
             >
               {DEAN_DEPARTMENTS.map((dept) => (
                 <option key={dept.code} value={dept.code}>
@@ -629,8 +629,8 @@ export const DeanTimetableEditor: React.FC = () => {
 
           {/* Section (Dynamic + Add option) */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted font-semibold">
+            <div className="flex items-center justify-between mb-0.5">
+              <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted font-semibold">
                 Section
               </label>
               <button
@@ -644,7 +644,7 @@ export const DeanTimetableEditor: React.FC = () => {
             <select
               value={selectedSection}
               onChange={(e) => setSelectedSection(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
+              className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
             >
               {(sectionsByDept[selectedDepartment] || ['Section A']).map((sec) => (
                 <option key={sec} value={sec}>
@@ -672,8 +672,8 @@ export const DeanTimetableEditor: React.FC = () => {
       )}
 
       {/* Subject Tray (Palette) */}
-      <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="p-3 sm:p-3.5 bg-surface rounded-card border border-border-beige shadow-crisp space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono uppercase tracking-wider text-ink-light">
               Page 1 Allocated Subjects
@@ -688,18 +688,18 @@ export const DeanTimetableEditor: React.FC = () => {
         </div>
 
         {availableSubjects.length === 0 ? (
-          <div className="p-4 bg-canvas-muted rounded text-xs text-ink-muted border border-dashed border-border-beige text-center">
+          <div className="p-3.5 bg-canvas-muted rounded text-xs text-ink-muted border border-dashed border-border-beige text-center">
             No subjects added yet to the master list. Go to{' '}
             <span className="font-semibold text-primary">Subject & Faculty Allocation</span> to define subjects and assign faculty.
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2.5 max-h-36 overflow-y-auto p-1">
+          <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-1">
             {availableSubjects.map((sub) => (
               <div
                 key={sub.id}
                 draggable={!isLocked}
                 onDragStart={(e) => handleTrayDragStart(e, sub)}
-                className={`p-2.5 rounded bg-canvas-paper border border-border-beige text-xs flex items-center gap-2.5 shadow-crisp-sm transition-all select-none ${
+                className={`p-2 rounded bg-canvas-paper border border-border-beige text-xs flex items-center gap-2 shadow-crisp-sm transition-all select-none ${
                   isLocked
                     ? 'opacity-60 cursor-not-allowed'
                     : 'cursor-grab hover:border-primary hover:shadow-crisp active:cursor-grabbing hover:bg-canvas'
@@ -729,10 +729,10 @@ export const DeanTimetableEditor: React.FC = () => {
 
       {/* Timetable Grid Container (Class Timetable DS-3rd sem.docx format) */}
       <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
-        <div className="p-4 bg-canvas-muted border-b border-border-beige flex items-center justify-between">
+        <div className="py-2.5 px-3.5 bg-canvas-muted border-b border-border-beige flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />
-            <h3 className="font-headline text-base font-semibold text-primary">
+            <h3 className="font-headline text-sm sm:text-base font-semibold text-primary">
               Institutional Schedule Grid — {selectedDepartment} ({selectedSection})
             </h3>
           </div>
@@ -741,51 +741,63 @@ export const DeanTimetableEditor: React.FC = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto p-4 bg-white">
+        <div className="overflow-x-auto p-2 sm:p-2.5 bg-white">
           <table className="w-full border-collapse border border-black text-xs select-none">
             <thead>
               <tr className="bg-[#993366] text-white font-mono text-[11px] border border-black">
-                <th className="py-2.5 px-3 text-center font-bold border border-black bg-[#993366] text-white w-28 uppercase">
+                <th className="py-2 px-1.5 text-center font-bold border border-black bg-[#993366] text-white w-[84px] min-w-[80px] uppercase text-[10px]">
                   DAY/TIME
                 </th>
-                <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[100px]">
-                  <div className="font-bold">Period 1</div>
+                <th className="py-1.5 px-1 text-center border border-black bg-[#993366] text-white min-w-[88px]">
+                  <div className="font-bold text-xs">Period 1</div>
                   <div className="text-[10px] text-white/90 font-normal">9:00 - 9:55</div>
                 </th>
-                <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[100px]">
-                  <div className="font-bold">Period 2</div>
+                <th className="py-1.5 px-1 text-center border border-black bg-[#993366] text-white min-w-[88px]">
+                  <div className="font-bold text-xs">Period 2</div>
                   <div className="text-[10px] text-white/90 font-normal">9:55 - 10:50</div>
                 </th>
-                <th className="py-2 px-1 text-center border border-black bg-[#EFCDDE] text-[#4A1525] min-w-[70px] uppercase font-bold text-[10px] tracking-wider">
-                  <div>TEA BREAK</div>
-                  <div className="text-[9px] font-semibold text-[#4A1525]/85">10:50 - 11:10</div>
+                <th className="py-1.5 px-0.5 text-center border border-black bg-[#EFCDDE] text-[#4A1525] w-[42px] min-w-[40px] max-w-[46px] uppercase font-bold text-[9px] tracking-wider">
+                  <div className="[writing-mode:vertical-rl] rotate-180 mx-auto whitespace-nowrap leading-none py-1">
+                    TEA BREAK
+                  </div>
+                  <div className="text-[8px] font-semibold text-[#4A1525]/85 [writing-mode:vertical-rl] rotate-180 mx-auto whitespace-nowrap leading-none mt-1">
+                    10:50-11:10
+                  </div>
                 </th>
-                <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[100px]">
-                  <div className="font-bold">Period 3</div>
+                <th className="py-1.5 px-1 text-center border border-black bg-[#993366] text-white min-w-[88px]">
+                  <div className="font-bold text-xs">Period 3</div>
                   <div className="text-[10px] text-white/90 font-normal">11:10 - 12:05</div>
                 </th>
-                <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[100px]">
-                  <div className="font-bold">Period 4</div>
+                <th className="py-1.5 px-1 text-center border border-black bg-[#993366] text-white min-w-[88px]">
+                  <div className="font-bold text-xs">Period 4</div>
                   <div className="text-[10px] text-white/90 font-normal">12:05 - 1:00</div>
                 </th>
-                <th className="py-2 px-1 text-center border border-black bg-[#F0D0E0] text-[#4A1525] min-w-[80px] uppercase font-bold text-[10px] tracking-wider">
-                  <div>LUNCH BREAK</div>
-                  <div className="text-[9px] font-semibold text-[#4A1525]/85">1:00 - 1:55</div>
+                <th className="py-1.5 px-0.5 text-center border border-black bg-[#F0D0E0] text-[#4A1525] w-[42px] min-w-[40px] max-w-[46px] uppercase font-bold text-[9px] tracking-wider">
+                  <div className="[writing-mode:vertical-rl] rotate-180 mx-auto whitespace-nowrap leading-none py-1">
+                    LUNCH BREAK
+                  </div>
+                  <div className="text-[8px] font-semibold text-[#4A1525]/85 [writing-mode:vertical-rl] rotate-180 mx-auto whitespace-nowrap leading-none mt-1">
+                    1:00 - 1:55
+                  </div>
                 </th>
-                <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[100px]">
-                  <div className="font-bold">Period 5</div>
+                <th className="py-1.5 px-1 text-center border border-black bg-[#993366] text-white min-w-[88px]">
+                  <div className="font-bold text-xs">Period 5</div>
                   <div className="text-[10px] text-white/90 font-normal">1:55 - 2:50</div>
                 </th>
-                <th className="py-2 px-1 text-center border border-black bg-[#F0D0E0] text-[#4A1525] min-w-[65px] uppercase font-bold text-[10px] tracking-wider">
-                  <div>LEISURE</div>
-                  <div className="text-[9px] font-semibold text-[#4A1525]/85">2:50 - 3:00</div>
+                <th className="py-1.5 px-0.5 text-center border border-black bg-[#F0D0E0] text-[#4A1525] w-[42px] min-w-[40px] max-w-[46px] uppercase font-bold text-[9px] tracking-wider">
+                  <div className="[writing-mode:vertical-rl] rotate-180 mx-auto whitespace-nowrap leading-none py-1">
+                    LEISURE
+                  </div>
+                  <div className="text-[8px] font-semibold text-[#4A1525]/85 [writing-mode:vertical-rl] rotate-180 mx-auto whitespace-nowrap leading-none mt-1">
+                    2:50 - 3:00
+                  </div>
                 </th>
-                <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[100px]">
-                  <div className="font-bold">Period 6</div>
+                <th className="py-1.5 px-1 text-center border border-black bg-[#993366] text-white min-w-[88px]">
+                  <div className="font-bold text-xs">Period 6</div>
                   <div className="text-[10px] text-white/90 font-normal">3:00 - 3:55</div>
                 </th>
-                <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[100px]">
-                  <div className="font-bold">Period 7</div>
+                <th className="py-1.5 px-1 text-center border border-black bg-[#993366] text-white min-w-[88px]">
+                  <div className="font-bold text-xs">Period 7</div>
                   <div className="text-[10px] text-white/90 font-normal">3:55 - 4:45</div>
                 </th>
               </tr>
@@ -831,7 +843,7 @@ export const DeanTimetableEditor: React.FC = () => {
                         <div
                           draggable={!isLocked}
                           onDragStart={(e) => handlePlacementDragStart(e, placement)}
-                          className={`group relative p-2 rounded border transition-all h-full min-h-[64px] flex flex-col justify-between ${
+                          className={`group relative p-1.5 rounded border transition-all h-full min-h-[54px] flex flex-col justify-between ${
                             clashing
                               ? 'border-rose-600 bg-rose-50 text-rose-950 shadow-crisp'
                               : 'border-neutral-300 bg-white hover:border-[#993366] text-black shadow-xs'
@@ -859,17 +871,17 @@ export const DeanTimetableEditor: React.FC = () => {
                           </div>
 
                           {/* Middle: Subject Name */}
-                          <div className="text-[11px] font-medium text-black leading-tight truncate my-0.5">
+                          <div className="text-[10px] font-medium text-black leading-tight line-clamp-2 my-0.5" title={placement.subjectName}>
                             {placement.subjectName}
                           </div>
 
                           {/* Bottom: Faculty & Room */}
-                          <div className="flex items-center justify-between text-[10px] text-neutral-700 font-mono pt-1 border-t border-neutral-200 mt-1">
-                            <span className="truncate font-semibold text-black" title={placement.facultyName}>
+                          <div className="flex items-center justify-between text-[9px] text-neutral-700 font-mono pt-0.5 border-t border-neutral-200 mt-0.5">
+                            <span className="truncate font-semibold text-black max-w-[70px]" title={placement.facultyName}>
                               {placement.facultyName}
                             </span>
                             {placement.room && (
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-neutral-100 text-neutral-600 ml-1">
+                              <span className="text-[8px] px-1 py-0.2 rounded bg-neutral-100 text-neutral-600 ml-0.5">
                                 {placement.room}
                               </span>
                             )}
@@ -877,7 +889,7 @@ export const DeanTimetableEditor: React.FC = () => {
 
                           {/* Clash badge */}
                           {clashing && (
-                            <div className="absolute top-1 right-1 px-1.5 py-0.2 rounded bg-rose-600 text-white font-mono text-[9px] font-bold flex items-center gap-0.5 shadow-sm">
+                            <div className="absolute top-1 right-1 px-1.5 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-bold flex items-center gap-0.5 shadow-sm">
                               <span>⚠️ Clash</span>
                             </div>
                           )}
@@ -896,19 +908,19 @@ export const DeanTimetableEditor: React.FC = () => {
                       }}
                       onDragLeave={() => setDragOverCell(null)}
                       onDrop={(e) => handleCellDrop(e, day, period)}
-                      className={`p-1 border border-black align-middle text-center bg-white transition-all h-20 ${
+                      className={`p-1 border border-black align-middle text-center bg-white transition-all h-[58px] ${
                         isHovered && !isLocked ? 'bg-pink-50' : 'bg-white'
                       }`}
                     >
-                      <div className={`w-full h-full min-h-[58px] rounded border border-dashed flex flex-col items-center justify-center text-[10px] p-1 ${
+                      <div className={`w-full h-full min-h-[50px] rounded border border-dashed flex flex-col items-center justify-center text-[10px] p-0.5 ${
                         isHovered && !isLocked
                           ? 'border-[#993366] bg-[#EFCDDE]/30 text-[#4A1525]'
                           : 'border-neutral-300 text-neutral-400'
                       }`}>
                         {isHovered && !isLocked ? (
-                          <span className="font-semibold text-[#4A1525]">Drop to Assign</span>
+                          <span className="font-semibold text-[#4A1525] text-[9px]">Drop to Assign</span>
                         ) : (
-                          <span className="opacity-40 font-mono">—</span>
+                          <span className="opacity-40 font-mono text-xs">—</span>
                         )}
                       </div>
                     </td>
@@ -918,7 +930,7 @@ export const DeanTimetableEditor: React.FC = () => {
                 return (
                   <tr key={day} className="border border-black">
                     {/* Day Column */}
-                    <td className="py-3 px-3 font-mono font-bold text-white bg-[#993366] border border-black uppercase text-[11px] whitespace-nowrap text-center">
+                    <td className="py-2 px-1 font-mono font-bold text-white bg-[#993366] border border-black uppercase text-[10px] whitespace-nowrap text-center w-[84px] min-w-[80px]">
                       {day}
                     </td>
 
@@ -927,8 +939,8 @@ export const DeanTimetableEditor: React.FC = () => {
                     {renderPeriodCell(2)}
 
                     {/* Break 1: TEA BREAK (Light Pink #EFCDDE) */}
-                    <td className="bg-[#EFCDDE] border border-black text-center align-middle p-1 text-[#4A1525] font-mono text-[10px] font-bold tracking-wider uppercase select-none">
-                      <span className="writing-mode-vertical sm:writing-mode-horizontal text-[9px] block">
+                    <td className="w-[42px] min-w-[40px] max-w-[46px] bg-[#EFCDDE] border border-black text-center align-middle p-0.5 text-[#4A1525] font-mono select-none">
+                      <span className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold tracking-widest uppercase inline-block whitespace-nowrap py-1">
                         Tea Break
                       </span>
                     </td>
@@ -938,8 +950,8 @@ export const DeanTimetableEditor: React.FC = () => {
                     {renderPeriodCell(4)}
 
                     {/* Break 2: LUNCH BREAK (Light Pink #F0D0E0) */}
-                    <td className="bg-[#F0D0E0] border border-black text-center align-middle p-1 text-[#4A1525] font-mono text-[10px] font-bold tracking-wider uppercase select-none">
-                      <span className="writing-mode-vertical sm:writing-mode-horizontal text-[9px] block">
+                    <td className="w-[42px] min-w-[40px] max-w-[46px] bg-[#F0D0E0] border border-black text-center align-middle p-0.5 text-[#4A1525] font-mono select-none">
+                      <span className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold tracking-widest uppercase inline-block whitespace-nowrap py-1">
                         Lunch Break
                       </span>
                     </td>
@@ -948,8 +960,8 @@ export const DeanTimetableEditor: React.FC = () => {
                     {renderPeriodCell(5)}
 
                     {/* Break 3: LEISURE BREAK (Light Pink #F0D0E0) */}
-                    <td className="bg-[#F0D0E0] border border-black text-center align-middle p-1 text-[#4A1525] font-mono text-[10px] font-bold tracking-wider uppercase select-none">
-                      <span className="writing-mode-vertical sm:writing-mode-horizontal text-[9px] block">
+                    <td className="w-[42px] min-w-[40px] max-w-[46px] bg-[#F0D0E0] border border-black text-center align-middle p-0.5 text-[#4A1525] font-mono select-none">
+                      <span className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold tracking-widest uppercase inline-block whitespace-nowrap py-1">
                         Leisure
                       </span>
                     </td>
@@ -967,7 +979,7 @@ export const DeanTimetableEditor: React.FC = () => {
 
       {/* Clash Analysis & Resolution Card */}
       {hasRunClashCheck && (
-        <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp space-y-3">
+        <div className="p-3.5 bg-surface rounded-card border border-border-beige shadow-crisp space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className={`w-4 h-4 ${clashes.length > 0 ? 'text-rose-600' : 'text-emerald-600'}`} />
@@ -987,7 +999,7 @@ export const DeanTimetableEditor: React.FC = () => {
           </div>
 
           {clashes.length === 0 ? (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-900 flex items-center gap-2">
+            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-900 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
               <span>
                 Zero clashes found! All faculty members and room assignments in this schedule are completely free from overlapping commitments across sections.
@@ -998,11 +1010,11 @@ export const DeanTimetableEditor: React.FC = () => {
               <p className="text-xs text-ink-muted">
                 The following faculty assignments conflict with existing timetable allocations in other sections or within this class:
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {clashes.map((c, i) => (
                   <div
                     key={i}
-                    className="p-3 bg-rose-50 border border-rose-300 rounded text-xs text-rose-950 space-y-1"
+                    className="p-2.5 bg-rose-50 border border-rose-300 rounded text-xs text-rose-950 space-y-1"
                   >
                     <div className="flex items-center justify-between font-mono font-bold text-[11px]">
                       <span>{c.facultyName}</span>
@@ -1011,7 +1023,7 @@ export const DeanTimetableEditor: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-[11px] leading-tight text-rose-900">{c.reason}</p>
-                    <div className="text-[10px] text-rose-800 font-mono pt-1">
+                    <div className="text-[10px] text-rose-800 font-mono pt-0.5">
                       Target Section: {c.conflictingSection} • Code: {c.conflictingSubject}
                     </div>
                   </div>
@@ -1023,7 +1035,7 @@ export const DeanTimetableEditor: React.FC = () => {
       )}
 
       {/* Automatically Generated Placed Subjects Table */}
-      <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp space-y-3">
+      <div className="p-3.5 bg-surface rounded-card border border-border-beige shadow-crisp space-y-2.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-border-beige">
           <div>
             <div className="flex items-center gap-2">
@@ -1044,30 +1056,30 @@ export const DeanTimetableEditor: React.FC = () => {
         </div>
 
         {autoGeneratedSubjects.length === 0 ? (
-          <div className="p-4 bg-canvas-muted rounded text-xs text-ink-muted text-center border border-dashed border-border-beige">
+          <div className="p-3.5 bg-canvas-muted rounded text-xs text-ink-muted text-center border border-dashed border-border-beige">
             No subjects placed in the timetable yet. Drag subjects from the tray above into the grid to populate this table.
           </div>
         ) : (
-          <div className="overflow-x-auto p-4 bg-white">
+          <div className="overflow-x-auto p-2 sm:p-2.5 bg-white">
             <table className="w-full border-collapse border border-black text-xs">
               <thead>
                 <tr className="bg-[#993366] text-white font-mono text-[11px] border border-black text-left">
-                  <th className="py-2.5 px-3 font-bold border border-black bg-[#993366] text-white w-12 text-center">
+                  <th className="py-1.5 px-2.5 font-bold border border-black bg-[#993366] text-white w-12 text-center">
                     Sl. No.
                   </th>
-                  <th className="py-2.5 px-3 font-bold border border-black bg-[#993366] text-white w-28">
+                  <th className="py-1.5 px-2.5 font-bold border border-black bg-[#993366] text-white w-28">
                     Subject Code
                   </th>
-                  <th className="py-2.5 px-3 font-bold border border-black bg-[#993366] text-white">
+                  <th className="py-1.5 px-2.5 font-bold border border-black bg-[#993366] text-white">
                     Subject Name
                   </th>
-                  <th className="py-2.5 px-3 font-bold border border-black bg-[#993366] text-white w-40">
+                  <th className="py-1.5 px-2.5 font-bold border border-black bg-[#993366] text-white w-40">
                     Course Type
                   </th>
-                  <th className="py-2.5 px-3 font-bold border border-black bg-[#993366] text-white">
+                  <th className="py-1.5 px-2.5 font-bold border border-black bg-[#993366] text-white">
                     Faculty Assigned
                   </th>
-                  <th className="py-2.5 px-3 font-bold border border-black bg-[#993366] text-white text-center w-24">
+                  <th className="py-1.5 px-2.5 font-bold border border-black bg-[#993366] text-white text-center w-24">
                     Weekly Periods
                   </th>
                 </tr>
@@ -1078,22 +1090,22 @@ export const DeanTimetableEditor: React.FC = () => {
                     key={s.code}
                     className="border border-black bg-white hover:bg-neutral-50 transition-colors"
                   >
-                    <td className="py-2.5 px-3 font-mono text-center text-neutral-700 border border-black">
+                    <td className="py-1.5 px-2.5 font-mono text-center text-neutral-700 border border-black">
                       {idx + 1}
                     </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-[#4A1525] border border-black">
+                    <td className="py-1.5 px-2.5 font-mono font-bold text-[#4A1525] border border-black">
                       {s.code}
                     </td>
-                    <td className="py-2.5 px-3 font-medium text-black border border-black">
+                    <td className="py-1.5 px-2.5 font-medium text-black border border-black">
                       {s.name}
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-neutral-800 border border-black">
+                    <td className="py-1.5 px-2.5 font-mono text-[11px] text-neutral-800 border border-black">
                       {s.type}
                     </td>
-                    <td className="py-2.5 px-3 font-semibold text-black border border-black">
+                    <td className="py-1.5 px-2.5 font-semibold text-black border border-black">
                       {s.facultyList || 'Unassigned'}
                     </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-center text-[#4A1525] border border-black">
+                    <td className="py-1.5 px-2.5 font-mono font-bold text-center text-[#4A1525] border border-black">
                       {s.hours}
                     </td>
                   </tr>

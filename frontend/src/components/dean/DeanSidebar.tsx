@@ -84,7 +84,7 @@ export const DeanSidebar: React.FC<DeanSidebarProps> = ({
         aria-label="Dean Portal Navigation"
         className={`fixed top-0 bottom-0 left-0 z-50 bg-surface border-r border-border-beige flex flex-col justify-between transition-all duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:z-40 overflow-y-auto ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } ${isCollapsed ? 'w-20' : 'w-64 lg:w-72'}`}
+        } ${isCollapsed ? 'w-20' : 'w-60 lg:w-64'}`}
       >
         <div>
           {/* Header Bar */}
