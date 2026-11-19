@@ -32,19 +32,19 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-2">
         <label
           htmlFor={id}
-          className="block text-xs font-semibold uppercase tracking-wider text-ink-muted"
+          className="block text-sm sm:text-base font-semibold uppercase tracking-wider text-ink-muted"
         >
           {label} {required && <span className="text-primary">*</span>}
         </label>
-        {hint && <span className="text-[11px] text-ink-light font-mono">{hint}</span>}
+        {hint && <span className="text-xs sm:text-sm text-ink-light font-mono">{hint}</span>}
       </div>
 
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-light">
-          <Lock className="w-4 h-4" />
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-ink-light">
+          <Lock className="w-5 h-5" />
         </div>
 
         <input
@@ -58,11 +58,11 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           placeholder={placeholder}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={`w-full pl-9 pr-10 py-2.5 bg-surface text-ink text-sm rounded-card border transition-all ${
+          className={`w-full pl-12 pr-12 py-3.5 sm:py-4 bg-surface text-ink text-base sm:text-lg rounded-xl border transition-all ${
             error
               ? 'border-error focus:ring-1 focus:ring-error'
               : 'border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm'
-          } placeholder:text-ink-light disabled:opacity-60 disabled:cursor-not-allowed`}
+          } placeholder:text-ink-light placeholder:text-base disabled:opacity-60 disabled:cursor-not-allowed`}
         />
 
         <button
@@ -71,18 +71,18 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           onClick={() => setShowPassword(!showPassword)}
           aria-label={showPassword ? 'Hide password' : 'Show password'}
           aria-pressed={showPassword}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-ink-muted hover:text-primary transition-colors focus:outline-none"
+          className="absolute inset-y-0 right-0 pr-4 flex items-center text-ink-muted hover:text-primary transition-colors focus:outline-none"
         >
           {showPassword ? (
-            <EyeOff className="w-4 h-4" />
+            <EyeOff className="w-5 h-5" />
           ) : (
-            <Eye className="w-4 h-4" />
+            <Eye className="w-5 h-5" />
           )}
         </button>
       </div>
 
       {error && (
-        <p id={`${id}-error`} className="mt-1 text-xs text-error font-medium">
+        <p id={`${id}-error`} className="mt-1.5 text-xs text-error font-medium">
           {error}
         </p>
       )}
