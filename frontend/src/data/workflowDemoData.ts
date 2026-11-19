@@ -578,3 +578,283 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
     remarks: 'AIDS and Mechanical Department timetables approved for official publication.',
   },
 ];
+
+// =====================================================================
+// DEAN MODULE SPECIFICATION TYPES AND INITIAL STATE (AQS Redesign)
+// =====================================================================
+
+export interface DeanSubject {
+  id: string;
+  name: string;
+  code: string;
+  type: string;
+  numFaculty: number;
+  facultyNames: string[];
+  academicYear: string;
+  studentYear: string; // First, Second, Third, Fourth
+  semester: string; // Odd, Even
+}
+
+export interface DeanPlacement {
+  id: string;
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  startPeriod: number; // 1 to 7
+  duration: number; // 1, 2, or 3 consecutive periods
+  subjectCode: string;
+  subjectName: string;
+  facultyName: string;
+  room?: string;
+  isMerged?: boolean;
+}
+
+export interface DeanSectionTimetable {
+  academicYear: string;
+  studentYear: string;
+  semester: string;
+  department: string;
+  section: string;
+  placements: DeanPlacement[];
+  isLocked: boolean;
+  lockedAt?: string;
+  lockedBy?: string;
+}
+
+export const DEAN_DEPARTMENTS = [
+  { code: 'DS', name: 'Data Science' },
+  { code: 'ML', name: 'Machine Learning' },
+  { code: 'CSE', name: 'Computer Science & Engineering' },
+  { code: 'EC', name: 'Electronics & Communication' },
+  { code: 'MECH', name: 'Mechanical' },
+  { code: 'CIVIL', name: 'Civil' },
+  { code: 'First Year', name: 'First Year' },
+];
+
+export const PERIOD_TIMINGS = [
+  { period: 1, label: 'Period 1', time: '9:00–9:55', isBreak: false },
+  { period: 2, label: 'Period 2', time: '9:55–10:50', isBreak: false },
+  { period: -1, label: 'Tea Break', time: '10:50–11:10', isBreak: true },
+  { period: 3, label: 'Period 3', time: '11:10–12:05', isBreak: false },
+  { period: 4, label: 'Period 4', time: '12:05–1:00', isBreak: false },
+  { period: -2, label: 'Lunch Break', time: '1:00–1:55', isBreak: true },
+  { period: 5, label: 'Period 5', time: '1:55–2:50', isBreak: false },
+  { period: -3, label: 'Leisure', time: '2:50–3:00', isBreak: true },
+  { period: 6, label: 'Period 6', time: '3:00–3:55', isBreak: false },
+  { period: 7, label: 'Period 7', time: '3:55–4:45', isBreak: false },
+];
+
+export const REGISTERED_FACULTY_NAMES: string[] = [
+  'Dr. Thirumaleshwara Bhat',
+  'Dr. Sudarshan Rao',
+  'Dr. Vasudeva',
+  'Dr. Shantharama Rai C',
+  'Dr. Gajanan Anne',
+  'Dr. Bhagya',
+  'Dr. Ananya Rao',
+  'Prof. Rajesh Shetty',
+  'Prof. Sneha Kamath',
+  'Prof. Manoj T',
+  'Prof. Nagaraj Rao',
+  'Prof. Anand V',
+  'Prof. Sandesh',
+  'Prof. Karthik',
+  'Prof. Vinay',
+  'Prof. Divya',
+  'Prof. Sumana',
+  'Balachandra',
+  'Ashwini',
+  'Shalaka',
+  'Shabhana',
+  'Sarvesh',
+  'Ranjan',
+  'BJ',
+  'VS',
+  'AK',
+  'NF1',
+  'SL',
+  'MS',
+  'SH',
+  'SR',
+  'Placement Officer',
+];
+
+export const INITIAL_DEAN_SUBJECTS: DeanSubject[] = [
+  {
+    id: 'sub-1',
+    name: 'Mathematics for Computer Science',
+    code: 'BCS301',
+    type: 'PCC/BSC - Theory',
+    numFaculty: 1,
+    facultyNames: ['Dr. Bhagya'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-2',
+    name: 'Digital Design & Computer Organization',
+    code: 'BCS302',
+    type: 'IPCC - Integrated',
+    numFaculty: 3,
+    facultyNames: ['Balachandra', 'BJ', 'VS'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-3',
+    name: 'Operating Systems',
+    code: 'BCS303',
+    type: 'IPCC - Integrated',
+    numFaculty: 3,
+    facultyNames: ['Ashwini', 'AK', 'NF1'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-4',
+    name: 'Data Structures and Applications',
+    code: 'BCS304',
+    type: 'PCC - Theory',
+    numFaculty: 1,
+    facultyNames: ['Shalaka'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-5',
+    name: 'Data Structures Lab',
+    code: 'BCSL305',
+    type: 'PCCL - Laboratory',
+    numFaculty: 3,
+    facultyNames: ['Shalaka', 'SL', 'MS'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-6',
+    name: 'Object Oriented Programming with Java',
+    code: 'BCS306A',
+    type: 'ESC - Elective',
+    numFaculty: 3,
+    facultyNames: ['Shabhana', 'SH', 'NF1'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-7',
+    name: 'Social Connect and Responsibility',
+    code: 'BSCK307',
+    type: 'UHV - Universal Human Values',
+    numFaculty: 1,
+    facultyNames: ['Sarvesh'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-8',
+    name: 'Data Analytics with Excel',
+    code: 'BCS358A',
+    type: 'AEC/SEC - Skill Enhancement',
+    numFaculty: 3,
+    facultyNames: ['BJ', 'SR', 'SH'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-9',
+    name: 'National Service Scheme (NSS)',
+    code: 'BNSK359',
+    type: 'MC - Mandatory Course',
+    numFaculty: 2,
+    facultyNames: ['Ranjan', 'Prof. Nagaraj Rao'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-10',
+    name: 'Technical Training',
+    code: 'TECH-TRN',
+    type: 'Institutional Activity',
+    numFaculty: 2,
+    facultyNames: ['Placement Officer', 'Industry Mentors'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+  {
+    id: 'sub-11',
+    name: 'Value Added Course',
+    code: 'VAC',
+    type: 'Institutional Activity',
+    numFaculty: 1,
+    facultyNames: ['Dean Academic / Faculty'],
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+  },
+];
+
+export const INITIAL_DS_3A_PLACEMENTS: DeanPlacement[] = [
+  // Monday
+  { id: 'p-m1', day: 'Monday', startPeriod: 1, duration: 2, subjectCode: 'TECH-TRN', subjectName: 'Technical Training', facultyName: 'Placement Officer', room: 'Auditorium' },
+  { id: 'p-m3', day: 'Monday', startPeriod: 3, duration: 1, subjectCode: 'BCS301', subjectName: 'Mathematics for Computer Science', facultyName: 'Dr. Bhagya', room: 'LH-201' },
+  { id: 'p-m4', day: 'Monday', startPeriod: 4, duration: 1, subjectCode: 'BCS302', subjectName: 'Digital Design & Computer Organization', facultyName: 'Balachandra', room: 'LH-201' },
+  { id: 'p-m5', day: 'Monday', startPeriod: 5, duration: 1, subjectCode: 'BCS304', subjectName: 'Data Structures and Applications', facultyName: 'Shalaka', room: 'LH-201' },
+  { id: 'p-m6', day: 'Monday', startPeriod: 6, duration: 2, subjectCode: 'BCS358A', subjectName: 'Data Analytics with Excel Lab', facultyName: 'BJ, SR, SH', room: 'Computing Center' },
+
+  // Tuesday
+  { id: 'p-t1', day: 'Tuesday', startPeriod: 1, duration: 2, subjectCode: 'BCS302/BCS306A', subjectName: 'DDCO/OOPS LAB', facultyName: 'Balachandra, Shabhana', room: 'Hardware Lab' },
+  { id: 'p-t3', day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: 'BCS306A', subjectName: 'Object Oriented Programming with Java', facultyName: 'Shabhana', room: 'LH-201' },
+  { id: 'p-t4', day: 'Tuesday', startPeriod: 4, duration: 1, subjectCode: 'BCS304', subjectName: 'Data Structures and Applications', facultyName: 'Shalaka', room: 'LH-201' },
+  { id: 'p-t5', day: 'Tuesday', startPeriod: 5, duration: 1, subjectCode: 'BCS303', subjectName: 'Operating Systems', facultyName: 'Ashwini', room: 'LH-201' },
+  { id: 'p-t6', day: 'Tuesday', startPeriod: 6, duration: 1, subjectCode: 'BCS303', subjectName: 'Operating Systems', facultyName: 'Ashwini', room: 'LH-201' },
+  { id: 'p-t7', day: 'Tuesday', startPeriod: 7, duration: 1, subjectCode: 'BCS301', subjectName: 'Mathematics for Computer Science', facultyName: 'Dr. Bhagya', room: 'LH-201' },
+
+  // Wednesday
+  { id: 'p-w1', day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: 'BCS303', subjectName: 'Operating Systems', facultyName: 'Ashwini', room: 'LH-201' },
+  { id: 'p-w2', day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: 'BCS306A', subjectName: 'Object Oriented Programming with Java', facultyName: 'Shabhana', room: 'LH-201' },
+  { id: 'p-w3', day: 'Wednesday', startPeriod: 3, duration: 1, subjectCode: 'BCS304', subjectName: 'Data Structures and Applications', facultyName: 'Shalaka', room: 'LH-201' },
+  { id: 'p-w4', day: 'Wednesday', startPeriod: 4, duration: 1, subjectCode: 'BCS301', subjectName: 'Mathematics for Computer Science', facultyName: 'Dr. Bhagya', room: 'LH-201' },
+  { id: 'p-w5', day: 'Wednesday', startPeriod: 5, duration: 1, subjectCode: 'BCS302', subjectName: 'Digital Design & Computer Organization', facultyName: 'Balachandra', room: 'LH-201' },
+  { id: 'p-w6', day: 'Wednesday', startPeriod: 6, duration: 2, subjectCode: 'BCSL305/BCS302', subjectName: 'DS/DDCO LAB', facultyName: 'Shalaka, Balachandra', room: 'AI Lab 1' },
+
+  // Thursday
+  { id: 'p-th1', day: 'Thursday', startPeriod: 1, duration: 1, subjectCode: 'BCS301', subjectName: 'Mathematics for Computer Science', facultyName: 'Dr. Bhagya', room: 'LH-201' },
+  { id: 'p-th2', day: 'Thursday', startPeriod: 2, duration: 1, subjectCode: 'BCS303', subjectName: 'Operating Systems', facultyName: 'Ashwini', room: 'LH-201' },
+  { id: 'p-th3', day: 'Thursday', startPeriod: 3, duration: 1, subjectCode: 'BCS302', subjectName: 'Digital Design & Computer Organization', facultyName: 'Balachandra', room: 'LH-201' },
+  { id: 'p-th4', day: 'Thursday', startPeriod: 4, duration: 1, subjectCode: 'BCS306A', subjectName: 'Object Oriented Programming with Java', facultyName: 'Shabhana', room: 'LH-201' },
+  { id: 'p-th5', day: 'Thursday', startPeriod: 5, duration: 1, subjectCode: 'BCS304', subjectName: 'Data Structures and Applications', facultyName: 'Shalaka', room: 'LH-201' },
+  { id: 'p-th6', day: 'Thursday', startPeriod: 6, duration: 2, subjectCode: 'BCS306A/BCSL305', subjectName: 'OOPS/DS LAB', facultyName: 'Shabhana, Shalaka', room: 'AI Lab 2' },
+
+  // Friday
+  { id: 'p-f1', day: 'Friday', startPeriod: 1, duration: 2, subjectCode: 'BCS303', subjectName: 'OS LAB', facultyName: 'Ashwini', room: 'Systems Lab' },
+  { id: 'p-f3', day: 'Friday', startPeriod: 3, duration: 2, subjectCode: 'TECH-TRN', subjectName: 'Technical Training', facultyName: 'Placement Officer', room: 'Auditorium' },
+  { id: 'p-f5', day: 'Friday', startPeriod: 5, duration: 1, subjectCode: 'BCS301', subjectName: 'Mathematics for Computer Science', facultyName: 'Dr. Bhagya', room: 'LH-201' },
+  { id: 'p-f6', day: 'Friday', startPeriod: 6, duration: 1, subjectCode: 'BSCK307', subjectName: 'Social Connect and Responsibility', facultyName: 'Sarvesh', room: 'LH-201' },
+  { id: 'p-f7', day: 'Friday', startPeriod: 7, duration: 1, subjectCode: 'BNSK359', subjectName: 'National Service Scheme (NSS)', facultyName: 'Ranjan', room: 'Campus Grounds' },
+
+  // Saturday
+  { id: 'p-s1', day: 'Saturday', startPeriod: 1, duration: 2, subjectCode: 'VAC', subjectName: 'Value Added Course', facultyName: 'Dean Academic', room: 'Seminar Hall' },
+  { id: 'p-s3', day: 'Saturday', startPeriod: 3, duration: 2, subjectCode: 'VAC', subjectName: 'Value Added Course', facultyName: 'Dean Academic', room: 'Seminar Hall' },
+  { id: 'p-s5', day: 'Saturday', startPeriod: 5, duration: 1, subjectCode: 'MMM', subjectName: 'Faculty Mentorship', facultyName: 'Faculty Mentor', room: 'LH-201' },
+];
+
+export const INITIAL_DEAN_TIMETABLES: Record<string, DeanSectionTimetable> = {
+  '2026–2027_Second Year_Odd Semester_DS_Section A': {
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    department: 'DS',
+    section: 'Section A',
+    placements: INITIAL_DS_3A_PLACEMENTS,
+    isLocked: false,
+  },
+};
+

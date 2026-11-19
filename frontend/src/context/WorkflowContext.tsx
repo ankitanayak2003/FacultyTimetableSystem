@@ -8,6 +8,8 @@ import {
   SubjectAllocationItem,
   TimetableCellEntry,
   AuditLogEntry,
+  DeanSubject,
+  DeanSectionTimetable,
   INITIAL_INSTITUTIONAL_SLOTS,
   INITIAL_FIRST_YEAR_SECTIONS,
   INITIAL_DEPARTMENTS,
@@ -15,6 +17,8 @@ import {
   INITIAL_FACULTY_PREFERENCES,
   INITIAL_SUBJECT_ALLOCATIONS,
   INITIAL_AUDIT_LOGS,
+  INITIAL_DEAN_SUBJECTS,
+  INITIAL_DEAN_TIMETABLES,
 } from '../data/workflowDemoData';
 
 export type WorkflowStageStatus = 'BLOCKED' | 'DRAFT' | 'LOCKED' | 'FINALIZED' | 'PUBLISHED';
@@ -31,6 +35,17 @@ interface WorkflowContextType {
   removeInstitutionalSlot: (id: string) => void;
   lockDeanSchedule: (remarks: string) => void;
   reopenDeanSchedule: (reason: string) => void;
+
+  // Dean Redesign: Subject & Timetable State
+  deanSubjects: DeanSubject[];
+  addDeanSubject: (sub: Omit<DeanSubject, 'id'>) => void;
+  updateDeanSubject: (id: string, sub: Partial<DeanSubject>) => void;
+  deleteDeanSubject: (id: string) => void;
+
+  deanTimetables: Record<string, DeanSectionTimetable>;
+  saveDeanSectionTimetable: (key: string, data: DeanSectionTimetable) => void;
+  lockDeanSectionTimetable: (key: string) => void;
+  unlockDeanSectionTimetable: (key: string) => void;
 
   // Basic Science Stage
   basicScienceStatus: WorkflowStageStatus;
@@ -98,6 +113,10 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [deanLockedTimestamp, setDeanLockedTimestamp] = useState<string>('2026-11-01 10:30 AM');
   const [deanLockedBy] = useState<string>('Dr. Sudarshan Rao (Dean Academics)');
   const [institutionalSlots, setInstitutionalSlots] = useState<InstitutionalSlot[]>(INITIAL_INSTITUTIONAL_SLOTS);
+
+  // Dean Redesign State: Page 1 Subjects & Page 2 Timetables
+  const [deanSubjects, setDeanSubjects] = useState<DeanSubject[]>(INITIAL_DEAN_SUBJECTS);
+  const [deanTimetables, setDeanTimetables] = useState<Record<string, DeanSectionTimetable>>(INITIAL_DEAN_TIMETABLES);
 
   // 2. Basic Science State
   const [basicScienceManualStatus, setBasicScienceManualStatus] = useState<'DRAFT' | 'LOCKED'>('LOCKED');
@@ -208,6 +227,87 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       'Institutional',
       'v1.1-draft',
       reason || 'Reopened institutional slots for amendments. Downstream schedules require revalidation.'
+    );
+  };
+
+  // Dean Redesign Subject Actions
+  const addDeanSubject = (sub: Omit<DeanSubject, 'id'>) => {
+    const newSubject: DeanSubject = {
+      ...sub,
+      id: `sub-${Date.now()}`,
+    };
+    setDeanSubjects((prev) => [newSubject, ...prev]);
+  };
+
+  const updateDeanSubject = (id: string, updates: Partial<DeanSubject>) => {
+    setDeanSubjects((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
+
+  const deleteDeanSubject = (id: string) => {
+    setDeanSubjects((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  // Dean Redesign Timetable Actions (Save Draft, Lock, Unlock)
+  const saveDeanSectionTimetable = (key: string, data: DeanSectionTimetable) => {
+    setDeanTimetables((prev) => ({
+      ...prev,
+      [key]: data,
+    }));
+  };
+
+  const lockDeanSectionTimetable = (key: string) => {
+    const now = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setDeanTimetables((prev) => {
+      const existing = prev[key];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [key]: {
+          ...existing,
+          isLocked: true,
+          lockedAt: now,
+          lockedBy: 'Dr. Sudarshan Rao (Dean Academics)',
+        },
+      };
+    });
+    setDeanStatus('LOCKED');
+    pushAudit(
+      'Dean',
+      'Dr. Sudarshan Rao',
+      'LOCKED_SECTION_TIMETABLE',
+      'Institutional',
+      deanVersion,
+      `Finalized and locked institutional allocation for ${key}. Downstream coordinators granted view access.`
+    );
+  };
+
+  const unlockDeanSectionTimetable = (key: string) => {
+    setDeanTimetables((prev) => {
+      const existing = prev[key];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [key]: {
+          ...existing,
+          isLocked: false,
+        },
+      };
+    });
+    pushAudit(
+      'Dean',
+      'Dr. Sudarshan Rao',
+      'REOPENED_SECTION_TIMETABLE',
+      'Institutional',
+      deanVersion,
+      `Reopened draft allocation for ${key} for administrative revisions.`
     );
   };
 
@@ -355,6 +455,16 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         removeInstitutionalSlot,
         lockDeanSchedule,
         reopenDeanSchedule,
+
+        deanSubjects,
+        addDeanSubject,
+        updateDeanSubject,
+        deleteDeanSubject,
+
+        deanTimetables,
+        saveDeanSectionTimetable,
+        lockDeanSectionTimetable,
+        unlockDeanSectionTimetable,
 
         basicScienceStatus,
         basicScienceVersion,
