@@ -232,56 +232,56 @@ export const FinalTimetablesView: React.FC = () => {
         {/* Timetable Grid (Table 0 of reference document) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-mono">
-            <span className="font-bold text-primary uppercase">Table 0: Master Weekly Schedule</span>
+            <span className="font-bold text-[#4A1525] uppercase">Table 0: Master Weekly Schedule</span>
             <span className="text-ink-muted">7 Periods • 3 Breaks</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-border-beige text-xs">
+          <div className="overflow-x-auto bg-white p-2 sm:p-4 rounded border border-black">
+            <table className="w-full border-collapse border border-black text-xs">
               <thead>
-                <tr className="bg-canvas-paper text-ink font-mono text-[11px] border-b border-border-beige">
-                  <th className="py-2.5 px-3 text-left font-bold border-r border-border-beige w-28 uppercase">
+                <tr className="bg-[#993366] text-white font-mono text-[11px] border border-black">
+                  <th className="py-2.5 px-3 text-center font-bold border border-black bg-[#993366] text-white w-28 uppercase">
                     DAY/TIME
                   </th>
-                  <th className="py-2 px-2 text-center border-r border-border-beige min-w-[95px]">
-                    <div className="font-bold">9:00 - 9:55</div>
-                    <div className="text-[10px] text-ink-muted font-normal">Period 1</div>
+                  <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[95px]">
+                    <div className="font-bold">Period 1</div>
+                    <div className="text-[10px] text-white/90 font-normal">9:00 - 9:55</div>
                   </th>
-                  <th className="py-2 px-2 text-center border-r border-border-beige min-w-[95px]">
-                    <div className="font-bold">9:55 - 10:50</div>
-                    <div className="text-[10px] text-ink-muted font-normal">Period 2</div>
+                  <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[95px]">
+                    <div className="font-bold">Period 2</div>
+                    <div className="text-[10px] text-white/90 font-normal">9:55 - 10:50</div>
                   </th>
-                  <th className="py-2 px-1 text-center border-r border-border-beige bg-[#f4efe8] text-ink-muted min-w-[65px] uppercase font-bold text-[10px] tracking-wider">
+                  <th className="py-2 px-1 text-center border border-black bg-[#EFCDDE] text-[#4A1525] min-w-[65px] uppercase font-bold text-[10px] tracking-wider">
                     <div>TEA BREAK</div>
-                    <div className="text-[9px] font-normal">10:50-11:10</div>
+                    <div className="text-[9px] font-semibold text-[#4A1525]/85">10:50 - 11:10</div>
                   </th>
-                  <th className="py-2 px-2 text-center border-r border-border-beige min-w-[95px]">
-                    <div className="font-bold">11:10 - 12:05</div>
-                    <div className="text-[10px] text-ink-muted font-normal">Period 3</div>
+                  <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[95px]">
+                    <div className="font-bold">Period 3</div>
+                    <div className="text-[10px] text-white/90 font-normal">11:10 - 12:05</div>
                   </th>
-                  <th className="py-2 px-2 text-center border-r border-border-beige min-w-[95px]">
-                    <div className="font-bold">12:05 - 1:00</div>
-                    <div className="text-[10px] text-ink-muted font-normal">Period 4</div>
+                  <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[95px]">
+                    <div className="font-bold">Period 4</div>
+                    <div className="text-[10px] text-white/90 font-normal">12:05 - 1:00</div>
                   </th>
-                  <th className="py-2 px-1 text-center border-r border-border-beige bg-[#f4efe8] text-ink-muted min-w-[75px] uppercase font-bold text-[10px] tracking-wider">
+                  <th className="py-2 px-1 text-center border border-black bg-[#F0D0E0] text-[#4A1525] min-w-[75px] uppercase font-bold text-[10px] tracking-wider">
                     <div>LUNCH BREAK</div>
-                    <div className="text-[9px] font-normal">1:00-1:55</div>
+                    <div className="text-[9px] font-semibold text-[#4A1525]/85">1:00 - 1:55</div>
                   </th>
-                  <th className="py-2 px-2 text-center border-r border-border-beige min-w-[95px]">
-                    <div className="font-bold">1:55 - 2:50</div>
-                    <div className="text-[10px] text-ink-muted font-normal">Period 5</div>
+                  <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[95px]">
+                    <div className="font-bold">Period 5</div>
+                    <div className="text-[10px] text-white/90 font-normal">1:55 - 2:50</div>
                   </th>
-                  <th className="py-2 px-1 text-center border-r border-border-beige bg-[#f4efe8] text-ink-muted min-w-[60px] uppercase font-bold text-[10px] tracking-wider">
+                  <th className="py-2 px-1 text-center border border-black bg-[#F0D0E0] text-[#4A1525] min-w-[60px] uppercase font-bold text-[10px] tracking-wider">
                     <div>LEISURE</div>
-                    <div className="text-[9px] font-normal">2:50-3:00</div>
+                    <div className="text-[9px] font-semibold text-[#4A1525]/85">2:50 - 3:00</div>
                   </th>
-                  <th className="py-2 px-2 text-center border-r border-border-beige min-w-[95px]">
-                    <div className="font-bold">3:00 - 3:55</div>
-                    <div className="text-[10px] text-ink-muted font-normal">Period 6</div>
+                  <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[95px]">
+                    <div className="font-bold">Period 6</div>
+                    <div className="text-[10px] text-white/90 font-normal">3:00 - 3:55</div>
                   </th>
-                  <th className="py-2 px-2 text-center min-w-[95px]">
-                    <div className="font-bold">3:55 - 4:45</div>
-                    <div className="text-[10px] text-ink-muted font-normal">Period 7</div>
+                  <th className="py-2 px-2 text-center border border-black bg-[#993366] text-white min-w-[95px]">
+                    <div className="font-bold">Period 7</div>
+                    <div className="text-[10px] text-white/90 font-normal">3:55 - 4:45</div>
                   </th>
                 </tr>
               </thead>
@@ -312,15 +312,15 @@ export const FinalTimetablesView: React.FC = () => {
                         <td
                           key={period}
                           colSpan={colSpan}
-                          className="p-2 border-r border-b border-border-beige align-middle text-center bg-surface"
+                          className="p-2 border border-black align-middle text-center bg-white"
                         >
-                          <div className="font-mono font-bold text-primary text-xs leading-tight">
+                          <div className="font-mono font-bold text-[#4A1525] text-xs leading-tight">
                             {placement.subjectCode}
                           </div>
-                          <div className="text-[10px] text-ink truncate mt-0.5" title={placement.subjectName}>
+                          <div className="text-[10px] text-black truncate mt-0.5 font-medium" title={placement.subjectName}>
                             {placement.subjectName}
                           </div>
-                          <div className="text-[10px] font-mono text-ink-muted font-semibold mt-1">
+                          <div className="text-[10px] font-mono text-neutral-700 font-semibold mt-1">
                             {placement.facultyName}
                           </div>
                         </td>
@@ -330,7 +330,7 @@ export const FinalTimetablesView: React.FC = () => {
                     return (
                       <td
                         key={period}
-                        className="p-2 border-r border-b border-border-beige align-middle text-center text-ink-light font-mono text-xs"
+                        className="p-2 border border-black align-middle text-center text-neutral-400 font-mono text-xs bg-white"
                       >
                         —
                       </td>
@@ -338,31 +338,31 @@ export const FinalTimetablesView: React.FC = () => {
                   };
 
                   return (
-                    <tr key={day} className="border-b border-border-beige">
-                      <td className="py-3 px-3 font-mono font-bold text-primary bg-canvas-paper border-r border-border-beige uppercase text-[11px] whitespace-nowrap">
+                    <tr key={day} className="border border-black">
+                      <td className="py-3 px-3 font-mono font-bold text-white bg-[#993366] border border-black uppercase text-[11px] whitespace-nowrap text-center">
                         {day}
                       </td>
 
                       {renderPeriodCell(1)}
                       {renderPeriodCell(2)}
 
-                      {/* Tea Break */}
-                      <td className="bg-[#f4efe8] border-r border-border-beige text-center align-middle p-1 text-ink-muted font-mono text-[9px] font-bold tracking-wider uppercase select-none">
+                      {/* Tea Break (#EFCDDE) */}
+                      <td className="bg-[#EFCDDE] border border-black text-center align-middle p-1 text-[#4A1525] font-mono text-[9px] font-bold tracking-wider uppercase select-none">
                         Tea Break
                       </td>
 
                       {renderPeriodCell(3)}
                       {renderPeriodCell(4)}
 
-                      {/* Lunch Break */}
-                      <td className="bg-[#f4efe8] border-r border-border-beige text-center align-middle p-1 text-ink-muted font-mono text-[9px] font-bold tracking-wider uppercase select-none">
+                      {/* Lunch Break (#F0D0E0) */}
+                      <td className="bg-[#F0D0E0] border border-black text-center align-middle p-1 text-[#4A1525] font-mono text-[9px] font-bold tracking-wider uppercase select-none">
                         Lunch Break
                       </td>
 
                       {renderPeriodCell(5)}
 
-                      {/* Leisure Break */}
-                      <td className="bg-[#f4efe8] border-r border-border-beige text-center align-middle p-1 text-ink-muted font-mono text-[9px] font-bold tracking-wider uppercase select-none">
+                      {/* Leisure Break (#F0D0E0) */}
+                      <td className="bg-[#F0D0E0] border border-black text-center align-middle p-1 text-[#4A1525] font-mono text-[9px] font-bold tracking-wider uppercase select-none">
                         Leisure
                       </td>
 
@@ -379,32 +379,32 @@ export const FinalTimetablesView: React.FC = () => {
         {/* Automatically Generated Subject & Faculty Table (Table 1 of reference document) */}
         <div className="space-y-2 pt-2">
           <div className="flex items-center justify-between text-xs font-mono">
-            <span className="font-bold text-primary uppercase">
+            <span className="font-bold text-[#4A1525] uppercase">
               Table 1: Course & Faculty Allocation Registry
             </span>
             <span className="text-ink-muted">{courseSummary.length} Courses Allocated</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-border-beige text-xs">
+          <div className="overflow-x-auto bg-white p-2 sm:p-4 rounded border border-black">
+            <table className="w-full border-collapse border border-black text-xs">
               <thead>
-                <tr className="bg-canvas-paper text-ink font-mono text-[11px] border-b border-border-beige text-left">
-                  <th className="py-2 px-3 font-bold border-r border-border-beige w-12 text-center">
+                <tr className="bg-[#993366] text-white font-mono text-[11px] border border-black text-left">
+                  <th className="py-2 px-3 font-bold border border-black bg-[#993366] text-white w-12 text-center">
                     Sl. No.
                   </th>
-                  <th className="py-2 px-3 font-bold border-r border-border-beige w-28">
+                  <th className="py-2 px-3 font-bold border border-black bg-[#993366] text-white w-28">
                     Course Code
                   </th>
-                  <th className="py-2 px-3 font-bold border-r border-border-beige">
+                  <th className="py-2 px-3 font-bold border border-black bg-[#993366] text-white">
                     Course Name
                   </th>
-                  <th className="py-2 px-3 font-bold border-r border-border-beige w-40">
+                  <th className="py-2 px-3 font-bold border border-black bg-[#993366] text-white w-40">
                     Course Type
                   </th>
-                  <th className="py-2 px-3 font-bold border-r border-border-beige">
+                  <th className="py-2 px-3 font-bold border border-black bg-[#993366] text-white">
                     Name of the Faculty Member
                   </th>
-                  <th className="py-2 px-3 font-bold text-center w-24">
+                  <th className="py-2 px-3 font-bold border border-black bg-[#993366] text-white text-center w-24">
                     Weekly Hours
                   </th>
                 </tr>
@@ -412,29 +412,29 @@ export const FinalTimetablesView: React.FC = () => {
               <tbody>
                 {courseSummary.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-4 text-center text-ink-muted italic">
+                    <td colSpan={6} className="py-4 text-center text-ink-muted italic border border-black">
                       No timetable placements found for this section.
                     </td>
                   </tr>
                 ) : (
                   courseSummary.map((c, i) => (
-                    <tr key={c.code} className="border-b border-border-beige hover:bg-canvas-paper/40">
-                      <td className="py-2 px-3 font-mono text-center text-ink-muted border-r border-border-beige">
+                    <tr key={c.code} className="border border-black bg-white hover:bg-neutral-50">
+                      <td className="py-2 px-3 font-mono text-center text-neutral-700 border border-black">
                         {i + 1}
                       </td>
-                      <td className="py-2 px-3 font-mono font-bold text-primary border-r border-border-beige">
+                      <td className="py-2 px-3 font-mono font-bold text-[#4A1525] border border-black">
                         {c.code}
                       </td>
-                      <td className="py-2 px-3 font-medium text-ink border-r border-border-beige">
+                      <td className="py-2 px-3 font-medium text-black border border-black">
                         {c.name}
                       </td>
-                      <td className="py-2 px-3 font-mono text-[11px] text-ink-muted border-r border-border-beige">
+                      <td className="py-2 px-3 font-mono text-[11px] text-neutral-800 border border-black">
                         {c.type}
                       </td>
-                      <td className="py-2 px-3 font-semibold text-ink border-r border-border-beige">
+                      <td className="py-2 px-3 font-semibold text-black border border-black">
                         {c.facultyList || 'Unassigned'}
                       </td>
-                      <td className="py-2 px-3 font-mono font-bold text-center text-primary">
+                      <td className="py-2 px-3 font-mono font-bold text-center text-[#4A1525] border border-black">
                         {c.hours}
                       </td>
                     </tr>

@@ -590,9 +590,9 @@ export interface DeanSubject {
   type: string;
   numFaculty: number;
   facultyNames: string[];
-  academicYear: string;
-  studentYear: string; // First, Second, Third, Fourth
-  semester: string; // Odd, Even
+  academicYear?: string;
+  studentYear?: string; // First, Second, Third, Fourth
+  semester?: string; // Odd, Even
 }
 
 export interface DeanPlacement {

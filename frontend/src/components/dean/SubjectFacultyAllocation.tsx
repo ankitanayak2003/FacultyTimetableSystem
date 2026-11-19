@@ -14,17 +14,8 @@ const SUBJECT_TYPES = [
   'Skill Enhancement (SEC)',
 ];
 
-const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
-const STUDENT_YEARS = ['First Year', 'Second Year', 'Third Year', 'Fourth Year'];
-const SEMESTERS = ['Odd Semester', 'Even Semester'];
-
 export const SubjectFacultyAllocation: React.FC = () => {
   const { deanSubjects, addDeanSubject, updateDeanSubject, deleteDeanSubject } = useWorkflow();
-
-  // Academic Filter Selectors
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2026–2027');
-  const [selectedStudentYear, setSelectedStudentYear] = useState('Second Year');
-  const [selectedSemester, setSelectedSemester] = useState('Odd Semester');
 
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -69,9 +60,6 @@ export const SubjectFacultyAllocation: React.FC = () => {
     setFacultySelections(
       subject.facultyNames.length > 0 ? subject.facultyNames : [REGISTERED_FACULTY_NAMES[0]]
     );
-    setSelectedAcademicYear(subject.academicYear);
-    setSelectedStudentYear(subject.studentYear);
-    setSelectedSemester(subject.semester);
     setErrorMsg('');
     setSuccessMsg('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -111,11 +99,8 @@ export const SubjectFacultyAllocation: React.FC = () => {
         type: subjectType,
         numFaculty,
         facultyNames: assigned,
-        academicYear: selectedAcademicYear,
-        studentYear: selectedStudentYear,
-        semester: selectedSemester,
       });
-      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} updated successfully.`);
+      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} updated successfully in master catalog.`);
       handleCancelEdit();
     } else {
       addDeanSubject({
@@ -124,11 +109,8 @@ export const SubjectFacultyAllocation: React.FC = () => {
         type: subjectType,
         numFaculty,
         facultyNames: assigned,
-        academicYear: selectedAcademicYear,
-        studentYear: selectedStudentYear,
-        semester: selectedSemester,
       });
-      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} added to allocation catalog.`);
+      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} added to master catalog.`);
       setSubjectName('');
       setSubjectCode('');
       setSubjectType(SUBJECT_TYPES[0]);
@@ -141,78 +123,14 @@ export const SubjectFacultyAllocation: React.FC = () => {
   };
 
   const handleDeleteClick = (id: string, code: string) => {
-    if (window.confirm(`Delete subject ${code} from allocation list?`)) {
+    if (window.confirm(`Delete subject ${code} from master list?`)) {
       deleteDeanSubject(id);
       if (editingId === id) handleCancelEdit();
     }
   };
 
-  // Filter subjects for the selected academic context
-  const filteredSubjects = deanSubjects.filter(
-    (s) =>
-      (!s.academicYear || s.academicYear === selectedAcademicYear) &&
-      (!s.studentYear || s.studentYear === selectedStudentYear) &&
-      (!s.semester || s.semester === selectedSemester)
-  );
-
   return (
     <div className="space-y-6">
-      {/* Academic Selection Filters */}
-      <div className="bg-surface rounded-card border border-border-beige p-4 sm:p-5 shadow-crisp">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
-              Academic Year
-            </label>
-            <select
-              value={selectedAcademicYear}
-              onChange={(e) => setSelectedAcademicYear(e.target.value)}
-              className="w-full px-3 py-2 bg-surface text-ink text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm"
-            >
-              {ACADEMIC_YEARS.map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
-              Student Year
-            </label>
-            <select
-              value={selectedStudentYear}
-              onChange={(e) => setSelectedStudentYear(e.target.value)}
-              className="w-full px-3 py-2 bg-surface text-ink text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm"
-            >
-              {STUDENT_YEARS.map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
-              Semester
-            </label>
-            <select
-              value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              className="w-full px-3 py-2 bg-surface text-ink text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm"
-            >
-              {SEMESTERS.map((sem) => (
-                <option key={sem} value={sem}>
-                  {sem}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
       {/* Notifications / Alerts */}
       {errorMsg && (
         <div className="p-3 bg-red-50 border border-red-200 text-red-900 text-xs rounded-md">
@@ -293,7 +211,7 @@ export const SubjectFacultyAllocation: React.FC = () => {
               >
                 {[1, 2, 3, 4, 5, 6].map((num) => (
                   <option key={num} value={num}>
-                    {num} {num === 1 ? 'Faculty' : 'Faculty'}
+                    {num} Faculty
                   </option>
                 ))}
               </select>
@@ -355,24 +273,24 @@ export const SubjectFacultyAllocation: React.FC = () => {
         </form>
       </div>
 
-      {/* Subject Cards Section */}
+      {/* Subject Cards Section (Master List) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-ink">
-            Saved Subject Allocations ({filteredSubjects.length})
+            Master Subject & Faculty Catalog ({deanSubjects.length})
           </h3>
           <span className="text-xs text-ink-muted font-mono">
-            {selectedStudentYear} • {selectedSemester}
+            Institution-Wide Master Directory
           </span>
         </div>
 
-        {filteredSubjects.length === 0 ? (
+        {deanSubjects.length === 0 ? (
           <div className="p-8 text-center bg-surface rounded-card border border-border-beige text-sm text-ink-muted">
-            No subjects allocated yet for {selectedStudentYear} ({selectedSemester}). Use the form above to add subjects.
+            No subjects added to master catalog yet. Use the form above to add subjects.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredSubjects.map((subject) => (
+            {deanSubjects.map((subject) => (
               <div
                 key={subject.id}
                 className="bg-surface rounded-card border border-border-beige p-4 shadow-crisp flex flex-col justify-between"
