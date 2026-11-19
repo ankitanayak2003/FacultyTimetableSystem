@@ -1,15 +1,8 @@
 import React from 'react';
 import {
-  LayoutDashboard,
-  Building,
-  CalendarPlus,
-  Users,
   Layers,
-  CalendarRange,
-  Lock,
-  History,
-  Bell,
-  User,
+  Calendar,
+  FileText,
   LogOut,
   X,
   ShieldCheck,
@@ -17,9 +10,11 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import smvitmLogo from '../../assets/smvitm_logo.webp';
-import { useWorkflow } from '../../context/WorkflowContext';
 
 export type DeanTab =
+  | 'subject-allocation'
+  | 'timetable-editor'
+  | 'final-timetables'
   | 'overview'
   | 'institutional'
   | 'fixed-slots'
@@ -35,7 +30,6 @@ interface DeanSidebarProps {
   activeTab: DeanTab;
   onSelectTab: (tab: DeanTab) => void;
   onLogout: () => void;
-  unreadCount?: number;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
   isCollapsed?: boolean;
@@ -46,84 +40,26 @@ export const DeanSidebar: React.FC<DeanSidebarProps> = ({
   activeTab,
   onSelectTab,
   onLogout,
-  unreadCount = 2,
   isOpenMobile = false,
   onCloseMobile,
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  const { deanStatus, deanVersion } = useWorkflow();
-
   const navItems = [
     {
-      id: 'overview' as DeanTab,
-      label: 'Dean Overview',
-      shortLabel: 'Overview',
-      icon: LayoutDashboard,
-      badge: null,
-    },
-    {
-      id: 'institutional' as DeanTab,
-      label: 'Institutional Slots Master',
-      shortLabel: 'Master Slots',
-      icon: Building,
-      badge: deanVersion,
-    },
-    {
-      id: 'fixed-slots' as DeanTab,
-      label: 'Fixed Slot Allocator',
-      shortLabel: 'Configure Slots',
-      icon: CalendarPlus,
-      badge: deanStatus === 'LOCKED' ? 'Locked' : 'Draft',
-    },
-    {
-      id: 'faculty' as DeanTab,
-      label: 'Institutional Faculty Roster',
-      shortLabel: 'Faculty',
-      icon: Users,
-      badge: '84 Faculty',
-    },
-    {
-      id: 'activities' as DeanTab,
-      label: 'College-Wide Activities',
-      shortLabel: 'Activities',
+      id: 'subject-allocation' as DeanTab,
+      label: 'Subject & Faculty Allocation',
       icon: Layers,
-      badge: null,
     },
     {
-      id: 'preview' as DeanTab,
-      label: 'Schedule Preview Grid',
-      shortLabel: 'Preview',
-      icon: CalendarRange,
-      badge: 'All Depts',
+      id: 'timetable-editor' as DeanTab,
+      label: 'Timetable Editor',
+      icon: Calendar,
     },
     {
-      id: 'lock-reopen' as DeanTab,
-      label: 'Lock & Reopen Authority',
-      shortLabel: 'Lock/Reopen',
-      icon: Lock,
-      badge: deanStatus,
-    },
-    {
-      id: 'versions' as DeanTab,
-      label: 'Version Audit & History',
-      shortLabel: 'Audit Logs',
-      icon: History,
-      badge: null,
-    },
-    {
-      id: 'notifications' as DeanTab,
-      label: 'Academic Circulars',
-      shortLabel: 'Circulars',
-      icon: Bell,
-      badge: unreadCount > 0 ? `${unreadCount} New` : null,
-    },
-    {
-      id: 'profile' as DeanTab,
-      label: 'Dean Office Profile',
-      shortLabel: 'Profile',
-      icon: User,
-      badge: null,
+      id: 'final-timetables' as DeanTab,
+      label: 'Final Timetables',
+      icon: FileText,
     },
   ];
 
@@ -220,7 +156,7 @@ export const DeanSidebar: React.FC<DeanSidebarProps> = ({
                   </div>
                   <div className="text-[10px] text-primary font-medium truncate flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 flex-shrink-0" />
-                    <span>Dean (Academics)</span>
+                    <span>Dean (Academic Affairs)</span>
                   </div>
                 </div>
               </div>
@@ -228,7 +164,7 @@ export const DeanSidebar: React.FC<DeanSidebarProps> = ({
           ) : (
             <div
               className="py-3 flex justify-center border-b border-border-subtle bg-canvas-paper/50"
-              title="Dr. Sudarshan Rao • Dean (Academics)"
+              title="Dr. Sudarshan Rao • Dean (Academic Affairs)"
             >
               <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono shadow-crisp-sm">
                 SR
@@ -236,11 +172,11 @@ export const DeanSidebar: React.FC<DeanSidebarProps> = ({
             </div>
           )}
 
-          {/* Navigation List */}
-          <nav className="p-3 space-y-1" aria-label="Dean Navigation">
+          {/* Navigation List - Exactly 3 Pages */}
+          <nav className="p-3 space-y-1.5" aria-label="Dean Navigation">
             {!isCollapsed && (
               <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-ink-light font-semibold">
-                Academic Modules
+                Dean Platform
               </div>
             )}
 
@@ -255,38 +191,20 @@ export const DeanSidebar: React.FC<DeanSidebarProps> = ({
                   title={item.label}
                   className={`w-full flex items-center ${
                     isCollapsed
-                      ? 'justify-center px-2 py-2'
-                      : 'justify-between px-3 py-2'
+                      ? 'justify-center px-2 py-2.5'
+                      : 'justify-start gap-2.5 px-3 py-2.5'
                   } rounded-card text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-primary text-white shadow-crisp-sm'
+                      ? 'bg-primary text-white shadow-crisp-sm font-semibold'
                       : 'text-ink-muted hover:text-ink hover:bg-primary-subtle/50'
                   }`}
                 >
-                  <div
-                    className={`flex items-center gap-2.5 ${
-                      isCollapsed ? 'justify-center' : 'min-w-0'
+                  <Icon
+                    className={`w-4 h-4 flex-shrink-0 ${
+                      isActive ? 'text-white' : 'text-primary'
                     }`}
-                  >
-                    <Icon
-                      className={`w-4 h-4 flex-shrink-0 ${
-                        isActive ? 'text-accent-gold' : 'text-primary'
-                      }`}
-                    />
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
-                  </div>
-
-                  {!isCollapsed && item.badge && (
-                    <span
-                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : 'bg-canvas-muted text-ink-light border border-border-subtle'
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
+                  />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </button>
               );
             })}
@@ -306,7 +224,7 @@ export const DeanSidebar: React.FC<DeanSidebarProps> = ({
             } text-xs font-semibold text-error hover:bg-error/10 border border-error/20 rounded-card transition-colors shadow-crisp-sm`}
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            {!isCollapsed && <span>Exit Dean Portal</span>}
+            {!isCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
