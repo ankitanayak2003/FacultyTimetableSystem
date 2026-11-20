@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import {
-  FacultySidebar,
-  FacultyTab,
-} from '../components/faculty/FacultySidebar';
+import { FacultyTab } from '../components/faculty/FacultySidebar';
 import { FacultyHeader } from '../components/faculty/FacultyHeader';
 import { MyTimetablePage } from '../components/faculty/MyTimetablePage';
 import { SubjectPreferencesAndWorkloadPage } from '../components/faculty/SubjectPreferencesAndWorkloadPage';
 import { LeaveRequestsPage } from '../components/faculty/LeaveRequestsPage';
 import { FACULTY_PROFILE } from '../data/facultyDemoData';
+import { RetractableNavBar, NavItem } from '../components/common/RetractableNavBar';
+
+const FACULTY_NAV_ITEMS: NavItem[] = [
+  { id: 'my-timetable', label: 'My Timetable' },
+  { id: 'preferences-workload', label: 'Preferences & Workload' },
+  { id: 'leave-requests', label: 'Leave Requests' },
+];
 
 interface FacultyDashboardProps {
   onLogout: () => void;
@@ -16,45 +20,38 @@ interface FacultyDashboardProps {
 export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onLogout }) => {
   // Default landing page after Faculty login is strictly My Timetable
   const [activeTab, setActiveTab] = useState<FacultyTab>('my-timetable');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-canvas text-ink">
-      {/* Sidebar - Exactly 3 Navigation items */}
-      <FacultySidebar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        onLogout={onLogout}
+    <div className="min-h-screen flex flex-col bg-canvas text-ink pt-14">
+      <FacultyHeader
         faculty={FACULTY_PROFILE}
-        isOpenMobile={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+        activeTab={activeTab}
+        onOpenMobileMenu={() => setIsMobileNavOpen((prev) => !prev)}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative transition-all duration-300">
-        <FacultyHeader
-          faculty={FACULTY_PROFILE}
-          activeTab={activeTab}
-          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-        />
+      <RetractableNavBar
+        items={FACULTY_NAV_ITEMS}
+        activeTab={activeTab}
+        onSelectTab={(id) => setActiveTab(id as FacultyTab)}
+        onLogout={onLogout}
+        isOpenControlled={isMobileNavOpen}
+        onToggleControlled={() => setIsMobileNavOpen((prev) => !prev)}
+      />
 
-        <main className="flex-1 p-3.5 sm:p-5 lg:p-5 max-w-7xl w-full mx-auto space-y-4">
-          {(activeTab === 'my-timetable' || activeTab === 'timetable') && (
-            <MyTimetablePage />
-          )}
+      <main className="flex-1 p-3.5 sm:p-5 lg:p-5 max-w-7xl w-full mx-auto space-y-4">
+        {(activeTab === 'my-timetable' || activeTab === 'timetable') && (
+          <MyTimetablePage />
+        )}
 
-          {(activeTab === 'preferences-workload' ||
-            activeTab === 'preferences' ||
-            activeTab === 'workload') && <SubjectPreferencesAndWorkloadPage />}
+        {(activeTab === 'preferences-workload' ||
+          activeTab === 'preferences' ||
+          activeTab === 'workload') && <SubjectPreferencesAndWorkloadPage />}
 
-          {(activeTab === 'leave-requests' || activeTab === 'leaves') && (
-            <LeaveRequestsPage />
-          )}
-        </main>
-      </div>
+        {(activeTab === 'leave-requests' || activeTab === 'leaves') && (
+          <LeaveRequestsPage />
+        )}
+      </main>
     </div>
   );
 };

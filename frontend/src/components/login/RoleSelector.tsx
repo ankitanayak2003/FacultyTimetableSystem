@@ -64,19 +64,19 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
       case 'Principal':
-        return <ShieldCheck className="w-5 h-5 text-primary" />;
+        return <ShieldCheck className="w-4 h-4 text-primary" />;
       case 'Dean':
-        return <Award className="w-5 h-5 text-accent-violet" />;
+        return <Award className="w-4 h-4 text-accent-violet" />;
       case 'HOD':
-        return <Building2 className="w-5 h-5 text-accent-teal" />;
+        return <Building2 className="w-4 h-4 text-accent-teal" />;
       case 'Basic Science Coordinator':
-        return <BookOpen className="w-5 h-5 text-primary" />;
+        return <BookOpen className="w-4 h-4 text-primary" />;
       case 'Department Coordinator':
-        return <CalendarRange className="w-5 h-5 text-accent-teal" />;
+        return <CalendarRange className="w-4 h-4 text-accent-teal" />;
       case 'Faculty':
-        return <UserCheck className="w-5 h-5 text-accent-violet" />;
+        return <UserCheck className="w-4 h-4 text-accent-violet" />;
       case 'Student':
-        return <GraduationCap className="w-5 h-5 text-primary" />;
+        return <GraduationCap className="w-4 h-4 text-primary" />;
     }
   };
 
@@ -96,7 +96,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
     <div className="w-full relative" ref={dropdownRef}>
       <label
         id="role-selector-label"
-        className="block text-sm sm:text-base font-semibold uppercase tracking-wider text-ink-muted mb-2"
+        className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5"
       >
         Select Institutional Role <span className="text-primary">*</span>
       </label>
@@ -107,7 +107,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 bg-surface rounded-xl border transition-all text-left ${
+        className={`w-full flex items-center justify-between px-3.5 py-2.5 bg-surface rounded-card border transition-all text-left ${
           error
             ? 'border-error ring-1 ring-error'
             : isOpen
@@ -115,26 +115,26 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
             : 'border-border-beige hover:border-ink-light'
         }`}
       >
-        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-          <div className="p-2 sm:p-2.5 rounded-lg bg-canvas-muted border border-border-subtle flex-shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-1.5 rounded bg-canvas-muted border border-border-subtle flex-shrink-0">
             {getRoleIcon(selectedRole)}
           </div>
           <div className="truncate">
             <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg font-bold text-ink truncate">
+              <span className="text-sm font-semibold text-ink truncate">
                 {activeRoleData.label}
               </span>
-              <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-canvas-muted text-ink-muted font-medium border border-border-subtle">
+              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-canvas-muted text-ink-muted font-medium border border-border-subtle">
                 {activeRoleData.badge}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-ink-muted truncate">
+            <p className="text-[11px] text-ink-muted truncate">
               {activeRoleData.description}
             </p>
           </div>
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-ink-muted transition-transform duration-200 flex-shrink-0 ml-2 ${
+          className={`w-4 h-4 text-ink-muted transition-transform duration-200 flex-shrink-0 ml-2 ${
             isOpen ? 'rotate-180 text-primary' : ''
           }`}
         />
@@ -150,9 +150,9 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
         <div
           role="listbox"
           aria-labelledby="role-selector-label"
-          className="absolute z-50 left-0 right-0 mt-2 bg-surface rounded-xl border border-border-beige shadow-crisp-lg overflow-hidden py-1 max-h-80 overflow-y-auto"
+          className="absolute z-50 left-0 right-0 mt-1.5 bg-surface rounded-card border border-border-beige shadow-crisp-lg overflow-hidden py-1 max-h-72 overflow-y-auto"
         >
-          <div className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-ink-light border-b border-border-subtle bg-canvas-paper">
+          <div className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-ink-light border-b border-border-subtle bg-canvas-paper">
             Designated System Authorities (7 Roles)
           </div>
           {USER_ROLES.map((role) => {
@@ -167,30 +167,30 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
                   onSelectRole(role.id);
                   setIsOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left transition-colors ${
                   isSelected
                     ? 'bg-primary-subtle text-primary border-l-4 border-primary'
                     : 'hover:bg-canvas-muted text-ink'
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="p-1.5 rounded-lg bg-canvas-paper border border-border-subtle flex-shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <div className="p-1 rounded bg-canvas-paper border border-border-subtle flex-shrink-0">
                     {getRoleIcon(role.id)}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-medium">{role.label}</span>
-                      <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-surface border border-border-subtle text-ink-muted">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium">{role.label}</span>
+                      <span className="text-[9px] uppercase font-mono px-1 py-0.2 rounded bg-surface border border-border-subtle text-ink-muted">
                         {role.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-ink-muted leading-relaxed mt-0.5 line-clamp-1">
+                    <p className="text-[11px] text-ink-muted leading-tight mt-0.5 line-clamp-1">
                       {role.description}
                     </p>
                   </div>
                 </div>
                 {isSelected && (
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
                 )}
               </button>
             );

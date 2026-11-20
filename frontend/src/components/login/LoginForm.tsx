@@ -121,161 +121,157 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between">
-      {/* Header - Portal Sign In (symmetric with left card AQS header) */}
-      <div>
-        <div className="flex flex-col items-start justify-end h-16 sm:h-20 md:h-24 lg:h-28">
-          <h2 className="font-headline text-4xl sm:text-5xl lg:text-[54px] font-bold text-primary-dark tracking-tight leading-none">
-            Portal Sign In
-          </h2>
-        </div>
-        <p className="text-xl sm:text-2xl lg:text-[26px] font-medium text-ink-muted tracking-wide mt-2 leading-snug">
+    <div className="w-full">
+      {/* Header matching Dean reference */}
+      <div className="mb-5">
+        <h2 className="font-headline text-3xl font-semibold text-primary tracking-tight">
+          Portal Sign In
+        </h2>
+        <p className="text-xs text-ink-muted mt-1 leading-relaxed">
           Institutional Access &amp; Authentication
         </p>
       </div>
 
-      {/* Middle: Auth Feedback Banner & Form */}
-      <div className="my-auto py-3 sm:py-5">
-        {authFeedback && (
-          <div
-            role="status"
-            className="mb-5 p-4 rounded-xl border bg-surface border-border-beige shadow-crisp animate-fade-in flex items-start gap-3"
+      {/* Auth Feedback Banner */}
+      {authFeedback && (
+        <div
+          role="status"
+          className="mb-4 p-3 rounded-card border bg-surface border-border-beige shadow-crisp animate-fade-in flex items-start gap-2.5"
+        >
+          <div className="p-1 rounded-full bg-success-container/70 text-success flex-shrink-0 mt-0.5">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+          <div className="text-xs">
+            <div className="font-semibold text-ink">{authFeedback.message}</div>
+            <div className="text-ink-muted mt-0.5 leading-snug">
+              {authFeedback.details}
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
+                Role: {formData.role}
+              </span>
+              <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
+                Remember: {formData.rememberMe ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        {/* Role Selector */}
+        <RoleSelector
+          selectedRole={formData.role}
+          onSelectRole={handleRoleSelect}
+          error={errors.role}
+        />
+
+        {/* Email Input */}
+        <div>
+          <label
+            htmlFor="login-email"
+            className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5"
           >
-            <div className="p-1.5 rounded-full bg-success-container/70 text-success flex-shrink-0 mt-0.5">
-              <CheckCircle2 className="w-5 h-5" />
+            Institutional Email <span className="text-primary">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-light">
+              <Mail className="w-4 h-4" />
             </div>
-            <div className="text-sm">
-              <div className="font-semibold text-ink">{authFeedback.message}</div>
-              <div className="text-ink-muted mt-0.5 leading-relaxed">
-                {authFeedback.details}
-              </div>
-              <div className="mt-2.5 flex items-center gap-2">
-                <span className="font-mono text-xs uppercase px-2 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
-                  Role: {formData.role}
-                </span>
-                <span className="font-mono text-xs uppercase px-2 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
-                  Remember: {formData.rememberMe ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-            </div>
+            <input
+              id="login-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder={getEmailPlaceholder(formData.role)}
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'login-email-error' : undefined}
+              className={`w-full pl-9 pr-4 py-2.5 bg-surface text-ink text-sm rounded-card border transition-all ${
+                errors.email
+                  ? 'border-error focus:ring-1 focus:ring-error'
+                  : 'border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm'
+              } placeholder:text-ink-light`}
+            />
           </div>
-        )}
+          {errors.email && (
+            <p id="login-email-error" className="mt-1 text-xs text-error font-medium">
+              {errors.email}
+            </p>
+          )}
+        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} noValidate className="space-y-4 sm:space-y-5 lg:space-y-6">
-          {/* Role Selector */}
-          <RoleSelector
-            selectedRole={formData.role}
-            onSelectRole={handleRoleSelect}
-            error={errors.role}
-          />
+        {/* Password Input */}
+        <PasswordInput
+          id="login-password"
+          name="password"
+          label="Password"
+          value={formData.password}
+          onChange={handleChange}
+          error={errors.password}
+          required
+          autoComplete="current-password"
+          placeholder="••••••••"
+        />
 
-          {/* Email Input */}
-          <div>
-            <label
-              htmlFor="login-email"
-              className="block text-sm sm:text-base font-semibold uppercase tracking-wider text-ink-muted mb-2"
-            >
-              Institutional Email <span className="text-primary">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-ink-light">
-                <Mail className="w-5 h-5" />
-              </div>
-              <input
-                id="login-email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder={getEmailPlaceholder(formData.role)}
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? 'login-email-error' : undefined}
-                className={`w-full pl-12 pr-4 py-3.5 sm:py-4 bg-surface text-ink text-base sm:text-lg rounded-xl border transition-all ${
-                  errors.email
-                    ? 'border-error focus:ring-1 focus:ring-error'
-                    : 'border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm'
-                } placeholder:text-ink-light placeholder:text-base`}
-              />
-            </div>
-            {errors.email && (
-              <p id="login-email-error" className="mt-1.5 text-xs sm:text-sm text-error font-medium">
-                {errors.email}
-              </p>
+        {/* Remember Me & Forgot Password Row */}
+        <div className="flex items-center justify-between pt-0.5">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              name="rememberMe"
+              checked={formData.rememberMe}
+              onChange={handleChange}
+              className="w-4 h-4 rounded border-border-beige text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer accent-primary"
+            />
+            <span className="text-xs text-ink-muted">Remember this device</span>
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setIsForgotModalOpen(true)}
+            className="text-xs font-medium text-primary hover:text-primary-hover hover:underline underline-offset-2 transition-colors"
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        {/* Submit Button */}
+        <div className="pt-1.5">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-2.5 px-4 bg-primary text-white text-sm font-semibold rounded-card hover:bg-primary-hover transition-colors shadow-crisp flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-wait"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Verifying Institutional Access...</span>
+              </>
+            ) : (
+              <>
+                <LogIn className="w-4 h-4" />
+                <span>Sign In as {formData.role}</span>
+              </>
             )}
-          </div>
-
-          {/* Password Input */}
-          <PasswordInput
-            id="login-password"
-            name="password"
-            label="Password"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-            required
-            autoComplete="current-password"
-            placeholder="••••••••"
-          />
-
-          {/* Remember Me & Forgot Password Row */}
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                name="rememberMe"
-                checked={formData.rememberMe}
-                onChange={handleChange}
-                className="w-4 h-4 sm:w-5 sm:h-5 rounded border-border-beige text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer accent-primary"
-              />
-              <span className="text-sm sm:text-base text-ink-muted font-medium">Remember this device</span>
-            </label>
-
-            <button
-              type="button"
-              onClick={() => setIsForgotModalOpen(true)}
-              className="text-sm sm:text-base font-semibold text-primary hover:text-primary-hover hover:underline underline-offset-2 transition-colors"
-            >
-              Forgot password?
-            </button>
-          </div>
-
-          {/* Submit Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-4 sm:py-4.5 px-6 sm:px-8 bg-primary text-white text-base sm:text-lg font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-crisp-md flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
-                  <span>Verifying Institutional Access...</span>
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
-                  <span>Sign In as {formData.role}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
+          </button>
+        </div>
+      </form>
 
       {/* Student Registration Link / CTA */}
-      <div className="pt-4 border-t border-border-subtle mt-auto">
-        <div className="p-3.5 sm:p-4 bg-canvas-muted rounded-xl border border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 sm:p-2.5 rounded-lg bg-surface border border-border-subtle text-primary flex-shrink-0">
-              <UserPlus className="w-5 h-5 sm:w-6 sm:h-6" />
+      <div className="mt-6 pt-5 border-t border-border-subtle">
+        <div className="p-3 bg-canvas-muted rounded-card border border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-2.5 text-left">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-1.5 rounded bg-surface border border-border-subtle text-primary flex-shrink-0">
+              <UserPlus className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <span className="text-sm sm:text-base font-bold text-ink block truncate">
+              <span className="text-xs font-semibold text-ink block truncate">
                 Enrolled Student?
               </span>
-              <span className="text-xs sm:text-sm text-ink-muted">
+              <span className="text-[11px] text-ink-muted">
                 <button
                   type="button"
                   onClick={onNavigateToStudentRegistration}
@@ -297,7 +293,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <button
             type="button"
             onClick={onNavigateToStudentRegistration}
-            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 bg-surface text-primary hover:bg-primary hover:text-white border border-border-beige text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-crisp-sm flex-shrink-0"
+            className="w-full sm:w-auto px-3.5 py-1.5 bg-surface text-primary hover:bg-primary hover:text-white border border-border-beige text-xs font-semibold rounded transition-colors shadow-crisp-sm flex-shrink-0"
           >
             Register as Student
           </button>
