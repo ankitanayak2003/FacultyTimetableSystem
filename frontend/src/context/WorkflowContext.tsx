@@ -16,6 +16,8 @@ import {
   DeptSubjectItem,
   DeptSectionTimetable,
   FinalizedPreferenceItem,
+  FacultyPreferenceItem,
+  FacultyLeaveApplication,
   INITIAL_INSTITUTIONAL_SLOTS,
   INITIAL_FIRST_YEAR_SECTIONS,
   INITIAL_DEPARTMENTS,
@@ -31,6 +33,7 @@ import {
   INITIAL_DEPT_FACULTY,
   INITIAL_DEPT_SUBJECTS,
   INITIAL_DEPT_SECTION_TIMETABLES,
+  INITIAL_FACULTY_LEAVES,
 } from '../data/workflowDemoData';
 
 export type WorkflowStageStatus = 'BLOCKED' | 'DRAFT' | 'LOCKED' | 'FINALIZED' | 'PUBLISHED';
@@ -128,6 +131,12 @@ interface WorkflowContextType {
   publishDeptSectionTimetable: (key: string) => void;
   unpublishDeptSectionTimetable: (key: string) => void;
 
+  // Faculty Module State
+  facultyLeaves: FacultyLeaveApplication[];
+  applyFacultyLeave: (leave: Omit<FacultyLeaveApplication, 'id' | 'status' | 'appliedDate'>) => void;
+  cancelFacultyLeave: (id: string) => void;
+  submitFacultyPreferences: (facultyId: string, prefs: FacultyPreferenceItem[]) => void;
+
   // Downstream validation warnings & audit trail
   requiresRevalidation: boolean;
   auditLogs: AuditLogEntry[];
@@ -201,6 +210,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [departmentFaculty, setDepartmentFaculty] = useState<DepartmentFaculty[]>(INITIAL_DEPT_FACULTY);
   const [deptSubjects, setDeptSubjects] = useState<DeptSubjectItem[]>(INITIAL_DEPT_SUBJECTS);
   const [deptTimetables, setDeptTimetables] = useState<Record<string, DeptSectionTimetable>>(INITIAL_DEPT_SECTION_TIMETABLES);
+
+  // Faculty Module State
+  const [facultyLeaves, setFacultyLeaves] = useState<FacultyLeaveApplication[]>(INITIAL_FACULTY_LEAVES);
 
   // Computed status for Department: if Basic Science is NOT LOCKED, Department is BLOCKED
   const departmentStatus: WorkflowStageStatus =
@@ -765,6 +777,38 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   };
 
+  // Faculty Module Actions
+  const applyFacultyLeave = (leave: Omit<FacultyLeaveApplication, 'id' | 'status' | 'appliedDate'>) => {
+    const newLeave: FacultyLeaveApplication = {
+      ...leave,
+      id: `leave-fac-${Date.now()}`,
+      status: 'Pending',
+      appliedDate: new Date().toISOString().split('T')[0],
+      approverRemarks: 'Application submitted. Under review by Coordinator & HOD.',
+    };
+    setFacultyLeaves((prev) => [newLeave, ...prev]);
+    pushAudit(
+      'Faculty',
+      leave.facultyName,
+      'APPLIED_LEAVE_REQUEST',
+      'Department',
+      'v1.0',
+      `Applied for ${leave.leaveType} from ${leave.fromDate} to ${leave.toDate} (${leave.daysCount} day(s)).`
+    );
+  };
+
+  const cancelFacultyLeave = (id: string) => {
+    setFacultyLeaves((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, status: 'Cancelled' as const } : l))
+    );
+  };
+
+  const submitFacultyPreferences = (facultyId: string, prefs: FacultyPreferenceItem[]) => {
+    setDepartmentFaculty((prev) =>
+      prev.map((f) => (f.id === facultyId ? { ...f, preferences: prefs } : f))
+    );
+  };
+
   return (
     <WorkflowContext.Provider
       value={{
@@ -849,6 +893,11 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveDeptSectionTimetable,
         publishDeptSectionTimetable,
         unpublishDeptSectionTimetable,
+
+        facultyLeaves,
+        applyFacultyLeave,
+        cancelFacultyLeave,
+        submitFacultyPreferences,
 
         requiresRevalidation,
         auditLogs,

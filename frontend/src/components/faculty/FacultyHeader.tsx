@@ -1,12 +1,7 @@
 import React from 'react';
-import {
-  Menu,
-  Calendar,
-  UserCheck,
-} from 'lucide-react';
-import sodeLogo from '../../assets/sode_group_logo.png';
-import { FacultyProfileData } from '../../data/facultyDemoData';
+import { Menu } from 'lucide-react';
 import { FacultyTab } from './FacultySidebar';
+import { FacultyProfileData } from '../../data/facultyDemoData';
 
 interface FacultyHeaderProps {
   faculty: FacultyProfileData;
@@ -19,88 +14,62 @@ export const FacultyHeader: React.FC<FacultyHeaderProps> = ({
   activeTab,
   onOpenMobileMenu,
 }) => {
-  const getTabLabel = (tab: FacultyTab) => {
+  const getTabTitle = (tab: FacultyTab) => {
     switch (tab) {
-      case 'overview':
-        return 'Dashboard Overview';
+      case 'my-timetable':
       case 'timetable':
-        return 'Teaching Timetable';
+        return 'My Timetable';
+      case 'preferences-workload':
       case 'preferences':
-        return 'Subject Preferences';
       case 'workload':
-        return 'Workload Distribution';
+        return 'Subject Preferences & My Workload';
+      case 'leave-requests':
       case 'leaves':
-        return 'Leave Management';
-      case 'profile':
-        return 'Faculty Profile';
+        return 'Leave Requests';
+      default:
+        return 'Faculty Academic Portal';
     }
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-surface/95 backdrop-blur-md border-b border-border-beige px-4 sm:px-6 py-2.5 shadow-crisp-sm transition-all duration-200">
+    <header className="sticky top-0 z-30 w-full bg-surface/95 backdrop-blur-md border-b border-border-beige py-2 px-4 sm:px-6 shadow-crisp-sm transition-all duration-200">
       <div className="flex items-center justify-between gap-4">
-        {/* Left: Mobile Toggle & Breadcrumb */}
-        <div className="flex items-center gap-3">
+        {/* Left: Mobile hamburger & Active Page Title */}
+        <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={onOpenMobileMenu}
             aria-label="Open navigation menu"
-            className="p-1.5 rounded-card text-ink-muted hover:text-primary hover:bg-canvas-muted lg:hidden border border-border-beige"
+            className="md:hidden p-1.5 text-ink-muted hover:text-ink hover:bg-canvas-muted rounded-card transition-colors flex-shrink-0"
           >
             <Menu className="w-5 h-5" />
           </button>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-mono tracking-wider text-ink-light hidden sm:inline">
-                Faculty Portal
-              </span>
-              <span className="text-ink-light text-xs hidden sm:inline">•</span>
-              <span className="text-xs font-semibold text-primary font-headline">
-                {getTabLabel(activeTab)}
-              </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-ink-light">
+              <span>Department of Artificial Intelligence &amp; Data Science</span>
+              <span>/</span>
+              <span className="text-primary font-semibold">Faculty Portal</span>
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-ink-muted">
-              <span className="font-medium text-ink hidden md:inline">
-                {faculty.department}
-              </span>
-              <span className="hidden md:inline">•</span>
-              <span className="font-mono text-ink-light">
-                {faculty.facultyId} ({faculty.designation})
-              </span>
-            </div>
+            <h1 className="font-headline text-base sm:text-lg font-semibold text-primary truncate leading-tight">
+              {getTabTitle(activeTab)}
+            </h1>
           </div>
         </div>
 
-        {/* Right: Academic Term, Logos, Avatar */}
-        <div className="flex items-center gap-3">
-          {/* Academic Term Tag */}
-          <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-canvas-muted border border-border-subtle text-[11px] font-mono text-ink-muted">
-            <Calendar className="w-3 h-3 text-primary" />
-            <span>AY {faculty.academicYear} • Odd Sem</span>
-          </div>
-
-          {/* Sode Group Logo */}
-          <img
-            src={sodeLogo}
-            alt="Sode Group"
-            className="h-7 w-auto object-contain hidden lg:block opacity-90"
-          />
-
-          {/* User Profile Pill */}
-          <div className="flex items-center gap-2 pl-2 border-l border-border-subtle">
-            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs font-mono border border-primary/20">
+        {/* Right: Logged-in faculty identity and role badge */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 px-2.5 py-1 bg-canvas-paper rounded-card border border-border-beige shadow-crisp-sm">
+            <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center font-bold text-[10px] font-mono shadow-crisp-sm flex-shrink-0">
               AR
             </div>
-            <div className="text-left hidden sm:block">
-              <div className="text-xs font-semibold text-ink leading-tight flex items-center gap-1">
-                <span>{faculty.fullName}</span>
-                <UserCheck className="w-3 h-3 text-accent-teal" />
-              </div>
-              <div className="text-[10px] font-mono text-ink-light">
-                {faculty.facultyId} • {faculty.departmentCode}
-              </div>
+            <div className="text-xs">
+              <span className="font-semibold text-ink">
+                {faculty.fullName} <span className="text-ink-light font-normal">•</span> {faculty.designation} (AI&amp;DS)
+              </span>
             </div>
+            <span className="ml-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-primary text-white uppercase tracking-wider shadow-xs">
+              Faculty
+            </span>
           </div>
         </div>
       </div>

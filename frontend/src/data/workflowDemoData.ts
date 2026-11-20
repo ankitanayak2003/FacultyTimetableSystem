@@ -1851,5 +1851,134 @@ export const INITIAL_DEPT_SECTION_TIMETABLES: Record<string, DeptSectionTimetabl
   },
 };
 
+// =====================================================================
+// FACULTY MODULE SPECIFICATION TYPES AND INITIAL LEAVE RECORDS
+// =====================================================================
+
+export interface AffectedTimetableSlot {
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  period: number;
+  time: string;
+  subjectCode: string;
+  subjectTitle: string;
+  section: string;
+  room: string;
+  type: 'Department' | 'Basic Science' | 'Institutional';
+  substituteFaculty?: string;
+  substituteStatus: 'Arranged' | 'Pending Arrangement' | 'Not Required';
+}
+
+export interface FacultyLeaveApplication {
+  id: string;
+  facultyId: string;
+  facultyName: string;
+  department: string;
+  leaveType: 'Casual Leave' | 'Medical Leave' | 'On Duty' | 'Other';
+  fromDate: string;
+  toDate: string;
+  session: 'Full Day' | 'Half Day (Forenoon)' | 'Half Day (Afternoon)';
+  daysCount: number;
+  reason: string;
+  attachmentName?: string;
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
+  appliedDate: string;
+  approverRemarks?: string;
+  substituteFaculty?: string;
+  substituteStatus?: 'Arranged' | 'Pending Arrangement' | 'Not Required';
+  affectedSlots: AffectedTimetableSlot[];
+}
+
+export const INITIAL_FACULTY_LEAVES: FacultyLeaveApplication[] = [
+  {
+    id: 'leave-fac-1',
+    facultyId: 'FAC102',
+    facultyName: 'Dr. Ananya Rao',
+    department: 'Artificial Intelligence & Data Science',
+    leaveType: 'Casual Leave',
+    fromDate: '2026-10-15',
+    toDate: '2026-10-15',
+    session: 'Full Day',
+    daysCount: 1,
+    reason: 'Personal urgent family commitment at native place.',
+    attachmentName: 'Family_Affidavit.pdf',
+    status: 'Approved',
+    appliedDate: '2026-10-10',
+    approverRemarks: 'Approved by HOD Dr. Vasudeva. Class adjustment confirmed.',
+    substituteFaculty: 'Prof. Rajesh Shetty',
+    substituteStatus: 'Arranged',
+    affectedSlots: [
+      {
+        day: 'Thursday',
+        period: 1,
+        time: '9:00–9:55',
+        subjectCode: '21AIL37',
+        subjectTitle: 'Data Structures Laboratory',
+        section: 'AIDS - 3A',
+        room: 'AI Computing Lab 1',
+        type: 'Department',
+        substituteFaculty: 'Prof. Rajesh Shetty',
+        substituteStatus: 'Arranged',
+      },
+      {
+        day: 'Thursday',
+        period: 2,
+        time: '9:55–10:50',
+        subjectCode: '21AIL37',
+        subjectTitle: 'Data Structures Laboratory',
+        section: 'AIDS - 3A',
+        room: 'AI Computing Lab 1',
+        type: 'Department',
+        substituteFaculty: 'Prof. Rajesh Shetty',
+        substituteStatus: 'Arranged',
+      },
+    ],
+  },
+  {
+    id: 'leave-fac-2',
+    facultyId: 'FAC102',
+    facultyName: 'Dr. Ananya Rao',
+    department: 'Artificial Intelligence & Data Science',
+    leaveType: 'On Duty',
+    fromDate: '2026-11-26',
+    toDate: '2026-11-26',
+    session: 'Full Day',
+    daysCount: 1,
+    reason: 'Presenting accepted research paper at IEEE International Conference on Cognitive Computing (Bengaluru).',
+    attachmentName: 'IEEE_Acceptance_Letter.pdf',
+    status: 'Pending',
+    appliedDate: '2026-11-15',
+    approverRemarks: 'Under review by Dept Coordinator Prof. Rajesh Shetty and HOD.',
+    substituteFaculty: 'Prof. Sneha Kamath',
+    substituteStatus: 'Pending Arrangement',
+    affectedSlots: [
+      {
+        day: 'Thursday',
+        period: 1,
+        time: '9:00–9:55',
+        subjectCode: '21AIL37',
+        subjectTitle: 'Data Structures Laboratory',
+        section: 'AIDS - 3A',
+        room: 'AI Computing Lab 1',
+        type: 'Department',
+        substituteFaculty: 'Prof. Sneha Kamath',
+        substituteStatus: 'Pending Arrangement',
+      },
+      {
+        day: 'Thursday',
+        period: 2,
+        time: '9:55–10:50',
+        subjectCode: '21AIL37',
+        subjectTitle: 'Data Structures Laboratory',
+        section: 'AIDS - 3A',
+        room: 'AI Computing Lab 1',
+        type: 'Department',
+        substituteFaculty: 'Prof. Sneha Kamath',
+        substituteStatus: 'Pending Arrangement',
+      },
+    ],
+  },
+];
+
+
 
 
