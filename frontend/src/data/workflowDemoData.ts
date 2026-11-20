@@ -1824,6 +1824,57 @@ export const INITIAL_AIDS_3B_PLACEMENTS: DeptPlacement[] = [
   { id: 'dp-3b-f3', day: 'Friday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-202' },
 ];
 
+export const INITIAL_AIDS_5A_PLACEMENTS: DeptPlacement[] = [
+  ...DEAN_LOCKED_DEPT_SLOTS,
+  // Monday
+  { id: 'dp-5a-m1', day: 'Monday', startPeriod: 1, duration: 1, subjectCode: '21AI51', subjectTitle: 'Management & Entrepreneurship', facultyName: 'Dr. Vasudeva', room: 'LH-302' },
+  { id: 'dp-5a-m2', day: 'Monday', startPeriod: 2, duration: 1, subjectCode: '21AI52', subjectTitle: 'Computer Networks', facultyName: 'Prof. Vignesh Pai', room: 'LH-302' },
+  { id: 'dp-5a-m3', day: 'Monday', startPeriod: 3, duration: 1, subjectCode: '21AI53', subjectTitle: 'Deep Learning Architectures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-302' },
+
+  // Tuesday
+  { id: 'dp-5a-t1', day: 'Tuesday', startPeriod: 1, duration: 1, subjectCode: '21AI54', subjectTitle: 'Natural Language Processing', facultyName: 'Prof. Sandeep Kumar', room: 'LH-302' },
+  { id: 'dp-5a-t2', day: 'Tuesday', startPeriod: 2, duration: 1, subjectCode: '21AI52', subjectTitle: 'Computer Networks', facultyName: 'Prof. Vignesh Pai', room: 'LH-302' },
+  { id: 'dp-5a-t3', day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: '21AI53', subjectTitle: 'Deep Learning Architectures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-302' },
+
+  // Wednesday
+  { id: 'dp-5a-w1', day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: '21AI51', subjectTitle: 'Management & Entrepreneurship', facultyName: 'Dr. Vasudeva', room: 'LH-302' },
+  { id: 'dp-5a-w2', day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: '21AI54', subjectTitle: 'Natural Language Processing', facultyName: 'Prof. Sandeep Kumar', room: 'LH-302' },
+
+  // Thursday
+  { id: 'dp-5a-th1', day: 'Thursday', startPeriod: 1, duration: 2, subjectCode: '21AIL57', subjectTitle: 'NLP Laboratory', facultyName: 'Prof. Sandeep Kumar', room: 'Advanced AI Lab' },
+  { id: 'dp-5a-th3', day: 'Thursday', startPeriod: 3, duration: 1, subjectCode: '21AI52', subjectTitle: 'Computer Networks', facultyName: 'Prof. Vignesh Pai', room: 'LH-302' },
+  { id: 'dp-5a-th4', day: 'Thursday', startPeriod: 4, duration: 1, subjectCode: '21AI53', subjectTitle: 'Deep Learning Architectures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-302' },
+
+  // Friday
+  { id: 'dp-5a-f1', day: 'Friday', startPeriod: 1, duration: 2, subjectCode: '21AIL58', subjectTitle: 'Deep Learning Laboratory', facultyName: 'Dr. Vasudeva', room: 'Advanced AI Lab' },
+  { id: 'dp-5a-f3', day: 'Friday', startPeriod: 3, duration: 1, subjectCode: '21AI54', subjectTitle: 'Natural Language Processing', facultyName: 'Prof. Sandeep Kumar', room: 'LH-302' },
+];
+
+export const INITIAL_AIDS_7A_PLACEMENTS: DeptPlacement[] = [
+  ...DEAN_LOCKED_DEPT_SLOTS,
+  // Monday
+  { id: 'dp-7a-m1', day: 'Monday', startPeriod: 1, duration: 1, subjectCode: '21AI71', subjectTitle: 'Big Data Analytics', facultyName: 'Prof. Priyanka Nayak', room: 'LH-401' },
+  { id: 'dp-7a-m2', day: 'Monday', startPeriod: 2, duration: 1, subjectCode: '21AI72', subjectTitle: 'Reinforcement Learning & Autonomous Agents', facultyName: 'Dr. Chethan Acharya', room: 'LH-401' },
+  { id: 'dp-7a-m3', day: 'Monday', startPeriod: 3, duration: 1, subjectCode: '21AI731', subjectTitle: 'Computer Vision', facultyName: 'Prof. Rajesh Shetty', room: 'LH-401' },
+
+  // Tuesday
+  { id: 'dp-7a-t1', day: 'Tuesday', startPeriod: 1, duration: 1, subjectCode: '21AI742', subjectTitle: 'MLOps & Production Engineering', facultyName: 'Prof. Sandeep Kumar', room: 'LH-401' },
+  { id: 'dp-7a-t2', day: 'Tuesday', startPeriod: 2, duration: 1, subjectCode: '21AI71', subjectTitle: 'Big Data Analytics', facultyName: 'Prof. Priyanka Nayak', room: 'LH-401' },
+  { id: 'dp-7a-t3', day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: '21AI72', subjectTitle: 'Reinforcement Learning', facultyName: 'Dr. Chethan Acharya', room: 'LH-401' },
+
+  // Wednesday
+  { id: 'dp-7a-w1', day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: '21AI731', subjectTitle: 'Computer Vision', facultyName: 'Prof. Rajesh Shetty', room: 'LH-401' },
+  { id: 'dp-7a-w2', day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: '21AI742', subjectTitle: 'MLOps & Production Engineering', facultyName: 'Prof. Sandeep Kumar', room: 'LH-401' },
+
+  // Thursday
+  { id: 'dp-7a-th1', day: 'Thursday', startPeriod: 1, duration: 2, subjectCode: '21AIP76', subjectTitle: 'Project Phase-1 Planning', facultyName: 'Dr. Vasudeva', room: 'Project Lab' },
+  { id: 'dp-7a-th3', day: 'Thursday', startPeriod: 3, duration: 1, subjectCode: '21AI71', subjectTitle: 'Big Data Analytics', facultyName: 'Prof. Priyanka Nayak', room: 'LH-401' },
+
+  // Friday
+  { id: 'dp-7a-f1', day: 'Friday', startPeriod: 1, duration: 1, subjectCode: '21AI72', subjectTitle: 'Reinforcement Learning', facultyName: 'Dr. Chethan Acharya', room: 'LH-401' },
+  { id: 'dp-7a-f2', day: 'Friday', startPeriod: 2, duration: 1, subjectCode: '21AI731', subjectTitle: 'Computer Vision', facultyName: 'Prof. Rajesh Shetty', room: 'LH-401' },
+];
+
 export const INITIAL_DEPT_SECTION_TIMETABLES: Record<string, DeptSectionTimetable> = {
   '2026–2027_Second Year_Odd Semester_AIDS_Section A': {
     academicYear: '2026–2027',
@@ -1849,7 +1900,119 @@ export const INITIAL_DEPT_SECTION_TIMETABLES: Record<string, DeptSectionTimetabl
     lastSaved: '2026-11-03 11:45 AM',
     publishedAt: '2026-11-03 04:00 PM',
   },
+  '2026–2027_Third Year_Odd Semester_AIDS_Section A': {
+    academicYear: '2026–2027',
+    studentYear: 'Third Year',
+    semester: 'Odd Semester',
+    department: 'AIDS',
+    section: 'Section A',
+    placements: INITIAL_AIDS_5A_PLACEMENTS,
+    isDraft: false,
+    isPublished: false,
+    lastSaved: '2026-11-04 10:30 AM',
+  },
+  '2026–2027_Fourth Year_Odd Semester_AIDS_Section A': {
+    academicYear: '2026–2027',
+    studentYear: 'Fourth Year',
+    semester: 'Odd Semester',
+    department: 'AIDS',
+    section: 'Section A',
+    placements: INITIAL_AIDS_7A_PLACEMENTS,
+    isDraft: true,
+    isPublished: false,
+    lastSaved: '2026-11-04 03:15 PM',
+  },
 };
+
+export interface SectionProgressItem {
+  id: string;
+  year: 'Second Year' | 'Third Year' | 'Fourth Year';
+  semester: 'Odd Semester' | 'Even Semester';
+  section: string;
+  totalSections: number;
+  facultyAllocationStatus: 'Completed' | 'In Progress' | 'Pending';
+  subjectAllocationStatus: 'Completed' | 'In Progress' | 'Pending';
+  timetableGenerationStatus: 'Generated' | 'In Progress' | 'Pending';
+  editingStatus: 'Completed' | 'Under Editing' | 'Draft';
+  clashValidationStatus: 'Zero Clashes (Verified)' | 'Clashes Detected' | 'Pending Validation';
+  clashCount: number;
+  hodReviewStatus: 'Approved' | 'Awaiting HOD Review' | 'Returned for Correction' | 'Pending Submission';
+  overallStatus: 'Published' | 'Approved' | 'Awaiting HOD Review' | 'Returned for Correction' | 'Under Editing' | 'Pending';
+  hodRemarks?: string;
+  lastUpdated: string;
+}
+
+export const INITIAL_SECTION_PROGRESS: SectionProgressItem[] = [
+  {
+    id: 'prog-3a',
+    year: 'Second Year',
+    semester: 'Odd Semester',
+    section: 'Section A',
+    totalSections: 2,
+    facultyAllocationStatus: 'Completed',
+    subjectAllocationStatus: 'Completed',
+    timetableGenerationStatus: 'Generated',
+    editingStatus: 'Completed',
+    clashValidationStatus: 'Zero Clashes (Verified)',
+    clashCount: 0,
+    hodReviewStatus: 'Approved',
+    overallStatus: 'Published',
+    hodRemarks: 'Full curriculum covered with verified faculty allocations. Ratified for official publication.',
+    lastUpdated: '2026-11-03 04:00 PM',
+  },
+  {
+    id: 'prog-3b',
+    year: 'Second Year',
+    semester: 'Odd Semester',
+    section: 'Section B',
+    totalSections: 2,
+    facultyAllocationStatus: 'Completed',
+    subjectAllocationStatus: 'Completed',
+    timetableGenerationStatus: 'Generated',
+    editingStatus: 'Completed',
+    clashValidationStatus: 'Zero Clashes (Verified)',
+    clashCount: 0,
+    hodReviewStatus: 'Approved',
+    overallStatus: 'Published',
+    hodRemarks: 'Balanced laboratory load with Section A. Ratified for official publication.',
+    lastUpdated: '2026-11-03 04:00 PM',
+  },
+  {
+    id: 'prog-5a',
+    year: 'Third Year',
+    semester: 'Odd Semester',
+    section: 'Section A',
+    totalSections: 1,
+    facultyAllocationStatus: 'Completed',
+    subjectAllocationStatus: 'Completed',
+    timetableGenerationStatus: 'Generated',
+    editingStatus: 'Completed',
+    clashValidationStatus: 'Zero Clashes (Verified)',
+    clashCount: 0,
+    hodReviewStatus: 'Awaiting HOD Review',
+    overallStatus: 'Awaiting HOD Review',
+    hodRemarks: 'Submitted by Dept Coordinator Prof. Rajesh Shetty on 04-Nov-2026. Ready for HOD review.',
+    lastUpdated: '2026-11-04 10:30 AM',
+  },
+  {
+    id: 'prog-7a',
+    year: 'Fourth Year',
+    semester: 'Odd Semester',
+    section: 'Section A',
+    totalSections: 1,
+    facultyAllocationStatus: 'Completed',
+    subjectAllocationStatus: 'Completed',
+    timetableGenerationStatus: 'In Progress',
+    editingStatus: 'Under Editing',
+    clashValidationStatus: 'Pending Validation',
+    clashCount: 0,
+    hodReviewStatus: 'Pending Submission',
+    overallStatus: 'Under Editing',
+    hodRemarks: 'Elective course distribution in progress by Dept Coordinator.',
+    lastUpdated: '2026-11-04 03:15 PM',
+  },
+];
+
 
 // =====================================================================
 // FACULTY MODULE SPECIFICATION TYPES AND INITIAL LEAVE RECORDS

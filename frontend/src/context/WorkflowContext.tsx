@@ -18,6 +18,8 @@ import {
   FinalizedPreferenceItem,
   FacultyPreferenceItem,
   FacultyLeaveApplication,
+  FacultyAdditionalDuty,
+  SectionProgressItem,
   INITIAL_INSTITUTIONAL_SLOTS,
   INITIAL_FIRST_YEAR_SECTIONS,
   INITIAL_DEPARTMENTS,
@@ -34,6 +36,7 @@ import {
   INITIAL_DEPT_SUBJECTS,
   INITIAL_DEPT_SECTION_TIMETABLES,
   INITIAL_FACULTY_LEAVES,
+  INITIAL_SECTION_PROGRESS,
 } from '../data/workflowDemoData';
 
 export type WorkflowStageStatus = 'BLOCKED' | 'DRAFT' | 'LOCKED' | 'FINALIZED' | 'PUBLISHED';
@@ -137,6 +140,12 @@ interface WorkflowContextType {
   cancelFacultyLeave: (id: string) => void;
   submitFacultyPreferences: (facultyId: string, prefs: FacultyPreferenceItem[]) => void;
 
+  // HOD Module State
+  sectionProgressList: SectionProgressItem[];
+  approveSectionTimetable: (sectionKey: string, remarks?: string) => void;
+  returnSectionTimetableForCorrection: (sectionKey: string, reason: string) => void;
+  updateFacultyDuties: (facultyId: string, duties: FacultyAdditionalDuty[]) => void;
+
   // Downstream validation warnings & audit trail
   requiresRevalidation: boolean;
   auditLogs: AuditLogEntry[];
@@ -213,6 +222,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Faculty Module State
   const [facultyLeaves, setFacultyLeaves] = useState<FacultyLeaveApplication[]>(INITIAL_FACULTY_LEAVES);
+
+  // HOD Module State
+  const [sectionProgressList, setSectionProgressList] = useState<SectionProgressItem[]>(INITIAL_SECTION_PROGRESS);
 
   // Computed status for Department: if Basic Science is NOT LOCKED, Department is BLOCKED
   const departmentStatus: WorkflowStageStatus =
@@ -809,6 +821,103 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  // HOD Module Actions
+  const approveSectionTimetable = (sectionKey: string, remarks?: string) => {
+    const now = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setSectionProgressList((prev) =>
+      prev.map((item) =>
+        item.id === sectionKey || item.section === sectionKey || `${item.year}_${item.section}` === sectionKey
+          ? {
+              ...item,
+              hodReviewStatus: 'Approved' as const,
+              overallStatus: 'Approved' as const,
+              hodRemarks: remarks || 'Approved by HOD. Ready for final verification and official publication.',
+            }
+          : item
+      )
+    );
+    setDeptTimetables((prev) => {
+      const matchedKey = Object.keys(prev).find((k) => k === sectionKey || k.includes(sectionKey));
+      if (!matchedKey) return prev;
+      return {
+        ...prev,
+        [matchedKey]: {
+          ...prev[matchedKey],
+          lastSaved: now,
+        },
+      };
+    });
+    pushAudit(
+      'HOD',
+      'Dr. Vasudeva',
+      'APPROVED_SECTION_TIMETABLE',
+      'Department',
+      'v1.0-approved',
+      remarks ? `Approved timetable for ${sectionKey}. Remarks: ${remarks}` : `Approved timetable for ${sectionKey} without remarks.`
+    );
+  };
+
+  const returnSectionTimetableForCorrection = (sectionKey: string, reason: string) => {
+    setSectionProgressList((prev) =>
+      prev.map((item) =>
+        item.id === sectionKey || item.section === sectionKey || `${item.year}_${item.section}` === sectionKey
+          ? {
+              ...item,
+              hodReviewStatus: 'Returned for Correction' as const,
+              overallStatus: 'Returned for Correction' as const,
+              hodRemarks: reason,
+            }
+          : item
+      )
+    );
+    setDeptTimetables((prev) => {
+      const matchedKey = Object.keys(prev).find((k) => k === sectionKey || k.includes(sectionKey));
+      if (!matchedKey) return prev;
+      return {
+        ...prev,
+        [matchedKey]: {
+          ...prev[matchedKey],
+          isDraft: true,
+          isPublished: false,
+        },
+      };
+    });
+    pushAudit(
+      'HOD',
+      'Dr. Vasudeva',
+      'RETURNED_SECTION_TIMETABLE',
+      'Department',
+      'v1.1-revision',
+      `Returned ${sectionKey} for correction. Reason: ${reason}`
+    );
+  };
+
+  const updateFacultyDuties = (facultyId: string, duties: FacultyAdditionalDuty[]) => {
+    setDepartmentFaculty((prev) =>
+      prev.map((f) => {
+        if (f.id !== facultyId) return f;
+        return {
+          ...f,
+          additionalDuties: duties,
+        };
+      })
+    );
+    pushAudit(
+      'HOD',
+      'Dr. Vasudeva',
+      'UPDATED_FACULTY_DUTIES',
+      'Department',
+      'v1.0',
+      `Updated institutional & departmental duties for faculty ID ${facultyId}.`
+    );
+  };
+
   return (
     <WorkflowContext.Provider
       value={{
@@ -898,6 +1007,12 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         applyFacultyLeave,
         cancelFacultyLeave,
         submitFacultyPreferences,
+
+        // HOD Module State
+        sectionProgressList,
+        approveSectionTimetable,
+        returnSectionTimetableForCorrection,
+        updateFacultyDuties,
 
         requiresRevalidation,
         auditLogs,

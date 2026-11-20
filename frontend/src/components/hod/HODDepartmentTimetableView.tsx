@@ -1,242 +1,884 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Printer,
+  Calendar,
+  Users,
   CheckCircle2,
+  AlertTriangle,
+  Clock,
+  BookOpen,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
 
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+
+interface UnifiedFacultyScheduleSlot {
+  id: string;
+  day: (typeof DAYS)[number];
+  startPeriod: number;
+  duration: number;
+  subjectCode: string;
+  subjectTitle: string;
+  section: string;
+  room: string;
+  category: 'Department' | 'Basic Science' | 'Institutional';
+}
+
 export const HODDepartmentTimetableView: React.FC = () => {
-  const { timetableEntries, departmentStatus } = useWorkflow();
+  const {
+    deptTimetables,
+    cycleTimetables,
+    deanTimetables,
+    departmentFaculty,
+    deptSubjects,
+  } = useWorkflow();
 
-  const [selectedSection, setSelectedSection] = useState('AIDS - 3A');
-  const [selectedFacultyFilter, setSelectedFacultyFilter] = useState('All');
-  const [semesterCycle, setSemesterCycle] = useState<'Odd' | 'Even'>('Odd');
+  // Mode: Class-wise vs Faculty-wise
+  const [viewMode, setViewMode] = useState<'class-wise' | 'faculty-wise'>('class-wise');
 
-  const days: Array<'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday'> = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-  ];
+  // Class-wise state
+  const [selectedYear, setSelectedYear] = useState<'Second Year' | 'Third Year' | 'Final Year'>('Second Year');
+  const [selectedSection, setSelectedSection] = useState<'Section A' | 'Section B'>('Section A');
 
-  const periods = [1, 2, 3, 4, 5, 6, 7];
+  // Faculty-wise state
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>(
+    departmentFaculty[0]?.id || 'dept-fac-1'
+  );
 
-  const facultyOptions = [
-    'All',
-    'Dr. Ananya Rao',
-    'Prof. Rajesh Shetty',
-    'Prof. Sneha Kamath',
-  ];
+  // Available sections based on selected year
+  const availableSections = useMemo((): string[] => {
+    if (selectedYear === 'Second Year') {
+      return ['Section A', 'Section B'];
+    }
+    return ['Section A'];
+  }, [selectedYear]);
+
+  // Adjust section if switched to Year 3 or 4
+  const activeSection = availableSections.includes(selectedSection)
+    ? selectedSection
+    : 'Section A';
+
+  // Construct key to find timetable in deptTimetables
+  const timetableKey = `2026–2027_${selectedYear}_Odd Semester_AIDS_${activeSection}`;
+  const currentTimetable = deptTimetables[timetableKey];
+
+  // Selected faculty object for faculty-wise view
+  const currentFaculty = useMemo(() => {
+    return (
+      departmentFaculty.find((f) => f.id === selectedFacultyId) ||
+      departmentFaculty[0]
+    );
+  }, [departmentFaculty, selectedFacultyId]);
+
+  // Metadata for the active class
+  const classMetadata = useMemo(() => {
+    let advisor = 'Dr. Ananya Rao';
+    let room = 'LH-201';
+    let semesterCode = '3rd Semester';
+
+    if (selectedYear === 'Second Year') {
+      semesterCode = '3rd Semester';
+      if (activeSection === 'Section B') {
+        advisor = 'Prof. Sneha Kamath';
+        room = 'LH-202';
+      }
+    } else if (selectedYear === 'Third Year') {
+      semesterCode = '5th Semester';
+      advisor = 'Prof. Rajesh Shetty';
+      room = 'LH-203';
+    } else {
+      semesterCode = '7th Semester';
+      advisor = 'Dr. Vasudeva';
+      room = 'LH-204';
+    }
+
+    return {
+      department: 'Artificial Intelligence & Data Science',
+      academicYear: '2026–2027',
+      semester: semesterCode,
+      studentYear: selectedYear,
+      section: activeSection,
+      advisor,
+      room,
+    };
+  }, [selectedYear, activeSection]);
+
+  // Subjects belonging to this class
+  const classSubjects = useMemo(() => {
+    const semMap: Record<string, string> = {
+      'Second Year': '3rd Sem',
+      'Third Year': '5th Sem',
+      'Final Year': '7th Sem',
+    };
+    const semTarget = semMap[selectedYear] || '3rd Sem';
+    return deptSubjects.filter((s) => s.semester === semTarget);
+  }, [deptSubjects, selectedYear]);
+
+  // Unified Faculty Schedule aggregator (Mode B)
+  const facultySlots = useMemo(() => {
+    if (!currentFaculty) return [];
+    const facultyName = currentFaculty.name;
+    const slots: UnifiedFacultyScheduleSlot[] = [];
+
+    // 1. Department Timetables (both published and drafts for HOD visibility)
+    Object.entries(deptTimetables).forEach(([, tt]) => {
+      if (tt && tt.placements) {
+        tt.placements.forEach((p) => {
+          if (p.facultyName && p.facultyName.includes(facultyName)) {
+            slots.push({
+              id: `dept-${p.id}`,
+              day: p.day as (typeof DAYS)[number],
+              startPeriod: p.startPeriod,
+              duration: p.duration,
+              subjectCode: p.subjectCode,
+              subjectTitle: p.subjectTitle,
+              section: `${tt.studentYear.replace(' Year', '')} Sem - ${tt.section}`,
+              room: p.room,
+              category: 'Department',
+            });
+          }
+        });
+      }
+    });
+
+    // 2. Basic Science Cycle Timetables
+    Object.entries(cycleTimetables).forEach(([, ct]) => {
+      if (ct && ct.placements) {
+        ct.placements.forEach((p) => {
+          if (p.facultyName && p.facultyName.includes(facultyName)) {
+            slots.push({
+              id: `bs-${p.id}`,
+              day: p.day as (typeof DAYS)[number],
+              startPeriod: p.startPeriod,
+              duration: p.duration,
+              subjectCode: p.subjectCode,
+              subjectTitle: p.subjectName,
+              section: `1st Yr (${ct.cycle} - ${ct.section})`,
+              room: p.room || 'AB-101',
+              category: 'Basic Science',
+            });
+          }
+        });
+      }
+    });
+
+    // 3. Dean Institutional Timetables
+    Object.entries(deanTimetables).forEach(([, dt]) => {
+      if (dt && dt.placements) {
+        dt.placements.forEach((p) => {
+          if (p.facultyName && p.facultyName.includes(facultyName)) {
+            slots.push({
+              id: `dean-${p.id}`,
+              day: p.day as (typeof DAYS)[number],
+              startPeriod: p.startPeriod,
+              duration: p.duration,
+              subjectCode: p.subjectCode,
+              subjectTitle: p.subjectName,
+              section: `Inst (${dt.section})`,
+              room: p.room || 'Auditorium',
+              category: 'Institutional',
+            });
+          }
+        });
+      }
+    });
+
+    return slots;
+  }, [currentFaculty, deptTimetables, cycleTimetables, deanTimetables]);
+
+  // Total teaching contact hours for selected faculty
+  const facultyTotalTeachingHours = useMemo(() => {
+    return facultySlots.reduce((acc, slot) => acc + slot.duration, 0);
+  }, [facultySlots]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Banner */}
-      <div className="p-6 bg-surface rounded-card border border-border-beige shadow-crisp">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-4 animate-fade-in text-ink">
+      {/* Top Controls Header */}
+      <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-mono uppercase tracking-wider text-ink-light">
-                Departmental Academic Oversight
+                HOD Oversight • Department of AI &amp; DS
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span>AIDS Status: {departmentStatus}</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary-subtle text-primary border border-primary/20 font-semibold">
+                Table 0 VTU Standard
               </span>
             </div>
-            <h2 className="font-headline text-2xl sm:text-3xl font-semibold text-primary">
-              Department Master Timetable
+            <h2 className="font-headline text-xl sm:text-2xl font-bold text-primary">
+              Department Timetable
             </h2>
-            <p className="text-xs text-ink-muted mt-1 max-w-xl leading-relaxed">
-              Read-only oversight of the AI &amp; Data Science timetable prepared by Timetable Coordinator Prof. Rajesh Shetty.
+            <p className="text-xs text-ink-muted mt-0.5">
+              Comprehensive institutional timetable oversight for all academic years and faculty teaching schedules.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View Mode Toggle */}
+            <div className="inline-flex rounded-card border border-border-subtle p-0.5 bg-canvas-muted">
+              <button
+                type="button"
+                onClick={() => setViewMode('class-wise')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
+                  viewMode === 'class-wise'
+                    ? 'bg-primary text-white shadow-crisp'
+                    : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Class-wise</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('faculty-wise')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
+                  viewMode === 'faculty-wise'
+                    ? 'bg-primary text-white shadow-crisp'
+                    : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Faculty-wise</span>
+              </button>
+            </div>
+
+            {/* Print Button */}
             <button
               type="button"
               onClick={() => window.print()}
-              className="px-3.5 py-2 bg-surface text-ink hover:bg-canvas-muted text-xs font-semibold rounded-card border border-border-beige transition-colors shadow-crisp-sm flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-surface text-ink hover:bg-canvas-muted text-xs font-semibold rounded-card border border-border-beige shadow-crisp-sm transition-colors flex items-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5 text-primary" />
-              <span>Print Timetable</span>
+              <span>Print Schedule</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-surface rounded-card border border-border-beige p-4 shadow-crisp-sm flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Cycle selector */}
-          <div className="flex items-center rounded border border-border-subtle p-0.5 bg-canvas-muted">
-            <button
-              type="button"
-              onClick={() => setSemesterCycle('Odd')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                semesterCycle === 'Odd'
-                  ? 'bg-primary text-white shadow-crisp-sm'
-                  : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              Odd Sem 2026–27
-            </button>
-            <button
-              type="button"
-              onClick={() => setSemesterCycle('Even')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                semesterCycle === 'Even'
-                  ? 'bg-primary text-white shadow-crisp-sm'
-                  : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              Even Sem
-            </button>
+      {/* MODE A: CLASS-WISE TIMETABLE */}
+      {viewMode === 'class-wise' && (
+        <div className="space-y-4">
+          {/* Class Selectors Bar */}
+          <div className="bg-surface rounded-card border border-border-beige p-3 shadow-crisp-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Year Selector */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-ink-muted font-medium text-[11px]">Academic Year:</span>
+                <select
+                  aria-label="Filter by Academic Year"
+                  value={selectedYear}
+                  onChange={(e) => {
+                    const y = e.target.value as 'Second Year' | 'Third Year' | 'Final Year';
+                    setSelectedYear(y);
+                    setSelectedSection('Section A');
+                  }}
+                  className="bg-white border border-border-beige rounded px-2.5 py-1 text-xs font-semibold text-ink focus:outline-hidden focus:border-primary"
+                >
+                  <option value="Second Year">2nd Year (3rd Sem)</option>
+                  <option value="Third Year">3rd Year (5th Sem)</option>
+                  <option value="Final Year">4th Year (7th Sem)</option>
+                </select>
+              </div>
+
+              {/* Section Selector */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-ink-muted font-medium text-[11px]">Section:</span>
+                <div className="inline-flex rounded border border-border-subtle p-0.5 bg-canvas-muted">
+                  {availableSections.map((sec) => (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => setSelectedSection(sec as 'Section A' | 'Section B')}
+                      className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-all ${
+                        activeSection === sec
+                          ? 'bg-primary text-white shadow-crisp-sm'
+                          : 'text-ink-muted hover:text-ink'
+                      }`}
+                    >
+                      {sec}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Semester Cycle Badge */}
+              <span className="px-2 py-0.5 rounded bg-canvas-muted text-ink-light text-[11px] font-mono border border-border-subtle">
+                Odd Sem 2026–27
+              </span>
+            </div>
+
+            {/* Timetable Status Badge */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-ink-muted font-mono">Status:</span>
+              {currentTimetable?.isPublished ? (
+                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  Published
+                </span>
+              ) : currentTimetable && !currentTimetable.isDraft ? (
+                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-purple-50 text-purple-800 border border-purple-300 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-purple-600" />
+                  Approved by HOD
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-600" />
+                  Draft / In Progress
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Section selector */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-ink-light font-medium">Section:</span>
-            <select
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              className="p-1.5 bg-canvas-paper border border-border-beige rounded text-xs text-ink focus:outline-none focus:border-primary font-mono"
-            >
-              <option value="AIDS - 3A">AIDS - 3A (Sem 3)</option>
-              <option value="AIDS - 3B">AIDS - 3B (Sem 3)</option>
-              <option value="AIDS - 5A">AIDS - 5A (Sem 5)</option>
-            </select>
+          {/* Timetable Details Header */}
+          <div className="bg-surface rounded-card border border-border-beige p-3 shadow-crisp-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Class / Section</span>
+                <span className="font-semibold text-ink text-xs">{classMetadata.studentYear} — {classMetadata.section}</span>
+              </div>
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Semester</span>
+                <span className="font-semibold text-ink text-xs">{classMetadata.semester} (Odd 2026–27)</span>
+              </div>
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Class Advisor</span>
+                <span className="font-semibold text-primary text-xs">{classMetadata.advisor}</span>
+              </div>
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Lecture Hall</span>
+                <span className="font-semibold text-ink text-xs">{classMetadata.room} (Academic Block)</span>
+              </div>
+            </div>
           </div>
 
-          {/* Faculty filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-ink-light font-medium">Faculty:</span>
-            <select
-              value={selectedFacultyFilter}
-              onChange={(e) => setSelectedFacultyFilter(e.target.value)}
-              className="p-1.5 bg-canvas-paper border border-border-beige rounded text-xs text-ink focus:outline-none focus:border-primary"
-            >
-              {facultyOptions.map((fac) => (
-                <option key={fac} value={fac}>
-                  {fac}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+          {/* Table 0 VTU Grid Container */}
+          <div className="bg-white p-3 sm:p-4 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3">
+            {/* Printable Institutional Header */}
+            <div className="hidden print:block text-center pb-2 border-b-2 border-black space-y-0.5">
+              <h2 className="font-headline font-bold text-sm text-[#530e21] tracking-wide uppercase">
+                Shri Madhwa Vadiraja Institute of Technology &amp; Management
+              </h2>
+              <p className="text-[10px] font-medium text-ink">
+                Vishwothama Nagar, Bantakal, Udupi – 574 115
+              </p>
+              <p className="text-[10px] font-bold text-primary uppercase">
+                Department of Artificial Intelligence &amp; Data Science — Class Timetable
+              </p>
+              <div className="pt-1 flex items-center justify-between text-[11px] font-mono font-semibold px-2">
+                <span>Year: {classMetadata.studentYear} ({classMetadata.section})</span>
+                <span>Semester: {classMetadata.semester}</span>
+                <span>Room: {classMetadata.room}</span>
+                <span>Advisor: {classMetadata.advisor}</span>
+              </div>
+            </div>
 
-        <div className="text-xs font-mono text-ink-light">
-          Classroom: LH-201 / Computing Lab 1
-        </div>
-      </div>
+            {/* Table 0 Grid */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-black text-xs select-none">
+                <thead>
+                  <tr className="bg-[#993366] text-white font-mono text-[11px] border border-black">
+                    <th className="py-2 px-1 text-center font-bold border border-black bg-[#993366] text-white w-[80px] min-w-[75px] uppercase text-[10px]">
+                      DAY/TIME
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">I</div>
+                      <div className="text-[8px] opacity-90 font-mono">9:00–9:55</div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">II</div>
+                      <div className="text-[8px] opacity-90 font-mono">9:55–10:50</div>
+                    </th>
+                    <th className="py-2 px-0.5 text-center font-bold border border-black bg-[#EFCDDE] text-black w-[40px] min-w-[38px] text-[9px] uppercase tracking-wider">
+                      <div className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold text-center mx-auto tracking-widest uppercase text-black">
+                        TEA BREAK
+                      </div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">III</div>
+                      <div className="text-[8px] opacity-90 font-mono">11:10–12:05</div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">IV</div>
+                      <div className="text-[8px] opacity-90 font-mono">12:05–1:00</div>
+                    </th>
+                    <th className="py-2 px-0.5 text-center font-bold border border-black bg-[#EFCDDE] text-black w-[40px] min-w-[38px] text-[9px] uppercase tracking-wider">
+                      <div className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold text-center mx-auto tracking-widest uppercase text-black">
+                        LUNCH
+                      </div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">V</div>
+                      <div className="text-[8px] opacity-90 font-mono">1:55–2:50</div>
+                    </th>
+                    <th className="py-2 px-0.5 text-center font-bold border border-black bg-[#EFCDDE] text-black w-[40px] min-w-[38px] text-[9px] uppercase tracking-wider">
+                      <div className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold text-center mx-auto tracking-widest uppercase text-black">
+                        LEISURE
+                      </div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">VI</div>
+                      <div className="text-[8px] opacity-90 font-mono">3:00–3:55</div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">VII</div>
+                      <div className="text-[8px] opacity-90 font-mono">3:55–4:45</div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {DAYS.map((day) => {
+                    const placementsForDay = currentTimetable?.placements?.filter((p) => p.day === day) || [];
 
-      {/* Timetable Table Grid */}
-      <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
-        <div className="p-4 bg-canvas-paper border-b border-border-subtle flex items-center justify-between">
-          <div>
-            <h3 className="font-headline text-base font-semibold text-primary">
-              Section Schedule: {selectedSection} ({semesterCycle} Semester)
-            </h3>
-            <span className="text-xs text-ink-muted">
-              HOD Oversight View • Verified AICTE Normative Compliance
-            </span>
-          </div>
-          <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 uppercase">
-            {departmentStatus}
-          </span>
-        </div>
+                    const renderClassPeriodCell = (period: number) => {
+                      // Check if covered by a previous multi-period slot
+                      const coveredByPrev = placementsForDay.find(
+                        (p) => p.startPeriod < period && p.startPeriod + p.duration > period
+                      );
+                      if (coveredByPrev) return null;
 
-        <div className="overflow-x-auto p-4">
-          <table className="w-full text-center border-collapse text-xs">
-            <thead>
-              <tr className="bg-canvas-paper border border-border-beige text-[11px] font-mono uppercase tracking-wider text-ink-light">
-                <th className="p-3 w-28 text-left">Day / Period</th>
-                {periods.map((p) => (
-                  <th key={p} className="p-2.5 border-l border-border-beige">
-                    <div>Period {p}</div>
-                    <div className="text-[9px] text-ink-light font-normal">
-                      {p === 1 && '9:00 - 9:55'}
-                      {p === 2 && '9:55 - 10:50'}
-                      {p === 3 && '11:10 - 12:05'}
-                      {p === 4 && '12:05 - 1:00'}
-                      {p === 5 && '2:00 - 2:55'}
-                      {p === 6 && '2:55 - 3:50'}
-                      {p === 7 && '3:50 - 4:45'}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-beige border border-border-beige">
-              {days.map((day) => (
-                <tr key={day} className="hover:bg-canvas-muted/10 transition-colors">
-                  <td className="p-3 text-left font-semibold font-mono text-ink bg-canvas-paper/50 border-r border-border-beige">
-                    {day}
-                  </td>
-                  {periods.map((p) => {
-                    const entry = timetableEntries.find(
-                      (e) => e.day === day && e.period === p && e.section === selectedSection
-                    );
+                      const placement = placementsForDay.find((p) => p.startPeriod === period);
+                      const colSpan = placement ? placement.duration : 1;
 
-                    if (!entry) {
+                      if (placement) {
+                        const isInstitutional =
+                          placement.subjectCode === 'NSS-YRC' ||
+                          placement.subjectCode === 'OPEN-EL' ||
+                          placement.subjectCode === 'TPO-TRN';
+
+                        return (
+                          <td
+                            key={period}
+                            colSpan={colSpan}
+                            className={`p-1.5 text-center border border-black align-middle h-[52px] ${
+                              isInstitutional
+                                ? 'bg-amber-50/70 border-amber-300'
+                                : 'bg-white hover:bg-canvas-muted/20'
+                            }`}
+                          >
+                            <div className="flex flex-col items-center justify-center leading-tight">
+                              <span className="font-bold font-mono text-[10px] text-primary">
+                                {placement.subjectCode}
+                              </span>
+                              <span className="text-[9px] font-medium text-ink line-clamp-1 max-w-[140px]">
+                                {placement.subjectTitle}
+                              </span>
+                              <span className="text-[8px] text-ink-muted line-clamp-1 max-w-[140px]">
+                                {placement.facultyName}
+                              </span>
+                              <span className="text-[8px] font-mono text-ink-light">
+                                [{placement.room || classMetadata.room}]
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      }
+
                       return (
                         <td
-                          key={p}
-                          className="p-2 border-l border-border-beige text-ink-light font-mono text-[11px]"
+                          key={period}
+                          className="p-1 text-center border border-black align-middle bg-white text-zinc-300 font-mono text-[10px]"
                         >
                           —
                         </td>
                       );
-                    }
-
-                    // Check faculty filter
-                    if (
-                      selectedFacultyFilter !== 'All' &&
-                      entry.facultyName !== selectedFacultyFilter
-                    ) {
-                      return (
-                        <td
-                          key={p}
-                          className="p-2 border-l border-border-beige text-ink-light font-mono text-[11px] opacity-25"
-                        >
-                          Other Faculty
-                        </td>
-                      );
-                    }
-
-                    const isInstitutional = entry.isLockedSlot;
+                    };
 
                     return (
-                      <td
-                        key={p}
-                        className={`p-2 border-l border-border-beige ${
-                          isInstitutional
-                            ? 'bg-amber-50/70 border-amber-200'
-                            : 'bg-primary-subtle/25'
-                        }`}
-                      >
-                        <div
-                          className={`font-mono font-bold text-[11px] ${
-                            isInstitutional ? 'text-amber-900' : 'text-primary'
-                          }`}
-                        >
-                          {entry.courseCode}
-                        </div>
-                        <div className="text-[10px] text-ink truncate max-w-[120px] mx-auto mt-0.5">
-                          {entry.courseTitle}
-                        </div>
-                        <div className="text-[9px] text-ink-muted font-mono mt-0.5">
-                          {entry.room} • {entry.facultyName.split(' ')[0]}
-                        </div>
-                      </td>
+                      <tr key={day} className="border border-black h-[52px]">
+                        {/* Day Column */}
+                        <td className="py-1 px-1 text-center font-bold font-mono text-[10px] uppercase border border-black bg-canvas-paper text-ink">
+                          {day.substring(0, 3)}
+                        </td>
+
+                        {/* Period I & II */}
+                        {renderClassPeriodCell(1)}
+                        {renderClassPeriodCell(2)}
+
+                        {/* TEA BREAK (Rendered once on Monday with rowSpan 6) */}
+                        {day === 'Monday' && (
+                          <td
+                            rowSpan={6}
+                            className="p-0 border border-black bg-[#EFCDDE] text-black text-center align-middle w-[40px] select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-bold text-center mx-auto tracking-widest uppercase text-black py-4">
+                              TEA BREAK (10:50–11:10)
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period III & IV */}
+                        {renderClassPeriodCell(3)}
+                        {renderClassPeriodCell(4)}
+
+                        {/* LUNCH BREAK (Rendered once on Monday with rowSpan 6) */}
+                        {day === 'Monday' && (
+                          <td
+                            rowSpan={6}
+                            className="p-0 border border-black bg-[#EFCDDE] text-black text-center align-middle w-[40px] select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-bold text-center mx-auto tracking-widest uppercase text-black py-4">
+                              LUNCH BREAK (1:00–1:55)
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period V */}
+                        {renderClassPeriodCell(5)}
+
+                        {/* LEISURE BREAK (Rendered once on Monday with rowSpan 6) */}
+                        {day === 'Monday' && (
+                          <td
+                            rowSpan={6}
+                            className="p-0 border border-black bg-[#EFCDDE] text-black text-center align-middle w-[40px] select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-bold text-center mx-auto tracking-widest uppercase text-black py-4">
+                              BREAK (2:50–3:00)
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period VI & VII */}
+                        {renderClassPeriodCell(6)}
+                        {renderClassPeriodCell(7)}
+                      </tr>
                     );
                   })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Subject Allocation Roster Table */}
+            <div className="pt-2">
+              <div className="flex items-center gap-1.5 mb-2">
+                <BookOpen className="w-3.5 h-3.5 text-primary" />
+                <h4 className="font-headline text-xs font-semibold text-primary">
+                  Course &amp; Faculty Allocation Roster — {classMetadata.semester} ({classMetadata.section})
+                </h4>
+              </div>
+
+              <div className="overflow-x-auto border border-border-beige rounded">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-canvas-paper border-b border-border-subtle text-[10px] font-mono uppercase text-ink-light">
+                      <th className="p-2">Course Code</th>
+                      <th className="p-2">Course Title</th>
+                      <th className="p-2">Category</th>
+                      <th className="p-2">Venue</th>
+                      <th className="p-2">Assigned Faculty</th>
+                      <th className="p-2 text-right">Hrs/Wk</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-subtle">
+                    {classSubjects.map((sub) => (
+                      <tr key={sub.id} className="hover:bg-canvas-muted/20">
+                        <td className="p-2 font-mono font-semibold text-primary text-[11px]">
+                          {sub.courseCode}
+                        </td>
+                        <td className="p-2 font-medium text-ink">{sub.courseTitle}</td>
+                        <td className="p-2 text-ink-muted text-[11px]">{sub.type}</td>
+                        <td className="p-2 font-mono text-[11px] text-ink-light">
+                          {sub.venue || classMetadata.room}
+                        </td>
+                        <td className="p-2 text-ink font-semibold">
+                          {sub.assignedFaculty || 'Prof. Rajesh Shetty'}
+                        </td>
+                        <td className="p-2 text-right font-mono font-semibold text-ink">
+                          {sub.hoursPerWeek}h
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* MODE B: FACULTY-WISE TIMETABLE */}
+      {viewMode === 'faculty-wise' && (
+        <div className="space-y-4">
+          {/* Faculty Selector Bar */}
+          <div className="bg-surface rounded-card border border-border-beige p-3 shadow-crisp-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-ink-muted font-medium text-[11px]">Select Faculty Member:</span>
+              <select
+                aria-label="Select Faculty Member"
+                value={selectedFacultyId}
+                onChange={(e) => setSelectedFacultyId(e.target.value)}
+                className="bg-white border border-border-beige rounded px-3 py-1.5 text-xs font-semibold text-ink focus:outline-hidden focus:border-primary min-w-[240px]"
+              >
+                {departmentFaculty.map((fac) => (
+                  <option key={fac.id} value={fac.id}>
+                    {fac.name} ({fac.designation})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Load compliance indicator */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-ink-muted font-mono">Workload Status:</span>
+              {(() => {
+                const total = facultyTotalTeachingHours;
+                const min = currentFaculty?.minHours || 12;
+                const max = currentFaculty?.maxHours || 16;
+                const norm = currentFaculty?.normHours || 14;
+                if (total > max) {
+                  return (
+                    <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-rose-50 text-rose-800 border border-rose-300 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 text-rose-600" />
+                      Overloaded ({total}h &gt; {max}h)
+                    </span>
+                  );
+                }
+                if (total < min) {
+                  return (
+                    <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-600" />
+                      Underloaded ({total}h &lt; {min}h)
+                    </span>
+                  );
+                }
+                return (
+                  <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    Optimal ({total}h / {norm}h)
+                  </span>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Faculty Summary Card */}
+          <div className="bg-surface rounded-card border border-border-beige p-3 shadow-crisp-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Faculty Member</span>
+                <span className="font-semibold text-ink text-xs block truncate">{currentFaculty?.name}</span>
+                <span className="text-[10px] font-mono text-ink-light">{currentFaculty?.empId}</span>
+              </div>
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Designation</span>
+                <span className="font-semibold text-ink text-xs block truncate">{currentFaculty?.designation}</span>
+                <span className="text-[10px] font-mono text-ink-light">VTU Norm: {currentFaculty?.normHours}h</span>
+              </div>
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Dept Teaching</span>
+                <span className="font-semibold text-primary text-xs">
+                  {currentFaculty?.theoryHours || 0}h Th + {currentFaculty?.labHours || 0}h Lab
+                </span>
+                <span className="text-[10px] font-mono text-ink-light block">AIDS Department</span>
+              </div>
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Basic Science (1st Yr)</span>
+                <span className="font-semibold text-purple-800 text-xs">
+                  {currentFaculty?.basicScienceHours || 0} Hrs/Wk
+                </span>
+                <span className="text-[10px] font-mono text-ink-light block">Cycle Sections</span>
+              </div>
+              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                <span className="text-[10px] font-mono text-ink-light block uppercase">Total Contact Hours</span>
+                <span className="font-bold text-ink text-sm">
+                  {facultyTotalTeachingHours} Hrs/Wk
+                </span>
+                <span className="text-[10px] font-mono text-emerald-800 block">
+                  Range: {currentFaculty?.minHours}–{currentFaculty?.maxHours}h
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Table 0 VTU Grid for Faculty */}
+          <div className="bg-white p-3 sm:p-4 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3">
+            {/* Printable Institutional Header */}
+            <div className="hidden print:block text-center pb-2 border-b-2 border-black space-y-0.5">
+              <h2 className="font-headline font-bold text-sm text-[#530e21] tracking-wide uppercase">
+                Shri Madhwa Vadiraja Institute of Technology &amp; Management
+              </h2>
+              <p className="text-[10px] font-medium text-ink">
+                Vishwothama Nagar, Bantakal, Udupi – 574 115
+              </p>
+              <p className="text-[10px] font-bold text-primary uppercase">
+                Faculty Teaching Schedule — {currentFaculty?.name} ({currentFaculty?.empId})
+              </p>
+              <div className="pt-1 flex items-center justify-between text-[11px] font-mono font-semibold px-2">
+                <span>Designation: {currentFaculty?.designation}</span>
+                <span>Department: {currentFaculty?.department}</span>
+                <span>Total Contact: {facultyTotalTeachingHours} Hrs/Wk</span>
+              </div>
+            </div>
+
+            {/* Table 0 Grid */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-black text-xs select-none">
+                <thead>
+                  <tr className="bg-[#993366] text-white font-mono text-[11px] border border-black">
+                    <th className="py-2 px-1 text-center font-bold border border-black bg-[#993366] text-white w-[80px] min-w-[75px] uppercase text-[10px]">
+                      DAY/TIME
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">I</div>
+                      <div className="text-[8px] opacity-90 font-mono">9:00–9:55</div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">II</div>
+                      <div className="text-[8px] opacity-90 font-mono">9:55–10:50</div>
+                    </th>
+                    <th className="py-2 px-0.5 text-center font-bold border border-black bg-[#EFCDDE] text-black w-[40px] min-w-[38px] text-[9px] uppercase tracking-wider">
+                      <div className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold text-center mx-auto tracking-widest uppercase text-black">
+                        TEA BREAK
+                      </div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">III</div>
+                      <div className="text-[8px] opacity-90 font-mono">11:10–12:05</div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">IV</div>
+                      <div className="text-[8px] opacity-90 font-mono">12:05–1:00</div>
+                    </th>
+                    <th className="py-2 px-0.5 text-center font-bold border border-black bg-[#EFCDDE] text-black w-[40px] min-w-[38px] text-[9px] uppercase tracking-wider">
+                      <div className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold text-center mx-auto tracking-widest uppercase text-black">
+                        LUNCH
+                      </div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">V</div>
+                      <div className="text-[8px] opacity-90 font-mono">1:55–2:50</div>
+                    </th>
+                    <th className="py-2 px-0.5 text-center font-bold border border-black bg-[#EFCDDE] text-black w-[40px] min-w-[38px] text-[9px] uppercase tracking-wider">
+                      <div className="[writing-mode:vertical-rl] rotate-180 text-[8px] font-bold text-center mx-auto tracking-widest uppercase text-black">
+                        LEISURE
+                      </div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">VI</div>
+                      <div className="text-[8px] opacity-90 font-mono">3:00–3:55</div>
+                    </th>
+                    <th className="py-2 px-1 text-center font-semibold border border-black bg-[#993366] text-white min-w-[85px]">
+                      <div className="font-bold text-[10px]">VII</div>
+                      <div className="text-[8px] opacity-90 font-mono">3:55–4:45</div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {DAYS.map((day) => {
+                    const slotsForDay = facultySlots.filter((s) => s.day === day);
+
+                    const renderFacultyPeriodCell = (period: number) => {
+                      const coveredByPrev = slotsForDay.find(
+                        (s) => s.startPeriod < period && s.startPeriod + s.duration > period
+                      );
+                      if (coveredByPrev) return null;
+
+                      const slot = slotsForDay.find((s) => s.startPeriod === period);
+                      const colSpan = slot ? slot.duration : 1;
+
+                      if (slot) {
+                        return (
+                          <td
+                            key={period}
+                            colSpan={colSpan}
+                            className={`p-1.5 text-center border border-black align-middle h-[52px] ${
+                              slot.category === 'Basic Science'
+                                ? 'bg-purple-50/70 border-purple-300'
+                                : slot.category === 'Institutional'
+                                ? 'bg-amber-50/70 border-amber-300'
+                                : 'bg-primary-subtle/50 border-primary/40'
+                            }`}
+                          >
+                            <div className="flex flex-col items-center justify-center leading-tight">
+                              <span className="font-bold font-mono text-[10px] text-primary">
+                                {slot.subjectCode}
+                              </span>
+                              <span className="text-[9px] font-semibold text-ink line-clamp-1 max-w-[140px]">
+                                {slot.subjectTitle}
+                              </span>
+                              <span className="text-[8px] font-mono text-ink-light">
+                                {slot.section} • {slot.room}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      return (
+                        <td
+                          key={period}
+                          className="p-1 text-center border border-black align-middle bg-white text-zinc-300 font-mono text-[10px]"
+                        >
+                          —
+                        </td>
+                      );
+                    };
+
+                    return (
+                      <tr key={day} className="border border-black h-[52px]">
+                        {/* Day Column */}
+                        <td className="py-1 px-1 text-center font-bold font-mono text-[10px] uppercase border border-black bg-canvas-paper text-ink">
+                          {day.substring(0, 3)}
+                        </td>
+
+                        {/* Period I & II */}
+                        {renderFacultyPeriodCell(1)}
+                        {renderFacultyPeriodCell(2)}
+
+                        {/* TEA BREAK */}
+                        {day === 'Monday' && (
+                          <td
+                            rowSpan={6}
+                            className="p-0 border border-black bg-[#EFCDDE] text-black text-center align-middle w-[40px] select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-bold text-center mx-auto tracking-widest uppercase text-black py-4">
+                              TEA BREAK (10:50–11:10)
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period III & IV */}
+                        {renderFacultyPeriodCell(3)}
+                        {renderFacultyPeriodCell(4)}
+
+                        {/* LUNCH BREAK */}
+                        {day === 'Monday' && (
+                          <td
+                            rowSpan={6}
+                            className="p-0 border border-black bg-[#EFCDDE] text-black text-center align-middle w-[40px] select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-bold text-center mx-auto tracking-widest uppercase text-black py-4">
+                              LUNCH BREAK (1:00–1:55)
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period V */}
+                        {renderFacultyPeriodCell(5)}
+
+                        {/* LEISURE BREAK */}
+                        {day === 'Monday' && (
+                          <td
+                            rowSpan={6}
+                            className="p-0 border border-black bg-[#EFCDDE] text-black text-center align-middle w-[40px] select-none"
+                          >
+                            <div className="[writing-mode:vertical-rl] rotate-180 text-[9px] font-bold text-center mx-auto tracking-widest uppercase text-black py-4">
+                              BREAK (2:50–3:00)
+                            </div>
+                          </td>
+                        )}
+
+                        {/* Period VI & VII */}
+                        {renderFacultyPeriodCell(6)}
+                        {renderFacultyPeriodCell(7)}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
