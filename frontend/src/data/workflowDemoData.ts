@@ -619,6 +619,42 @@ export interface DeanSectionTimetable {
   lockedBy?: string;
 }
 
+export interface BasicScienceSubject {
+  id: string;
+  cycle: 'Physics' | 'Chemistry';
+  name: string;
+  code: string;
+  type: 'Theory' | 'Practical' | 'Integrated';
+  numFaculty: number;
+  facultyNames: string[];
+}
+
+export interface BasicSciencePlacement {
+  id: string;
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  startPeriod: number; // 1 to 7
+  duration: number; // 1, 2, or 3
+  subjectCode: string;
+  subjectName: string;
+  facultyName: string;
+  room?: string;
+  isMerged?: boolean;
+  isDeanLocked?: boolean;
+  lockedReason?: string;
+}
+
+export interface CycleSectionTimetable {
+  cycle: 'Physics' | 'Chemistry';
+  academicYear: string;
+  studentYear: string;
+  semester: string;
+  section: string;
+  placements: BasicSciencePlacement[];
+  isLocked: boolean;
+  lockedAt?: string;
+  lockedBy?: string;
+}
+
 export const DEAN_DEPARTMENTS = [
   { code: 'DS', name: 'Data Science' },
   { code: 'ML', name: 'Machine Learning' },
@@ -857,4 +893,281 @@ export const INITIAL_DEAN_TIMETABLES: Record<string, DeanSectionTimetable> = {
     isLocked: false,
   },
 };
+
+export const DEAN_LOCKED_FIRST_YEAR_SLOTS: BasicSciencePlacement[] = [
+  {
+    id: 'dean-inst-uhv',
+    day: 'Monday',
+    startPeriod: 1,
+    duration: 2,
+    subjectCode: 'UHV101',
+    subjectName: 'First Year Induction & Universal Human Values',
+    facultyName: 'Basic Science Faculty Team',
+    room: 'Aryabhata Seminar Hall',
+    isDeanLocked: true,
+    lockedReason: 'Institutional AICTE Induction slot locked by Dean (Academic Affairs)',
+  },
+  {
+    id: 'dean-inst-vac-1',
+    day: 'Saturday',
+    startPeriod: 1,
+    duration: 2,
+    subjectCode: 'VAC',
+    subjectName: 'Value Added Course',
+    facultyName: 'Dean Academic / Expert',
+    room: 'Seminar Hall',
+    isDeanLocked: true,
+    lockedReason: 'Institutional Value Added Course locked by Dean',
+  },
+  {
+    id: 'dean-inst-vac-2',
+    day: 'Saturday',
+    startPeriod: 3,
+    duration: 2,
+    subjectCode: 'VAC',
+    subjectName: 'Value Added Course',
+    facultyName: 'Dean Academic / Expert',
+    room: 'Seminar Hall',
+    isDeanLocked: true,
+    lockedReason: 'Institutional Value Added Course locked by Dean',
+  },
+  {
+    id: 'dean-inst-tech-trn',
+    day: 'Friday',
+    startPeriod: 5,
+    duration: 2,
+    subjectCode: 'TECH-TRN',
+    subjectName: 'Technical Orientation & Soft Skills',
+    facultyName: 'Placement Officer',
+    room: 'Main Auditorium',
+    isDeanLocked: true,
+    lockedReason: 'Institutional Technical Orientation locked by Dean',
+  },
+];
+
+export const INITIAL_PHYSICS_SUBJECTS: BasicScienceSubject[] = [
+  {
+    id: 'bs-phy-1',
+    cycle: 'Physics',
+    name: 'Engineering Physics',
+    code: '22PHY12',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Dr. Ravindra'],
+  },
+  {
+    id: 'bs-phy-2',
+    cycle: 'Physics',
+    name: 'Calculus & Linear Algebra',
+    code: '22MAT11',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Dr. Subrahmanya'],
+  },
+  {
+    id: 'bs-phy-3',
+    cycle: 'Physics',
+    name: 'Basic Electronics & Communication Engg',
+    code: '22ESC143',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Prof. Karthik'],
+  },
+  {
+    id: 'bs-phy-4',
+    cycle: 'Physics',
+    name: 'Elements of Mechanical Engineering',
+    code: '22ESC144',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Prof. Manoj T'],
+  },
+  {
+    id: 'bs-phy-5',
+    cycle: 'Physics',
+    name: 'Engineering Physics Laboratory',
+    code: '22PHYL16',
+    type: 'Practical',
+    numFaculty: 2,
+    facultyNames: ['Dr. Ravindra', 'Prof. Raghavendra'],
+  },
+  {
+    id: 'bs-phy-6',
+    cycle: 'Physics',
+    name: 'Basic Electronics Workshop',
+    code: '22ESCL147',
+    type: 'Practical',
+    numFaculty: 2,
+    facultyNames: ['Prof. Karthik', 'Prof. Sandesh'],
+  },
+  {
+    id: 'bs-phy-7',
+    cycle: 'Physics',
+    name: 'Communicative English',
+    code: '22ENG155',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Prof. Anand V'],
+  },
+];
+
+export const INITIAL_CHEMISTRY_SUBJECTS: BasicScienceSubject[] = [
+  {
+    id: 'bs-chem-1',
+    cycle: 'Chemistry',
+    name: 'Engineering Chemistry',
+    code: '22CHE12',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Dr. K. K. Srinivasan'],
+  },
+  {
+    id: 'bs-chem-2',
+    cycle: 'Chemistry',
+    name: 'Calculus & Linear Algebra',
+    code: '22MAT11',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Prof. Divya'],
+  },
+  {
+    id: 'bs-chem-3',
+    cycle: 'Chemistry',
+    name: 'Basic Electrical Engineering',
+    code: '22ELE13',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Prof. Sandesh'],
+  },
+  {
+    id: 'bs-chem-4',
+    cycle: 'Chemistry',
+    name: 'Problem Solving through C Programming',
+    code: '22POP14',
+    type: 'Integrated',
+    numFaculty: 2,
+    facultyNames: ['Prof. Sneha Kamath', 'Prof. Rajesh Shetty'],
+  },
+  {
+    id: 'bs-chem-5',
+    cycle: 'Chemistry',
+    name: 'Engineering Chemistry Laboratory',
+    code: '22CHEL16',
+    type: 'Practical',
+    numFaculty: 2,
+    facultyNames: ['Dr. K. K. Srinivasan', 'Prof. Sumana'],
+  },
+  {
+    id: 'bs-chem-6',
+    cycle: 'Chemistry',
+    name: 'Computer Programming Laboratory',
+    code: '22POPL17',
+    type: 'Practical',
+    numFaculty: 2,
+    facultyNames: ['Prof. Sneha Kamath', 'Prof. Rajesh Shetty'],
+  },
+  {
+    id: 'bs-chem-7',
+    cycle: 'Chemistry',
+    name: 'Professional Writing Skills in English',
+    code: '22ENG156',
+    type: 'Theory',
+    numFaculty: 1,
+    facultyNames: ['Prof. Anand V'],
+  },
+];
+
+export const INITIAL_PHYSICS_SEC_A_PLACEMENTS: BasicSciencePlacement[] = [
+  ...DEAN_LOCKED_FIRST_YEAR_SLOTS,
+  // Monday
+  { id: 'phy-m3', day: 'Monday', startPeriod: 3, duration: 1, subjectCode: '22PHY12', subjectName: 'Engineering Physics', facultyName: 'Dr. Ravindra', room: 'AB-101' },
+  { id: 'phy-m4', day: 'Monday', startPeriod: 4, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Dr. Subrahmanya', room: 'AB-101' },
+  { id: 'phy-m5', day: 'Monday', startPeriod: 5, duration: 1, subjectCode: '22ESC143', subjectName: 'Basic Electronics & Comm Engg', facultyName: 'Prof. Karthik', room: 'AB-101' },
+  { id: 'phy-m6', day: 'Monday', startPeriod: 6, duration: 2, subjectCode: '22PHYL16', subjectName: 'Engineering Physics Lab (Batch 1)', facultyName: 'Dr. Ravindra, Prof. Raghavendra', room: 'Physics Lab 1' },
+
+  // Tuesday
+  { id: 'phy-t1', day: 'Tuesday', startPeriod: 1, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Dr. Subrahmanya', room: 'AB-101' },
+  { id: 'phy-t2', day: 'Tuesday', startPeriod: 2, duration: 1, subjectCode: '22PHY12', subjectName: 'Engineering Physics', facultyName: 'Dr. Ravindra', room: 'AB-101' },
+  { id: 'phy-t3', day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: '22ESC144', subjectName: 'Elements of Mechanical Engg', facultyName: 'Prof. Manoj T', room: 'AB-101' },
+  { id: 'phy-t4', day: 'Tuesday', startPeriod: 4, duration: 1, subjectCode: '22ENG155', subjectName: 'Communicative English', facultyName: 'Prof. Anand V', room: 'AB-101' },
+  { id: 'phy-t6', day: 'Tuesday', startPeriod: 6, duration: 2, subjectCode: '22ESCL147', subjectName: 'Basic Electronics Workshop', facultyName: 'Prof. Karthik, Prof. Sandesh', room: 'Electronics Lab' },
+
+  // Wednesday
+  { id: 'phy-w1', day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: '22ESC143', subjectName: 'Basic Electronics & Comm Engg', facultyName: 'Prof. Karthik', room: 'AB-101' },
+  { id: 'phy-w2', day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Dr. Subrahmanya', room: 'AB-101' },
+  { id: 'phy-w3', day: 'Wednesday', startPeriod: 3, duration: 1, subjectCode: '22PHY12', subjectName: 'Engineering Physics', facultyName: 'Dr. Ravindra', room: 'AB-101' },
+  { id: 'phy-w4', day: 'Wednesday', startPeriod: 4, duration: 1, subjectCode: '22ESC144', subjectName: 'Elements of Mechanical Engg', facultyName: 'Prof. Manoj T', room: 'AB-101' },
+  { id: 'phy-w5', day: 'Wednesday', startPeriod: 5, duration: 1, subjectCode: '22ENG155', subjectName: 'Communicative English', facultyName: 'Prof. Anand V', room: 'AB-101' },
+
+  // Thursday
+  { id: 'phy-th1', day: 'Thursday', startPeriod: 1, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Dr. Subrahmanya', room: 'AB-101' },
+  { id: 'phy-th2', day: 'Thursday', startPeriod: 2, duration: 1, subjectCode: '22ESC144', subjectName: 'Elements of Mechanical Engg', facultyName: 'Prof. Manoj T', room: 'AB-101' },
+  { id: 'phy-th3', day: 'Thursday', startPeriod: 3, duration: 1, subjectCode: '22ESC143', subjectName: 'Basic Electronics & Comm Engg', facultyName: 'Prof. Karthik', room: 'AB-101' },
+  { id: 'phy-th4', day: 'Thursday', startPeriod: 4, duration: 1, subjectCode: '22PHY12', subjectName: 'Engineering Physics', facultyName: 'Dr. Ravindra', room: 'AB-101' },
+  { id: 'phy-th6', day: 'Thursday', startPeriod: 6, duration: 2, subjectCode: '22PHYL16', subjectName: 'Engineering Physics Lab (Batch 2)', facultyName: 'Dr. Ravindra, Prof. Raghavendra', room: 'Physics Lab 1' },
+
+  // Friday
+  { id: 'phy-f1', day: 'Friday', startPeriod: 1, duration: 1, subjectCode: '22PHY12', subjectName: 'Engineering Physics', facultyName: 'Dr. Ravindra', room: 'AB-101' },
+  { id: 'phy-f2', day: 'Friday', startPeriod: 2, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Dr. Subrahmanya', room: 'AB-101' },
+  { id: 'phy-f3', day: 'Friday', startPeriod: 3, duration: 1, subjectCode: '22ESC143', subjectName: 'Basic Electronics & Comm Engg', facultyName: 'Prof. Karthik', room: 'AB-101' },
+  { id: 'phy-f4', day: 'Friday', startPeriod: 4, duration: 1, subjectCode: '22ESC144', subjectName: 'Elements of Mechanical Engg', facultyName: 'Prof. Manoj T', room: 'AB-101' },
+];
+
+export const INITIAL_CHEMISTRY_SEC_C_PLACEMENTS: BasicSciencePlacement[] = [
+  ...DEAN_LOCKED_FIRST_YEAR_SLOTS,
+  // Monday
+  { id: 'ch-m3', day: 'Monday', startPeriod: 3, duration: 1, subjectCode: '22CHE12', subjectName: 'Engineering Chemistry', facultyName: 'Dr. K. K. Srinivasan', room: 'AB-103' },
+  { id: 'ch-m4', day: 'Monday', startPeriod: 4, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Prof. Divya', room: 'AB-103' },
+  { id: 'ch-m5', day: 'Monday', startPeriod: 5, duration: 1, subjectCode: '22ELE13', subjectName: 'Basic Electrical Engineering', facultyName: 'Prof. Sandesh', room: 'AB-103' },
+  { id: 'ch-m6', day: 'Monday', startPeriod: 6, duration: 2, subjectCode: '22CHEL16', subjectName: 'Engineering Chemistry Lab (Batch 1)', facultyName: 'Dr. K. K. Srinivasan, Prof. Sumana', room: 'Chemistry Lab' },
+
+  // Tuesday
+  { id: 'ch-t1', day: 'Tuesday', startPeriod: 1, duration: 1, subjectCode: '22POP14', subjectName: 'Problem Solving through C Programming', facultyName: 'Prof. Sneha Kamath', room: 'AB-103' },
+  { id: 'ch-t2', day: 'Tuesday', startPeriod: 2, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Prof. Divya', room: 'AB-103' },
+  { id: 'ch-t3', day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: '22CHE12', subjectName: 'Engineering Chemistry', facultyName: 'Dr. K. K. Srinivasan', room: 'AB-103' },
+  { id: 'ch-t4', day: 'Tuesday', startPeriod: 4, duration: 1, subjectCode: '22ELE13', subjectName: 'Basic Electrical Engineering', facultyName: 'Prof. Sandesh', room: 'AB-103' },
+  { id: 'ch-t6', day: 'Tuesday', startPeriod: 6, duration: 2, subjectCode: '22POPL17', subjectName: 'Computer Programming Lab (Batch 1)', facultyName: 'Prof. Sneha Kamath, Prof. Rajesh Shetty', room: 'Computing Center 1' },
+
+  // Wednesday
+  { id: 'ch-w1', day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Prof. Divya', room: 'AB-103' },
+  { id: 'ch-w2', day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: '22CHE12', subjectName: 'Engineering Chemistry', facultyName: 'Dr. K. K. Srinivasan', room: 'AB-103' },
+  { id: 'ch-w3', day: 'Wednesday', startPeriod: 3, duration: 1, subjectCode: '22POP14', subjectName: 'Problem Solving through C Programming', facultyName: 'Prof. Sneha Kamath', room: 'AB-103' },
+  { id: 'ch-w4', day: 'Wednesday', startPeriod: 4, duration: 1, subjectCode: '22ENG156', subjectName: 'Prof Writing Skills in English', facultyName: 'Prof. Anand V', room: 'AB-103' },
+  { id: 'ch-w5', day: 'Wednesday', startPeriod: 5, duration: 1, subjectCode: '22ELE13', subjectName: 'Basic Electrical Engineering', facultyName: 'Prof. Sandesh', room: 'AB-103' },
+
+  // Thursday
+  { id: 'ch-th1', day: 'Thursday', startPeriod: 1, duration: 1, subjectCode: '22CHE12', subjectName: 'Engineering Chemistry', facultyName: 'Dr. K. K. Srinivasan', room: 'AB-103' },
+  { id: 'ch-th2', day: 'Thursday', startPeriod: 2, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Prof. Divya', room: 'AB-103' },
+  { id: 'ch-th3', day: 'Thursday', startPeriod: 3, duration: 1, subjectCode: '22ELE13', subjectName: 'Basic Electrical Engineering', facultyName: 'Prof. Sandesh', room: 'AB-103' },
+  { id: 'ch-th4', day: 'Thursday', startPeriod: 4, duration: 1, subjectCode: '22POP14', subjectName: 'Problem Solving through C Programming', facultyName: 'Prof. Sneha Kamath', room: 'AB-103' },
+  { id: 'ch-th6', day: 'Thursday', startPeriod: 6, duration: 2, subjectCode: '22CHEL16', subjectName: 'Engineering Chemistry Lab (Batch 2)', facultyName: 'Dr. K. K. Srinivasan, Prof. Sumana', room: 'Chemistry Lab' },
+
+  // Friday
+  { id: 'ch-f1', day: 'Friday', startPeriod: 1, duration: 1, subjectCode: '22POP14', subjectName: 'Problem Solving through C Programming', facultyName: 'Prof. Sneha Kamath', room: 'AB-103' },
+  { id: 'ch-f2', day: 'Friday', startPeriod: 2, duration: 1, subjectCode: '22CHE12', subjectName: 'Engineering Chemistry', facultyName: 'Dr. K. K. Srinivasan', room: 'AB-103' },
+  { id: 'ch-f3', day: 'Friday', startPeriod: 3, duration: 1, subjectCode: '22MAT11', subjectName: 'Calculus & Linear Algebra', facultyName: 'Prof. Divya', room: 'AB-103' },
+  { id: 'ch-f4', day: 'Friday', startPeriod: 4, duration: 1, subjectCode: '22ENG156', subjectName: 'Prof Writing Skills in English', facultyName: 'Prof. Anand V', room: 'AB-103' },
+];
+
+export const INITIAL_CYCLE_TIMETABLES: Record<string, CycleSectionTimetable> = {
+  'Physics_2026–2027_Odd Semester_Section A': {
+    cycle: 'Physics',
+    academicYear: '2026–2027',
+    studentYear: 'First Year',
+    semester: 'Odd Semester',
+    section: 'Section A',
+    placements: INITIAL_PHYSICS_SEC_A_PLACEMENTS,
+    isLocked: false,
+  },
+  'Chemistry_2026–2027_Odd Semester_Section C': {
+    cycle: 'Chemistry',
+    academicYear: '2026–2027',
+    studentYear: 'First Year',
+    semester: 'Odd Semester',
+    section: 'Section C',
+    placements: INITIAL_CHEMISTRY_SEC_C_PLACEMENTS,
+    isLocked: false,
+  },
+};
+
 

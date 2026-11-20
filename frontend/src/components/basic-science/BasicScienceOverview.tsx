@@ -71,7 +71,7 @@ export const BasicScienceOverview: React.FC<BasicScienceOverviewProps> = ({
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => onNavigate('lock')}
+                onClick={() => onNavigate('chemistry-timetable')}
                 className={`px-4 py-2 text-xs font-semibold rounded-card transition-all shadow-crisp-sm flex items-center gap-2 ${
                   isBsLocked
                     ? 'bg-amber-600 text-white hover:bg-amber-700'
@@ -186,7 +186,7 @@ export const BasicScienceOverview: React.FC<BasicScienceOverviewProps> = ({
           </div>
           <button
             type="button"
-            onClick={() => onNavigate('cycles')}
+            onClick={() => onNavigate('subject-allocation')}
             disabled={!isDeanLocked}
             className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
           >

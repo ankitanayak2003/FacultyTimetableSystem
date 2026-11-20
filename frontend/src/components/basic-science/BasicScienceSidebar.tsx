@@ -1,16 +1,9 @@
 import React from 'react';
 import {
-  LayoutDashboard,
-  Building,
-  GraduationCap,
+  Layers,
+  FlaskConical,
   Atom,
-  Users,
-  CalendarRange,
-  ShieldAlert,
-  Lock,
-  History,
-  Bell,
-  User,
+  FileText,
   LogOut,
   X,
   ShieldCheck,
@@ -18,26 +11,17 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import smvitmLogo from '../../assets/smvitm_logo.webp';
-import { useWorkflow } from '../../context/WorkflowContext';
 
 export type BasicScienceTab =
-  | 'overview'
-  | 'institutional'
-  | 'sections'
-  | 'cycles'
-  | 'faculty'
-  | 'preview'
-  | 'clashes'
-  | 'lock'
-  | 'versions'
-  | 'notifications'
-  | 'profile';
+  | 'subject-allocation'
+  | 'chemistry-timetable'
+  | 'physics-timetable'
+  | 'final-timetables';
 
 interface BasicScienceSidebarProps {
   activeTab: BasicScienceTab;
   onSelectTab: (tab: BasicScienceTab) => void;
   onLogout: () => void;
-  unreadCount?: number;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
   isCollapsed?: boolean;
@@ -48,93 +32,31 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
   activeTab,
   onSelectTab,
   onLogout,
-  unreadCount = 1,
   isOpenMobile = false,
   onCloseMobile,
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  const { basicScienceVersion, deanStatus } = useWorkflow();
-
-  const isGated = deanStatus !== 'LOCKED';
-
   const navItems = [
     {
-      id: 'overview' as BasicScienceTab,
-      label: 'Coordinator Overview',
-      shortLabel: 'Overview',
-      icon: LayoutDashboard,
-      badge: null,
+      id: 'subject-allocation' as BasicScienceTab,
+      label: 'Subject & Faculty Allocation',
+      icon: Layers,
     },
     {
-      id: 'institutional' as BasicScienceTab,
-      label: 'Dean Institutional Slots',
-      shortLabel: 'Institutional',
-      icon: Building,
-      badge: 'Gated',
+      id: 'chemistry-timetable' as BasicScienceTab,
+      label: 'Chemistry Cycle Timetable',
+      icon: FlaskConical,
     },
     {
-      id: 'sections' as BasicScienceTab,
-      label: 'First-Year Sections',
-      shortLabel: 'Sections',
-      icon: GraduationCap,
-      badge: '4 Sections',
-    },
-    {
-      id: 'cycles' as BasicScienceTab,
-      label: 'Physics / Chem Cycles',
-      shortLabel: 'Cycles',
+      id: 'physics-timetable' as BasicScienceTab,
+      label: 'Physics Cycle Timetable',
       icon: Atom,
-      badge: 'Rotation',
     },
     {
-      id: 'faculty' as BasicScienceTab,
-      label: 'Basic Science Faculty',
-      shortLabel: 'Faculty',
-      icon: Users,
-      badge: '22 Staff',
-    },
-    {
-      id: 'preview' as BasicScienceTab,
-      label: '1st Year Timetable Grid',
-      shortLabel: 'Preview',
-      icon: CalendarRange,
-      badge: null,
-    },
-    {
-      id: 'clashes' as BasicScienceTab,
-      label: 'Cross-Dept Clash Audit',
-      shortLabel: 'Clash Audit',
-      icon: ShieldAlert,
-      badge: '0 Clashes',
-    },
-    {
-      id: 'lock' as BasicScienceTab,
-      label: 'Stage 2 Lock Certification',
-      shortLabel: 'Certify Lock',
-      icon: Lock,
-      badge: basicScienceVersion,
-    },
-    {
-      id: 'versions' as BasicScienceTab,
-      label: 'Audit Trail & Versions',
-      shortLabel: 'History',
-      icon: History,
-      badge: null,
-    },
-    {
-      id: 'notifications' as BasicScienceTab,
-      label: 'Circulars & Directives',
-      shortLabel: 'Circulars',
-      icon: Bell,
-      badge: unreadCount > 0 ? `${unreadCount} New` : null,
-    },
-    {
-      id: 'profile' as BasicScienceTab,
-      label: 'Coordinator Profile',
-      shortLabel: 'Profile',
-      icon: User,
-      badge: null,
+      id: 'final-timetables' as BasicScienceTab,
+      label: 'Final Timetables',
+      icon: FileText,
     },
   ];
 
@@ -159,7 +81,7 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
         aria-label="Basic Science Portal Navigation"
         className={`fixed top-0 bottom-0 left-0 z-50 bg-surface border-r border-border-beige flex flex-col justify-between transition-all duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:z-40 overflow-y-auto ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } ${isCollapsed ? 'w-20' : 'w-64 lg:w-72'}`}
+        } ${isCollapsed ? 'w-20' : 'w-60 lg:w-64'}`}
       >
         <div>
           {/* Header Bar */}
@@ -187,7 +109,7 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
             </div>
 
             <div className="flex items-center gap-1">
-              {/* Desktop Arrow Toggle Button */}
+              {/* Desktop Collapse Toggle */}
               {onToggleCollapse && (
                 <button
                   type="button"
@@ -218,11 +140,11 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
             </div>
           </div>
 
-          {/* User Mini Card */}
+          {/* User Identity Mini Card */}
           {!isCollapsed ? (
             <div className="p-3 mx-3 my-3 bg-canvas-paper rounded-card border border-border-subtle shadow-crisp-sm transition-all duration-200">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono shadow-crisp-sm flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono shadow-crisp-sm flex-shrink-0">
                   RS
                 </div>
                 <div className="min-w-0 flex-1">
@@ -241,17 +163,17 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
               className="py-3 flex justify-center border-b border-border-subtle bg-canvas-paper/50"
               title="Dr. Ravindra Shenoy • Basic Science Coordinator"
             >
-              <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono shadow-crisp-sm">
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono shadow-crisp-sm">
                 RS
               </div>
             </div>
           )}
 
           {/* Navigation List */}
-          <nav className="p-3 space-y-1" aria-label="Basic Science Navigation">
+          <nav className="p-2.5 space-y-1" aria-label="Basic Science Navigation">
             {!isCollapsed && (
-              <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-ink-light font-semibold">
-                Coordination Modules
+              <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-ink-light font-semibold">
+                Academic Modules
               </div>
             )}
 
@@ -267,51 +189,31 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
                   className={`w-full flex items-center ${
                     isCollapsed
                       ? 'justify-center px-2 py-2'
-                      : 'justify-between px-3 py-2'
+                      : 'justify-start gap-2.5 px-3 py-2'
                   } rounded-card text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-primary text-white shadow-crisp-sm'
                       : 'text-ink-muted hover:text-ink hover:bg-primary-subtle/50'
                   }`}
                 >
-                  <div
-                    className={`flex items-center gap-2.5 ${
-                      isCollapsed ? 'justify-center' : 'min-w-0'
+                  <Icon
+                    className={`w-4 h-4 flex-shrink-0 ${
+                      isActive ? 'text-accent-gold' : 'text-primary'
                     }`}
-                  >
-                    <Icon
-                      className={`w-4 h-4 flex-shrink-0 ${
-                        isActive ? 'text-accent-gold' : 'text-primary'
-                      }`}
-                    />
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
-                  </div>
-
-                  {!isCollapsed && item.badge && (
-                    <span
-                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : isGated && item.id === 'institutional'
-                          ? 'bg-amber-50 text-amber-800 border border-amber-300'
-                          : 'bg-canvas-muted text-ink-light border border-border-subtle'
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
+                  />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </button>
               );
             })}
           </nav>
         </div>
 
-        {/* Logout Footer */}
+        {/* Sign Out Footer */}
         <div className="p-3 border-t border-border-subtle bg-canvas-paper">
           <button
             type="button"
             onClick={onLogout}
-            title="Exit Coordinator Portal"
+            title="Sign out of Basic Science Platform"
             className={`w-full flex items-center ${
               isCollapsed
                 ? 'justify-center px-2 py-2'
@@ -319,7 +221,7 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
             } text-xs font-semibold text-error hover:bg-error/10 border border-error/20 rounded-card transition-colors shadow-crisp-sm`}
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            {!isCollapsed && <span>Exit Coordinator Portal</span>}
+            {!isCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>

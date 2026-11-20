@@ -10,6 +10,8 @@ import {
   AuditLogEntry,
   DeanSubject,
   DeanSectionTimetable,
+  BasicScienceSubject,
+  CycleSectionTimetable,
   INITIAL_INSTITUTIONAL_SLOTS,
   INITIAL_FIRST_YEAR_SECTIONS,
   INITIAL_DEPARTMENTS,
@@ -19,6 +21,9 @@ import {
   INITIAL_AUDIT_LOGS,
   INITIAL_DEAN_SUBJECTS,
   INITIAL_DEAN_TIMETABLES,
+  INITIAL_PHYSICS_SUBJECTS,
+  INITIAL_CHEMISTRY_SUBJECTS,
+  INITIAL_CYCLE_TIMETABLES,
 } from '../data/workflowDemoData';
 
 export type WorkflowStageStatus = 'BLOCKED' | 'DRAFT' | 'LOCKED' | 'FINALIZED' | 'PUBLISHED';
@@ -55,6 +60,28 @@ interface WorkflowContextType {
   updateFirstYearSection: (id: string, updates: Partial<FirstYearSection>) => void;
   lockBasicScienceSchedule: (remarks: string) => void;
   reopenBasicScienceSchedule: (reason: string) => void;
+
+  // Basic Science Redesign: Subjects, Soft Constraints, Dynamic Sections & Cycle Timetables
+  physicsSubjects: BasicScienceSubject[];
+  chemistrySubjects: BasicScienceSubject[];
+  addBasicScienceSubject: (sub: Omit<BasicScienceSubject, 'id'>) => void;
+  updateBasicScienceSubject: (id: string, updates: Partial<BasicScienceSubject>) => void;
+  deleteBasicScienceSubject: (id: string) => void;
+
+  physicsSoftConstraints: string;
+  setPhysicsSoftConstraints: (val: string) => void;
+  chemistrySoftConstraints: string;
+  setChemistrySoftConstraints: (val: string) => void;
+
+  physicsSections: string[];
+  chemistrySections: string[];
+  addCycleSection: (cycle: 'Physics' | 'Chemistry', sectionName: string) => void;
+  removeCycleSection: (cycle: 'Physics' | 'Chemistry', sectionName: string) => void;
+
+  cycleTimetables: Record<string, CycleSectionTimetable>;
+  saveCycleTimetable: (key: string, data: CycleSectionTimetable) => void;
+  lockCycleTimetable: (key: string) => void;
+  unlockCycleTimetable: (key: string) => void;
 
   // Department Stage
   departmentStatus: WorkflowStageStatus;
@@ -123,6 +150,15 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [basicScienceVersion, setBasicScienceVersion] = useState<string>('v1.0');
   const [basicScienceLockedTimestamp, setBasicScienceLockedTimestamp] = useState<string>('2026-11-02 02:45 PM');
   const [firstYearSections, setFirstYearSections] = useState<FirstYearSection[]>(INITIAL_FIRST_YEAR_SECTIONS);
+
+  // Basic Science Redesign State: Page 1 Subjects, Constraints, Dynamic Sections & Page 2/3 Timetables
+  const [physicsSubjects, setPhysicsSubjects] = useState<BasicScienceSubject[]>(INITIAL_PHYSICS_SUBJECTS);
+  const [chemistrySubjects, setChemistrySubjects] = useState<BasicScienceSubject[]>(INITIAL_CHEMISTRY_SUBJECTS);
+  const [physicsSoftConstraints, setPhysicsSoftConstraints] = useState<string>('');
+  const [chemistrySoftConstraints, setChemistrySoftConstraints] = useState<string>('');
+  const [physicsSections, setPhysicsSections] = useState<string[]>(['Section A', 'Section B']);
+  const [chemistrySections, setChemistrySections] = useState<string[]>(['Section C', 'Section D']);
+  const [cycleTimetables, setCycleTimetables] = useState<Record<string, CycleSectionTimetable>>(INITIAL_CYCLE_TIMETABLES);
 
   // Computed status for Basic Science: if Dean is DRAFT, Basic Science is BLOCKED
   const basicScienceStatus: WorkflowStageStatus =
@@ -353,6 +389,111 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  // Basic Science Redesign Handlers
+  const addBasicScienceSubject = (sub: Omit<BasicScienceSubject, 'id'>) => {
+    const newSubject: BasicScienceSubject = {
+      ...sub,
+      id: `bs-sub-${Date.now()}`,
+    };
+    if (sub.cycle === 'Physics') {
+      setPhysicsSubjects((prev) => [newSubject, ...prev]);
+    } else {
+      setChemistrySubjects((prev) => [newSubject, ...prev]);
+    }
+  };
+
+  const updateBasicScienceSubject = (id: string, updates: Partial<BasicScienceSubject>) => {
+    setPhysicsSubjects((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+    setChemistrySubjects((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
+
+  const deleteBasicScienceSubject = (id: string) => {
+    setPhysicsSubjects((prev) => prev.filter((s) => s.id !== id));
+    setChemistrySubjects((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const addCycleSection = (cycle: 'Physics' | 'Chemistry', sectionName: string) => {
+    const trimmed = sectionName.trim();
+    if (!trimmed) return;
+    if (cycle === 'Physics') {
+      setPhysicsSections((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    } else {
+      setChemistrySections((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    }
+  };
+
+  const removeCycleSection = (cycle: 'Physics' | 'Chemistry', sectionName: string) => {
+    if (cycle === 'Physics') {
+      setPhysicsSections((prev) => (prev.length > 1 ? prev.filter((s) => s !== sectionName) : prev));
+    } else {
+      setChemistrySections((prev) => (prev.length > 1 ? prev.filter((s) => s !== sectionName) : prev));
+    }
+  };
+
+  const saveCycleTimetable = (key: string, data: CycleSectionTimetable) => {
+    setCycleTimetables((prev) => ({
+      ...prev,
+      [key]: data,
+    }));
+  };
+
+  const lockCycleTimetable = (key: string) => {
+    const now = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setCycleTimetables((prev) => {
+      const existing = prev[key];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [key]: {
+          ...existing,
+          isLocked: true,
+          lockedAt: now,
+          lockedBy: 'Dr. Ravindra (Basic Science Coordinator)',
+        },
+      };
+    });
+    pushAudit(
+      'Basic Science Coordinator',
+      'Dr. Ravindra',
+      'LOCKED_CYCLE_TIMETABLE',
+      'Basic Science',
+      'v1.0-locked',
+      `Locked and finalized allocation for ${key}. Certified for student publication.`
+    );
+  };
+
+  const unlockCycleTimetable = (key: string) => {
+    setCycleTimetables((prev) => {
+      const existing = prev[key];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [key]: {
+          ...existing,
+          isLocked: false,
+        },
+      };
+    });
+    pushAudit(
+      'Basic Science Coordinator',
+      'Dr. Ravindra',
+      'REOPENED_CYCLE_TIMETABLE',
+      'Basic Science',
+      'v1.1-draft',
+      `Reopened draft allocation for ${key} for administrative revisions.`
+    );
+  };
+
   // Department Handlers
   const updatePreferenceStatus = (
     prefId: string,
@@ -473,6 +614,27 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateFirstYearSection,
         lockBasicScienceSchedule,
         reopenBasicScienceSchedule,
+
+        physicsSubjects,
+        chemistrySubjects,
+        addBasicScienceSubject,
+        updateBasicScienceSubject,
+        deleteBasicScienceSubject,
+
+        physicsSoftConstraints,
+        setPhysicsSoftConstraints,
+        chemistrySoftConstraints,
+        setChemistrySoftConstraints,
+
+        physicsSections,
+        chemistrySections,
+        addCycleSection,
+        removeCycleSection,
+
+        cycleTimetables,
+        saveCycleTimetable,
+        lockCycleTimetable,
+        unlockCycleTimetable,
 
         departmentStatus,
         departments,
