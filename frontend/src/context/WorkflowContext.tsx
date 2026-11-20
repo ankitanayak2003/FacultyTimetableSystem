@@ -41,7 +41,23 @@ import {
 
 export type WorkflowStageStatus = 'BLOCKED' | 'DRAFT' | 'LOCKED' | 'FINALIZED' | 'PUBLISHED';
 
+export interface InstitutionalAcademicConfig {
+  academicYear: string;
+  currentSemester: 'Odd Semester' | 'Even Semester';
+  termStartDate: string;
+  termEndDate: string;
+  workingDaysPerWeek: number;
+  periodsPerDay: number;
+  vtuRegulation: string;
+  isLocked: boolean;
+}
+
 interface WorkflowContextType {
+  // Principal Institutional Management
+  institutionalConfig: InstitutionalAcademicConfig;
+  updateInstitutionalConfig: (updates: Partial<InstitutionalAcademicConfig>) => void;
+  updateDepartmentLeadership: (deptId: string, updates: { hod?: string; coordinator?: string }) => void;
+
   // Dean Institutional Stage
   deanStatus: 'DRAFT' | 'LOCKED';
   deanVersion: string;
@@ -177,6 +193,18 @@ const INITIAL_AIDS_TIMETABLE_ENTRIES: TimetableCellEntry[] = [
 ];
 
 export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Principal Institutional Configuration State
+  const [institutionalConfig, setInstitutionalConfig] = useState<InstitutionalAcademicConfig>({
+    academicYear: '2026–2027',
+    currentSemester: 'Odd Semester',
+    termStartDate: '2026-09-01',
+    termEndDate: '2027-01-15',
+    workingDaysPerWeek: 6,
+    periodsPerDay: 7,
+    vtuRegulation: 'VTU 2021/2022 Scheme (Autonomous Regulations)',
+    isLocked: true,
+  });
+
   // 1. Dean Institutional State
   const [deanStatus, setDeanStatus] = useState<'DRAFT' | 'LOCKED'>('LOCKED');
   const [deanVersion, setDeanVersion] = useState<string>('v1.0');
@@ -918,9 +946,39 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  const updateInstitutionalConfig = (updates: Partial<InstitutionalAcademicConfig>) => {
+    setInstitutionalConfig((prev) => ({ ...prev, ...updates }));
+    pushAudit(
+      'Principal',
+      'Dr. Thirumaleshwara Bhat',
+      'UPDATED_INSTITUTIONAL_CONFIG',
+      'Institutional',
+      'v1.0',
+      'Updated institutional academic calendar and structure settings.'
+    );
+  };
+
+  const updateDepartmentLeadership = (deptId: string, updates: { hod?: string; coordinator?: string }) => {
+    setDepartments((prev) =>
+      prev.map((d) => (d.id === deptId ? { ...d, ...updates } : d))
+    );
+    pushAudit(
+      'Principal',
+      'Dr. Thirumaleshwara Bhat',
+      'UPDATED_DEPARTMENT_LEADERSHIP',
+      'Institutional',
+      'v1.0',
+      `Updated department leadership for ${deptId}: ${updates.hod ? 'HOD: ' + updates.hod + '; ' : ''}${updates.coordinator ? 'Coordinator: ' + updates.coordinator : ''}`
+    );
+  };
+
   return (
     <WorkflowContext.Provider
       value={{
+        institutionalConfig,
+        updateInstitutionalConfig,
+        updateDepartmentLeadership,
+
         deanStatus,
         deanVersion,
         deanLockedTimestamp,

@@ -1,19 +1,23 @@
 import React from 'react';
 import {
-  LayoutDashboard,
   Building,
-  GraduationCap,
   Users,
   CalendarRange,
+  CheckCircle2,
   LogOut,
   X,
-  ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import smvitmLogo from '../../assets/smvitm_logo.webp';
 
 export type PrincipalTab =
+  | 'institutional-management'
+  | 'faculty-management'
+  | 'institutional-timetable'
+  | 'academic-monitoring'
+  // Legacy compatibility types
   | 'overview'
   | 'institutional'
   | 'departments'
@@ -39,43 +43,37 @@ export const PrincipalSidebar: React.FC<PrincipalSidebarProps> = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
+  // Exactly FOUR navigation items as specified for Principal module
   const navItems = [
     {
-      id: 'overview' as PrincipalTab,
-      label: 'Institutional Overview',
-      shortLabel: 'Overview',
-      icon: LayoutDashboard,
-      badge: null,
-    },
-    {
-      id: 'institutional' as PrincipalTab,
-      label: 'Institutional Timetable',
-      shortLabel: 'Institutional Schedule',
+      id: 'institutional-management' as PrincipalTab,
+      label: 'Institutional Management',
       icon: Building,
-      badge: 'Dean Locked',
+      matchTabs: ['institutional-management', 'overview'],
     },
     {
-      id: 'departments' as PrincipalTab,
-      label: 'Department Monitoring',
-      shortLabel: 'Departments',
-      icon: GraduationCap,
-      badge: '5 Depts',
-    },
-    {
-      id: 'faculty' as PrincipalTab,
-      label: 'Faculty Workload Oversight',
-      shortLabel: 'Faculty Workload',
+      id: 'faculty-management' as PrincipalTab,
+      label: 'Faculty Management',
       icon: Users,
-      badge: null,
+      matchTabs: ['faculty-management', 'faculty'],
     },
     {
-      id: 'published' as PrincipalTab,
-      label: 'Published Timetables',
-      shortLabel: 'Published View',
+      id: 'institutional-timetable' as PrincipalTab,
+      label: 'Institutional Timetable',
       icon: CalendarRange,
-      badge: 'Official',
+      matchTabs: ['institutional-timetable', 'institutional', 'published'],
+    },
+    {
+      id: 'academic-monitoring' as PrincipalTab,
+      label: 'Academic Monitoring',
+      icon: CheckCircle2,
+      matchTabs: ['academic-monitoring', 'departments'],
     },
   ];
+
+  const isTabActive = (item: (typeof navItems)[0]) => {
+    return activeTab === item.id || item.matchTabs.includes(activeTab);
+  };
 
   const handleNavClick = (tab: PrincipalTab) => {
     onSelectTab(tab);
@@ -89,18 +87,17 @@ export const PrincipalSidebar: React.FC<PrincipalSidebarProps> = ({
         <div
           role="presentation"
           onClick={onCloseMobile}
-          className="fixed inset-0 z-40 bg-ink/50 backdrop-blur-sm lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-xs md:hidden transition-opacity"
         />
       )}
 
       {/* Sidebar Container */}
       <aside
         aria-label="Principal Portal Navigation"
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-surface border-r border-border-beige flex flex-col justify-between transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-40 overflow-y-auto ${
-          isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } ${isCollapsed ? 'w-20' : 'w-64 lg:w-72'}`}
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-surface border-r border-border-beige flex flex-col justify-between transition-all duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:z-40 overflow-y-auto ${
+          isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        } ${isCollapsed ? 'w-20' : 'w-60 lg:w-64'}`}
       >
-        {/* Top Branding & Nav */}
         <div>
           {/* Header Bar */}
           <div
@@ -120,123 +117,69 @@ export const PrincipalSidebar: React.FC<PrincipalSidebarProps> = ({
                     SMVITM Bantakal
                   </span>
                   <span className="text-[10px] font-mono text-ink-light block truncate">
-                    Principal Portal
+                    Principal Administration
                   </span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-1">
-              {/* Desktop Arrow Toggle Button */}
-              {onToggleCollapse && (
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                  aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                  className="hidden lg:flex p-1.5 rounded-card text-ink-muted hover:text-primary hover:bg-canvas-muted border border-border-beige transition-colors"
-                >
-                  {isCollapsed ? (
-                    <ChevronRight className="w-4 h-4" />
-                  ) : (
-                    <ChevronLeft className="w-4 h-4" />
-                  )}
-                </button>
-              )}
-
-              {/* Mobile Close Button */}
-              {onCloseMobile && (
-                <button
-                  type="button"
-                  onClick={onCloseMobile}
-                  aria-label="Close menu"
-                  className="p-1 rounded text-ink-muted hover:text-ink hover:bg-canvas-muted lg:hidden"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* User Mini Card */}
-          {!isCollapsed ? (
-            <div className="p-3 mx-3 my-3 bg-canvas-paper rounded-card border border-border-subtle shadow-crisp-sm transition-all duration-200">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono shadow-crisp-sm flex-shrink-0">
-                  TB
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-ink truncate">
-                    Dr. Thirumaleshwara Bhat
-                  </div>
-                  <div className="text-[10px] text-primary font-medium truncate flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 flex-shrink-0" />
-                    <span>Principal &amp; Head of Institution</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div
-              className="py-3 flex justify-center border-b border-border-subtle bg-canvas-paper/50"
-              title="Dr. Thirumaleshwara Bhat • Principal & Head of Institution"
-            >
-              <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono shadow-crisp-sm">
-                TB
-              </div>
-            </div>
-          )}
-
-          {/* Navigation List */}
-          <nav className="p-3 space-y-1.5" aria-label="Principal Navigation">
-            {!isCollapsed && (
-              <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-ink-light font-semibold">
-                Institutional Modules
-              </div>
+            {/* Mobile close button */}
+            {isOpenMobile && (
+              <button
+                type="button"
+                onClick={onCloseMobile}
+                className="md:hidden p-1.5 text-ink-muted hover:text-ink hover:bg-canvas-muted rounded-card transition-colors"
+                aria-label="Close mobile navigation"
+              >
+                <X className="w-5 h-5" />
+              </button>
             )}
 
+            {/* Desktop collapse toggle */}
+            {onToggleCollapse && !isOpenMobile && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="hidden md:flex p-1 text-ink-muted hover:text-primary hover:bg-canvas-muted rounded transition-colors"
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <ChevronLeft className="w-4 h-4" />
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Navigation Links (Exactly 4) */}
+          <nav className="p-3 space-y-1.5" aria-label="Principal Primary Navigation">
             {navItems.map((item) => {
+              const active = isTabActive(item);
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+
               return (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => handleNavClick(item.id)}
-                  title={item.label}
-                  className={`w-full flex items-center ${
-                    isCollapsed
-                      ? 'justify-center px-2 py-2.5'
-                      : 'justify-between px-3.5 py-2.5'
-                  } rounded-card text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-primary text-white shadow-crisp-sm'
-                      : 'text-ink hover:bg-canvas-muted hover:text-primary'
+                  title={isCollapsed ? item.label : undefined}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-card text-xs font-medium transition-all ${
+                    isCollapsed ? 'justify-center' : 'justify-start'
+                  } ${
+                    active
+                      ? 'bg-primary text-white shadow-crisp font-semibold'
+                      : 'text-ink-muted hover:text-ink hover:bg-canvas-muted'
                   }`}
                 >
-                  <div
-                    className={`flex items-center gap-3 ${
-                      isCollapsed ? 'justify-center' : 'min-w-0'
+                  <Icon
+                    className={`w-4 h-4 flex-shrink-0 ${
+                      active ? 'text-white' : 'text-primary'
                     }`}
-                  >
-                    <Icon
-                      className={`w-4 h-4 flex-shrink-0 ${
-                        isActive ? 'text-accent-gold' : 'text-primary'
-                      }`}
-                    />
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
-                  </div>
-
-                  {!isCollapsed && item.badge && (
-                    <span
-                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : 'bg-canvas-muted text-ink-light border border-border-subtle'
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
+                  />
+                  {!isCollapsed && (
+                    <span className="truncate text-left leading-tight">{item.label}</span>
                   )}
                 </button>
               );
@@ -244,20 +187,44 @@ export const PrincipalSidebar: React.FC<PrincipalSidebarProps> = ({
           </nav>
         </div>
 
-        {/* Logout Footer */}
-        <div className="p-3 border-t border-border-subtle bg-canvas-paper">
+        {/* Sidebar Footer: User details and Sign Out */}
+        <div className="p-3 border-t border-border-subtle bg-canvas-muted/40 space-y-2">
+          {!isCollapsed ? (
+            <div className="flex items-center gap-2.5 px-2 py-1.5 bg-surface rounded-card border border-border-beige shadow-crisp-sm">
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono flex-shrink-0">
+                TB
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-ink truncate leading-tight">
+                  Dr. Thirumaleshwara Bhat
+                </p>
+                <div className="flex items-center gap-1 text-[10px] text-ink-light font-mono truncate">
+                  <ShieldCheck className="w-3 h-3 text-primary flex-shrink-0" />
+                  <span className="truncate">Principal • SMVITM</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center py-1">
+              <div
+                className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs font-mono"
+                title="Dr. Thirumaleshwara Bhat (Principal)"
+              >
+                TB
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={onLogout}
-            title="Exit Principal Portal"
-            className={`w-full flex items-center ${
-              isCollapsed
-                ? 'justify-center px-2 py-2'
-                : 'justify-center gap-2 px-3 py-2'
-            } text-xs font-semibold text-error hover:bg-error/10 border border-error/20 rounded-card transition-colors shadow-crisp-sm`}
+            title={isCollapsed ? 'Sign Out' : undefined}
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-accent-red hover:bg-accent-red/10 rounded-card transition-colors ${
+              isCollapsed ? 'justify-center' : 'justify-start'
+            }`}
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            {!isCollapsed && <span>Exit Principal Portal</span>}
+            {!isCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
