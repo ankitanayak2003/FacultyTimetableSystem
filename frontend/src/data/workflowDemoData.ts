@@ -1170,4 +1170,686 @@ export const INITIAL_CYCLE_TIMETABLES: Record<string, CycleSectionTimetable> = {
   },
 };
 
+// =====================================================================
+// DEPARTMENT COORDINATOR MODULE SPECIFICATION TYPES AND INITIAL STATE
+// =====================================================================
+
+export interface FacultyAdditionalDuty {
+  role: string;
+  hours: number;
+}
+
+export interface FacultyPreferenceItem {
+  id: string;
+  priority: 1 | 2 | 3;
+  subjectCode: string;
+  subjectTitle: string;
+  justification?: string;
+}
+
+export interface FinalizedPreferenceItem {
+  priority: 1 | 2 | 3;
+  subjectCode: string;
+  subjectTitle: string;
+  approvedBy: string;
+  approvedAt: string;
+  matchType: 'Preference Match' | 'Administrative Allocation';
+}
+
+export interface DepartmentFaculty {
+  id: string;
+  name: string;
+  empId: string;
+  email: string;
+  department: string;
+  designation: 'Professor' | 'Associate Professor' | 'Assistant Professor (Sr)' | 'Assistant Professor';
+  hasLoginAccess: boolean;
+  accountStatus: 'Active' | 'Inactive';
+  eligibleYears: string[]; // ['Second Year', 'Third Year', 'Fourth Year']
+  normHours: number;
+  minHours: number;
+  maxHours: number;
+  theoryHours: number;
+  labHours: number;
+  basicScienceHours: number;
+  additionalDuties: FacultyAdditionalDuty[];
+  preferences: FacultyPreferenceItem[];
+  finalizedPreferences: FinalizedPreferenceItem[];
+  assignedCourses: string[];
+}
+
+export const INITIAL_DEPT_FACULTY: DepartmentFaculty[] = [
+  {
+    id: 'dept-fac-1',
+    name: 'Dr. Vasudeva',
+    empId: 'FAC101',
+    email: 'vasudeva.hod@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Second Year', 'Third Year', 'Fourth Year'],
+    normHours: 14,
+    minHours: 12,
+    maxHours: 16,
+    theoryHours: 6,
+    labHours: 4,
+    basicScienceHours: 0,
+    additionalDuties: [
+      { role: 'HOD Responsibilities', hours: 4 },
+      { role: 'Dept Academic Advisory', hours: 1 },
+    ],
+    preferences: [
+      { id: 'pref-v1', priority: 1, subjectCode: '21AI51', subjectTitle: 'Management & Entrepreneurship' },
+      { id: 'pref-v2', priority: 2, subjectCode: '21AI71', subjectTitle: 'Big Data Analytics' },
+      { id: 'pref-v3', priority: 3, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI51', subjectTitle: 'Management & Entrepreneurship', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-02', matchType: 'Preference Match' },
+      { priority: 2, subjectCode: '21AIL58', subjectTitle: 'AI & ML Laboratory', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-02', matchType: 'Administrative Allocation' },
+    ],
+    assignedCourses: ['21AI51 - Management & Entrepreneurship', '21AIL58 - AI & ML Lab'],
+  },
+  {
+    id: 'dept-fac-2',
+    name: 'Dr. Ananya Rao',
+    empId: 'FAC102',
+    email: 'ananya.rao@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Associate Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Second Year', 'Third Year'],
+    normHours: 16,
+    minHours: 14,
+    maxHours: 18,
+    theoryHours: 8,
+    labHours: 4,
+    basicScienceHours: 0,
+    additionalDuties: [
+      { role: 'NBA Criterion Head', hours: 2 },
+      { role: 'Student Counsellor', hours: 1 },
+    ],
+    preferences: [
+      { id: 'pref-ar1', priority: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', justification: 'Core domain expertise and previous 3 semesters teaching DSA.' },
+      { id: 'pref-ar2', priority: 2, subjectCode: '21AI52', subjectTitle: 'Computer Networks' },
+      { id: 'pref-ar3', priority: 3, subjectCode: '21AI72', subjectTitle: 'Reinforcement Learning' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', approvedBy: 'Dr. Vasudeva', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+      { priority: 2, subjectCode: '21AIL37', subjectTitle: 'Data Structures Laboratory', approvedBy: 'Dr. Vasudeva', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['21AI32 - Data Structures & Applications', '21AIL37 - DSA Laboratory'],
+  },
+  {
+    id: 'dept-fac-3',
+    name: 'Prof. Rajesh Shetty',
+    empId: 'FAC103',
+    email: 'rajesh.shetty@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Assistant Professor (Sr)',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Second Year', 'Third Year', 'Fourth Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 8,
+    labHours: 4,
+    basicScienceHours: 2, // Basic Science C-Programming Lab
+    additionalDuties: [
+      { role: 'Dept Timetable Coordinator', hours: 3 },
+      { role: 'Institutional ERP Cell', hours: 1 },
+    ],
+    preferences: [
+      { id: 'pref-rs1', priority: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures' },
+      { id: 'pref-rs2', priority: 2, subjectCode: '21AI53', subjectTitle: 'Deep Learning Architectures' },
+      { id: 'pref-rs3', priority: 3, subjectCode: '21AI731', subjectTitle: 'Computer Vision' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', approvedBy: 'Dr. Vasudeva', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+      { priority: 2, subjectCode: '21AI53', subjectTitle: 'Deep Learning Architectures', approvedBy: 'Dr. Vasudeva', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['21AI33 - Discrete Mathematical Structures', '21AI53 - Deep Learning Architectures', '22POPL17 - Basic Science C-Lab'],
+  },
+  {
+    id: 'dept-fac-4',
+    name: 'Prof. Sneha Kamath',
+    empId: 'FAC104',
+    email: 'sneha.kamath@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Assistant Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Second Year', 'Third Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 8,
+    labHours: 4,
+    basicScienceHours: 4, // 22POP14 Theory & Lab in Chem Cycle
+    additionalDuties: [
+      { role: 'Cultural Committee Member', hours: 1 },
+      { role: 'Class Advisor 3A', hours: 1 },
+    ],
+    preferences: [
+      { id: 'pref-sk1', priority: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java' },
+      { id: 'pref-sk2', priority: 2, subjectCode: '21AI54', subjectTitle: 'Natural Language Processing' },
+      { id: 'pref-sk3', priority: 3, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-02', matchType: 'Preference Match' },
+      { priority: 2, subjectCode: '21AIL38', subjectTitle: 'Java Programming Laboratory', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-02', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['21AI34 - OOP with Java', '21AIL38 - Java Lab', '22POP14 - C Programming (Basic Science)'],
+  },
+  {
+    id: 'dept-fac-5',
+    name: 'Prof. Sandeep Kumar',
+    empId: 'FAC105',
+    email: 'sandeep.kumar@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Assistant Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Third Year', 'Fourth Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 10,
+    labHours: 6,
+    basicScienceHours: 0,
+    additionalDuties: [
+      { role: 'AI Computing Lab In-charge', hours: 2 },
+    ],
+    preferences: [
+      { id: 'pref-snd1', priority: 1, subjectCode: '21AI54', subjectTitle: 'Natural Language Processing' },
+      { id: 'pref-snd2', priority: 2, subjectCode: '21AI742', subjectTitle: 'MLOps & Production Engineering' },
+      { id: 'pref-snd3', priority: 3, subjectCode: '21AI53', subjectTitle: 'Deep Learning Architectures' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI54', subjectTitle: 'Natural Language Processing', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-03', matchType: 'Preference Match' },
+      { priority: 2, subjectCode: '21AIL57', subjectTitle: 'NLP Laboratory', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-03', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['21AI54 - NLP', '21AIL57 - NLP Lab'],
+  },
+  {
+    id: 'dept-fac-6',
+    name: 'Prof. Priyanka Nayak',
+    empId: 'FAC106',
+    email: 'priyanka.nayak@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Assistant Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Second Year', 'Fourth Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 8,
+    labHours: 6,
+    basicScienceHours: 0,
+    additionalDuties: [
+      { role: 'Student Proctoring', hours: 1 },
+      { role: 'Library Committee', hours: 1 },
+    ],
+    preferences: [
+      { id: 'pref-pn1', priority: 1, subjectCode: '21AI71', subjectTitle: 'Big Data Analytics' },
+      { id: 'pref-pn2', priority: 2, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java' },
+      { id: 'pref-pn3', priority: 3, subjectCode: '21AI52', subjectTitle: 'Computer Networks' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI71', subjectTitle: 'Big Data Analytics', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-02', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['21AI71 - Big Data Analytics'],
+  },
+  {
+    id: 'dept-fac-7',
+    name: 'Prof. Vignesh Pai',
+    empId: 'FAC107',
+    email: 'vignesh.pai@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Assistant Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Second Year', 'Third Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 8,
+    labHours: 6,
+    basicScienceHours: 0,
+    additionalDuties: [
+      { role: 'Department Website In-charge', hours: 1 },
+    ],
+    preferences: [
+      { id: 'pref-vp1', priority: 1, subjectCode: '21AI52', subjectTitle: 'Computer Networks' },
+      { id: 'pref-vp2', priority: 2, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications' },
+      { id: 'pref-vp3', priority: 3, subjectCode: '21AI742', subjectTitle: 'MLOps & Production Engineering' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI52', subjectTitle: 'Computer Networks', approvedBy: 'Prof. Rajesh Shetty', approvedAt: '2026-11-03', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['21AI52 - Computer Networks'],
+  },
+  {
+    id: 'dept-fac-8',
+    name: 'Dr. Chethan Acharya',
+    empId: 'FAC108',
+    email: 'chethan.acharya@smvitm.ac.in',
+    department: 'Artificial Intelligence & Data Science',
+    designation: 'Associate Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['Third Year', 'Fourth Year'],
+    normHours: 16,
+    minHours: 14,
+    maxHours: 18,
+    theoryHours: 8,
+    labHours: 4,
+    basicScienceHours: 0,
+    additionalDuties: [
+      { role: 'R&D Cell Coordinator', hours: 2 },
+      { role: 'IPR & Patent Cell', hours: 1 },
+    ],
+    preferences: [
+      { id: 'pref-ca1', priority: 1, subjectCode: '21AI72', subjectTitle: 'Reinforcement Learning & Autonomous Agents' },
+      { id: 'pref-ca2', priority: 2, subjectCode: '21AI731', subjectTitle: 'Computer Vision' },
+      { id: 'pref-ca3', priority: 3, subjectCode: '21AI53', subjectTitle: 'Deep Learning Architectures' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '21AI72', subjectTitle: 'Reinforcement Learning', approvedBy: 'Dr. Vasudeva', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['21AI72 - Reinforcement Learning'],
+  },
+];
+
+export interface DeptSubjectItem {
+  id: string;
+  courseCode: string;
+  courseTitle: string;
+  studentYear: 'Second Year' | 'Third Year' | 'Fourth Year';
+  semester: 'Odd Semester' | 'Even Semester';
+  semNumber: string;
+  type: 'Theory' | 'Laboratory' | 'Integrated' | 'Elective' | 'Institutional';
+  hoursPerWeek: number;
+  venue: string;
+  assignedFaculty: string;
+  preferenceMatch?: 'Priority 1' | 'Priority 2' | 'Priority 3' | 'Administrative Allocation';
+}
+
+export const INITIAL_DEPT_SUBJECTS: DeptSubjectItem[] = [
+  // 2nd Year (3rd Sem)
+  {
+    id: 'dsub-301',
+    courseCode: '21AI32',
+    courseTitle: 'Data Structures & Applications',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    semNumber: '3rd Sem',
+    type: 'Theory',
+    hoursPerWeek: 4,
+    venue: 'LH-201',
+    assignedFaculty: 'Dr. Ananya Rao',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-302',
+    courseCode: '21AI33',
+    courseTitle: 'Discrete Mathematical Structures',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    semNumber: '3rd Sem',
+    type: 'Theory',
+    hoursPerWeek: 4,
+    venue: 'LH-201',
+    assignedFaculty: 'Prof. Rajesh Shetty',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-303',
+    courseCode: '21AI34',
+    courseTitle: 'Object Oriented Programming with Java',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    semNumber: '3rd Sem',
+    type: 'Theory',
+    hoursPerWeek: 4,
+    venue: 'LH-201',
+    assignedFaculty: 'Prof. Sneha Kamath',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-304',
+    courseCode: '21AIL37',
+    courseTitle: 'Data Structures Laboratory',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    semNumber: '3rd Sem',
+    type: 'Laboratory',
+    hoursPerWeek: 3,
+    venue: 'AI Computing Lab 1',
+    assignedFaculty: 'Dr. Ananya Rao',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-305',
+    courseCode: '21AIL38',
+    courseTitle: 'Java Programming Laboratory',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    semNumber: '3rd Sem',
+    type: 'Laboratory',
+    hoursPerWeek: 3,
+    venue: 'AI Computing Lab 2',
+    assignedFaculty: 'Prof. Sneha Kamath',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-306',
+    courseCode: '21CIP37',
+    courseTitle: 'Constitution of India & Professional Ethics',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    semNumber: '3rd Sem',
+    type: 'Theory',
+    hoursPerWeek: 1,
+    venue: 'LH-201',
+    assignedFaculty: 'Prof. Vignesh Pai',
+    preferenceMatch: 'Administrative Allocation',
+  },
+
+  // 3rd Year (5th Sem)
+  {
+    id: 'dsub-501',
+    courseCode: '21AI51',
+    courseTitle: 'Management & Entrepreneurship for IT Industry',
+    studentYear: 'Third Year',
+    semester: 'Odd Semester',
+    semNumber: '5th Sem',
+    type: 'Theory',
+    hoursPerWeek: 3,
+    venue: 'LH-302',
+    assignedFaculty: 'Dr. Vasudeva',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-502',
+    courseCode: '21AI52',
+    courseTitle: 'Computer Networks',
+    studentYear: 'Third Year',
+    semester: 'Odd Semester',
+    semNumber: '5th Sem',
+    type: 'Theory',
+    hoursPerWeek: 4,
+    venue: 'LH-302',
+    assignedFaculty: 'Prof. Vignesh Pai',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-503',
+    courseCode: '21AI53',
+    courseTitle: 'Deep Learning Architectures',
+    studentYear: 'Third Year',
+    semester: 'Odd Semester',
+    semNumber: '5th Sem',
+    type: 'Theory',
+    hoursPerWeek: 4,
+    venue: 'LH-302',
+    assignedFaculty: 'Prof. Rajesh Shetty',
+    preferenceMatch: 'Priority 2',
+  },
+  {
+    id: 'dsub-504',
+    courseCode: '21AI54',
+    courseTitle: 'Natural Language Processing',
+    studentYear: 'Third Year',
+    semester: 'Odd Semester',
+    semNumber: '5th Sem',
+    type: 'Theory',
+    hoursPerWeek: 3,
+    venue: 'LH-302',
+    assignedFaculty: 'Prof. Sandeep Kumar',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-505',
+    courseCode: '21AIL57',
+    courseTitle: 'NLP Laboratory',
+    studentYear: 'Third Year',
+    semester: 'Odd Semester',
+    semNumber: '5th Sem',
+    type: 'Laboratory',
+    hoursPerWeek: 3,
+    venue: 'Advanced AI Lab',
+    assignedFaculty: 'Prof. Sandeep Kumar',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-506',
+    courseCode: '21AIL58',
+    courseTitle: 'Deep Learning Laboratory',
+    studentYear: 'Third Year',
+    semester: 'Odd Semester',
+    semNumber: '5th Sem',
+    type: 'Laboratory',
+    hoursPerWeek: 3,
+    venue: 'Advanced AI Lab',
+    assignedFaculty: 'Dr. Vasudeva',
+    preferenceMatch: 'Administrative Allocation',
+  },
+
+  // 4th Year (7th Sem)
+  {
+    id: 'dsub-701',
+    courseCode: '21AI71',
+    courseTitle: 'Big Data Analytics',
+    studentYear: 'Fourth Year',
+    semester: 'Odd Semester',
+    semNumber: '7th Sem',
+    type: 'Theory',
+    hoursPerWeek: 4,
+    venue: 'LH-401',
+    assignedFaculty: 'Prof. Priyanka Nayak',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-702',
+    courseCode: '21AI72',
+    courseTitle: 'Reinforcement Learning & Autonomous Agents',
+    studentYear: 'Fourth Year',
+    semester: 'Odd Semester',
+    semNumber: '7th Sem',
+    type: 'Theory',
+    hoursPerWeek: 4,
+    venue: 'LH-401',
+    assignedFaculty: 'Dr. Chethan Acharya',
+    preferenceMatch: 'Priority 1',
+  },
+  {
+    id: 'dsub-703',
+    courseCode: '21AI731',
+    courseTitle: 'Computer Vision',
+    studentYear: 'Fourth Year',
+    semester: 'Odd Semester',
+    semNumber: '7th Sem',
+    type: 'Elective',
+    hoursPerWeek: 3,
+    venue: 'LH-401',
+    assignedFaculty: 'Prof. Rajesh Shetty',
+    preferenceMatch: 'Priority 3',
+  },
+  {
+    id: 'dsub-704',
+    courseCode: '21AI742',
+    courseTitle: 'MLOps & Production Engineering',
+    studentYear: 'Fourth Year',
+    semester: 'Odd Semester',
+    semNumber: '7th Sem',
+    type: 'Elective',
+    hoursPerWeek: 3,
+    venue: 'LH-401',
+    assignedFaculty: 'Prof. Sandeep Kumar',
+    preferenceMatch: 'Priority 2',
+  },
+];
+
+export interface DeptPlacement {
+  id: string;
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  startPeriod: number; // 1 to 7
+  duration: number; // 1, 2, or 3 periods
+  subjectCode: string;
+  subjectTitle: string;
+  facultyName: string;
+  room: string;
+  isLockedSlot?: boolean;
+  lockedStage?: 'Institutional (Dean)' | 'Basic Science';
+  lockedReason?: string;
+}
+
+export interface DeptSectionTimetable {
+  academicYear: string;
+  studentYear: string;
+  semester: string;
+  department: string;
+  section: string;
+  placements: DeptPlacement[];
+  isDraft: boolean;
+  isPublished: boolean;
+  lastSaved: string;
+  publishedAt?: string;
+}
+
+// Institutional slots locked by Dean that must appear read-only across all department sections
+export const DEAN_LOCKED_DEPT_SLOTS: DeptPlacement[] = [
+  {
+    id: 'dean-dept-open-el',
+    day: 'Wednesday',
+    startPeriod: 4,
+    duration: 2,
+    subjectCode: 'OPEN-EL',
+    subjectTitle: 'Open Elective Pool (Inter-Dept)',
+    facultyName: 'Designated Faculty',
+    room: 'Central Academic Block',
+    isLockedSlot: true,
+    lockedStage: 'Institutional (Dean)',
+    lockedReason: 'Institutional Open Elective pool locked by Dean (Academic Affairs)',
+  },
+  {
+    id: 'dean-dept-nss',
+    day: 'Thursday',
+    startPeriod: 6,
+    duration: 2,
+    subjectCode: 'NSS-YRC',
+    subjectTitle: 'NSS & Community Engagement',
+    facultyName: 'Prof. Nagaraj Rao',
+    room: 'Campus Grounds',
+    isLockedSlot: true,
+    lockedStage: 'Institutional (Dean)',
+    lockedReason: 'Institutional NSS & Social Service slot locked by Dean',
+  },
+  {
+    id: 'dean-dept-tpo',
+    day: 'Friday',
+    startPeriod: 5,
+    duration: 3,
+    subjectCode: 'TPO-TRN',
+    subjectTitle: 'Placement & Soft Skills Training',
+    facultyName: 'Training & Placement Officer',
+    room: 'Main Auditorium',
+    isLockedSlot: true,
+    lockedStage: 'Institutional (Dean)',
+    lockedReason: 'Institutional Placement & Employability Training locked by Dean',
+  },
+];
+
+export const INITIAL_AIDS_3A_PLACEMENTS: DeptPlacement[] = [
+  ...DEAN_LOCKED_DEPT_SLOTS,
+  // Monday
+  { id: 'dp-m1', day: 'Monday', startPeriod: 1, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
+  { id: 'dp-m2', day: 'Monday', startPeriod: 2, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
+  { id: 'dp-m3', day: 'Monday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
+  { id: 'dp-m4', day: 'Monday', startPeriod: 4, duration: 1, subjectCode: '21CIP37', subjectTitle: 'Constitution of India', facultyName: 'Prof. Vignesh Pai', room: 'LH-201' },
+
+  // Tuesday
+  { id: 'dp-t1', day: 'Tuesday', startPeriod: 1, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
+  { id: 'dp-t2', day: 'Tuesday', startPeriod: 2, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
+  { id: 'dp-t3', day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
+  { id: 'dp-t4', day: 'Tuesday', startPeriod: 4, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
+
+  // Wednesday
+  { id: 'dp-w1', day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
+  { id: 'dp-w2', day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
+  { id: 'dp-w3', day: 'Wednesday', startPeriod: 3, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
+  { id: 'dp-w6', day: 'Wednesday', startPeriod: 6, duration: 2, subjectCode: '21AIL38', subjectTitle: 'Java Programming Laboratory', facultyName: 'Prof. Sneha Kamath', room: 'AI Computing Lab 2' },
+
+  // Thursday
+  { id: 'dp-th1', day: 'Thursday', startPeriod: 1, duration: 2, subjectCode: '21AIL37', subjectTitle: 'Data Structures Laboratory', facultyName: 'Dr. Ananya Rao', room: 'AI Computing Lab 1' },
+  { id: 'dp-th3', day: 'Thursday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
+  { id: 'dp-th4', day: 'Thursday', startPeriod: 4, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
+
+  // Friday
+  { id: 'dp-f1', day: 'Friday', startPeriod: 1, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
+  { id: 'dp-f2', day: 'Friday', startPeriod: 2, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
+  { id: 'dp-f3', day: 'Friday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
+];
+
+export const INITIAL_AIDS_3B_PLACEMENTS: DeptPlacement[] = [
+  ...DEAN_LOCKED_DEPT_SLOTS,
+  // Monday
+  { id: 'dp-3b-m1', day: 'Monday', startPeriod: 1, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-202' },
+  { id: 'dp-3b-m2', day: 'Monday', startPeriod: 2, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-202' },
+  { id: 'dp-3b-m3', day: 'Monday', startPeriod: 3, duration: 1, subjectCode: '21CIP37', subjectTitle: 'Constitution of India', facultyName: 'Prof. Vignesh Pai', room: 'LH-202' },
+  { id: 'dp-3b-m6', day: 'Monday', startPeriod: 6, duration: 2, subjectCode: '21AIL37', subjectTitle: 'Data Structures Laboratory', facultyName: 'Dr. Ananya Rao', room: 'AI Computing Lab 1' },
+
+  // Tuesday
+  { id: 'dp-3b-t1', day: 'Tuesday', startPeriod: 1, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-202' },
+  { id: 'dp-3b-t2', day: 'Tuesday', startPeriod: 2, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-202' },
+  { id: 'dp-3b-t3', day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-202' },
+
+  // Wednesday
+  { id: 'dp-3b-w1', day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-202' },
+  { id: 'dp-3b-w2', day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-202' },
+  { id: 'dp-3b-w3', day: 'Wednesday', startPeriod: 3, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-202' },
+
+  // Thursday
+  { id: 'dp-3b-th1', day: 'Thursday', startPeriod: 1, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-202' },
+  { id: 'dp-3b-th2', day: 'Thursday', startPeriod: 2, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-202' },
+  { id: 'dp-3b-th3', day: 'Thursday', startPeriod: 3, duration: 2, subjectCode: '21AIL38', subjectTitle: 'Java Programming Laboratory', facultyName: 'Prof. Sneha Kamath', room: 'AI Computing Lab 2' },
+
+  // Friday
+  { id: 'dp-3b-f1', day: 'Friday', startPeriod: 1, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-202' },
+  { id: 'dp-3b-f2', day: 'Friday', startPeriod: 2, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-202' },
+  { id: 'dp-3b-f3', day: 'Friday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-202' },
+];
+
+export const INITIAL_DEPT_SECTION_TIMETABLES: Record<string, DeptSectionTimetable> = {
+  '2026–2027_Second Year_Odd Semester_AIDS_Section A': {
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    department: 'AIDS',
+    section: 'Section A',
+    placements: INITIAL_AIDS_3A_PLACEMENTS,
+    isDraft: false,
+    isPublished: true,
+    lastSaved: '2026-11-03 11:15 AM',
+    publishedAt: '2026-11-03 04:00 PM',
+  },
+  '2026–2027_Second Year_Odd Semester_AIDS_Section B': {
+    academicYear: '2026–2027',
+    studentYear: 'Second Year',
+    semester: 'Odd Semester',
+    department: 'AIDS',
+    section: 'Section B',
+    placements: INITIAL_AIDS_3B_PLACEMENTS,
+    isDraft: false,
+    isPublished: true,
+    lastSaved: '2026-11-03 11:45 AM',
+    publishedAt: '2026-11-03 04:00 PM',
+  },
+};
+
+
 

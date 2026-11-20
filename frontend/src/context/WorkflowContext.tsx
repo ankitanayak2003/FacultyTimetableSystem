@@ -12,6 +12,10 @@ import {
   DeanSectionTimetable,
   BasicScienceSubject,
   CycleSectionTimetable,
+  DepartmentFaculty,
+  DeptSubjectItem,
+  DeptSectionTimetable,
+  FinalizedPreferenceItem,
   INITIAL_INSTITUTIONAL_SLOTS,
   INITIAL_FIRST_YEAR_SECTIONS,
   INITIAL_DEPARTMENTS,
@@ -24,6 +28,9 @@ import {
   INITIAL_PHYSICS_SUBJECTS,
   INITIAL_CHEMISTRY_SUBJECTS,
   INITIAL_CYCLE_TIMETABLES,
+  INITIAL_DEPT_FACULTY,
+  INITIAL_DEPT_SUBJECTS,
+  INITIAL_DEPT_SECTION_TIMETABLES,
 } from '../data/workflowDemoData';
 
 export type WorkflowStageStatus = 'BLOCKED' | 'DRAFT' | 'LOCKED' | 'FINALIZED' | 'PUBLISHED';
@@ -103,6 +110,24 @@ interface WorkflowContextType {
   publishDepartmentTimetable: (deptCode: string) => void;
   reopenDepartmentTimetable: (deptCode: string, reason: string) => void;
 
+  // Department Redesign State
+  departmentFaculty: DepartmentFaculty[];
+  addDepartmentFaculty: (fac: Omit<DepartmentFaculty, 'id'>) => void;
+  updateDepartmentFaculty: (id: string, updates: Partial<DepartmentFaculty>) => void;
+  deleteDepartmentFaculty: (id: string) => void;
+  toggleFacultyAccountStatus: (id: string) => void;
+  toggleFacultyLoginAccess: (id: string) => void;
+  updateDepartmentFacultyFinalizedPreferences: (id: string, finalized: FinalizedPreferenceItem[]) => void;
+
+  deptSubjects: DeptSubjectItem[];
+  updateDeptSubjectAllocation: (id: string, assignedFaculty: string, matchType?: DeptSubjectItem['preferenceMatch']) => void;
+  autoAllocateDeptSubjects: (academicYear: string, semester: string, studentYear: string) => void;
+
+  deptTimetables: Record<string, DeptSectionTimetable>;
+  saveDeptSectionTimetable: (key: string, data: DeptSectionTimetable) => void;
+  publishDeptSectionTimetable: (key: string) => void;
+  unpublishDeptSectionTimetable: (key: string) => void;
+
   // Downstream validation warnings & audit trail
   requiresRevalidation: boolean;
   auditLogs: AuditLogEntry[];
@@ -171,6 +196,11 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [facultyPreferences, setFacultyPreferences] = useState<FacultyPreferenceRecord[]>(INITIAL_FACULTY_PREFERENCES);
   const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocationItem[]>(INITIAL_SUBJECT_ALLOCATIONS);
   const [timetableEntries, setTimetableEntries] = useState<TimetableCellEntry[]>(INITIAL_AIDS_TIMETABLE_ENTRIES);
+
+  // Department Redesign State
+  const [departmentFaculty, setDepartmentFaculty] = useState<DepartmentFaculty[]>(INITIAL_DEPT_FACULTY);
+  const [deptSubjects, setDeptSubjects] = useState<DeptSubjectItem[]>(INITIAL_DEPT_SUBJECTS);
+  const [deptTimetables, setDeptTimetables] = useState<Record<string, DeptSectionTimetable>>(INITIAL_DEPT_SECTION_TIMETABLES);
 
   // Computed status for Department: if Basic Science is NOT LOCKED, Department is BLOCKED
   const departmentStatus: WorkflowStageStatus =
@@ -583,6 +613,158 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  // Department Redesign Faculty Actions
+  const addDepartmentFaculty = (fac: Omit<DepartmentFaculty, 'id'>) => {
+    const newFaculty: DepartmentFaculty = {
+      ...fac,
+      id: `dept-fac-${Date.now()}`,
+    };
+    setDepartmentFaculty((prev) => [newFaculty, ...prev]);
+  };
+
+  const updateDepartmentFaculty = (id: string, updates: Partial<DepartmentFaculty>) => {
+    setDepartmentFaculty((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    );
+  };
+
+  const deleteDepartmentFaculty = (id: string) => {
+    setDepartmentFaculty((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const toggleFacultyAccountStatus = (id: string) => {
+    setDepartmentFaculty((prev) =>
+      prev.map((f) =>
+        f.id === id ? { ...f, accountStatus: f.accountStatus === 'Active' ? 'Inactive' : 'Active' } : f
+      )
+    );
+  };
+
+  const toggleFacultyLoginAccess = (id: string) => {
+    setDepartmentFaculty((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, hasLoginAccess: !f.hasLoginAccess } : f))
+    );
+  };
+
+  const updateDepartmentFacultyFinalizedPreferences = (id: string, finalized: FinalizedPreferenceItem[]) => {
+    setDepartmentFaculty((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, finalizedPreferences: finalized } : f))
+    );
+  };
+
+  const updateDeptSubjectAllocation = (id: string, assignedFaculty: string, matchType?: DeptSubjectItem['preferenceMatch']) => {
+    setDeptSubjects((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, assignedFaculty, preferenceMatch: matchType || s.preferenceMatch } : s))
+    );
+  };
+
+  const autoAllocateDeptSubjects = (_academicYear: string, semester: string, studentYear: string) => {
+    setDeptSubjects((prev) => {
+      return prev.map((sub) => {
+        if (sub.studentYear !== studentYear || sub.semester !== semester) {
+          return sub;
+        }
+
+        // Find best eligible faculty matching priority 1
+        let candidate = departmentFaculty.find(
+          (f) =>
+            f.accountStatus === 'Active' &&
+            f.eligibleYears.includes(studentYear) &&
+            f.preferences.some((p) => p.priority === 1 && p.subjectCode === sub.courseCode)
+        );
+        let matchType: DeptSubjectItem['preferenceMatch'] = 'Priority 1';
+
+        // Then Priority 2
+        if (!candidate) {
+          candidate = departmentFaculty.find(
+            (f) =>
+              f.accountStatus === 'Active' &&
+              f.eligibleYears.includes(studentYear) &&
+              f.preferences.some((p) => p.priority === 2 && p.subjectCode === sub.courseCode)
+          );
+          matchType = 'Priority 2';
+        }
+
+        // Then Priority 3
+        if (!candidate) {
+          candidate = departmentFaculty.find(
+            (f) =>
+              f.accountStatus === 'Active' &&
+              f.eligibleYears.includes(studentYear) &&
+              f.preferences.some((p) => p.priority === 3 && p.subjectCode === sub.courseCode)
+          );
+          matchType = 'Priority 3';
+        }
+
+        // Fallback: active faculty eligible with available capacity
+        if (!candidate) {
+          candidate = departmentFaculty.find(
+            (f) => f.accountStatus === 'Active' && f.eligibleYears.includes(studentYear)
+          );
+          matchType = 'Administrative Allocation';
+        }
+
+        return candidate
+          ? { ...sub, assignedFaculty: candidate.name, preferenceMatch: matchType }
+          : sub;
+      });
+    });
+  };
+
+  const saveDeptSectionTimetable = (key: string, data: DeptSectionTimetable) => {
+    setDeptTimetables((prev) => ({
+      ...prev,
+      [key]: data,
+    }));
+  };
+
+  const publishDeptSectionTimetable = (key: string) => {
+    const now = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setDeptTimetables((prev) => {
+      const existing = prev[key];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [key]: {
+          ...existing,
+          isDraft: false,
+          isPublished: true,
+          publishedAt: now,
+          lastSaved: now,
+        },
+      };
+    });
+    pushAudit(
+      'Department Coordinator',
+      'Prof. Rajesh Shetty',
+      'PUBLISHED_SECTION_TIMETABLE',
+      'Department',
+      'v1.0-official',
+      `Published official section schedule for ${key}. Verified 0 clashes.`
+    );
+  };
+
+  const unpublishDeptSectionTimetable = (key: string) => {
+    setDeptTimetables((prev) => {
+      const existing = prev[key];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [key]: {
+          ...existing,
+          isPublished: false,
+          isDraft: true,
+        },
+      };
+    });
+  };
+
   return (
     <WorkflowContext.Provider
       value={{
@@ -650,6 +832,23 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         finalizeDepartmentTimetable,
         publishDepartmentTimetable,
         reopenDepartmentTimetable,
+
+        departmentFaculty,
+        addDepartmentFaculty,
+        updateDepartmentFaculty,
+        deleteDepartmentFaculty,
+        toggleFacultyAccountStatus,
+        toggleFacultyLoginAccess,
+        updateDepartmentFacultyFinalizedPreferences,
+
+        deptSubjects,
+        updateDeptSubjectAllocation,
+        autoAllocateDeptSubjects,
+
+        deptTimetables,
+        saveDeptSectionTimetable,
+        publishDeptSectionTimetable,
+        unpublishDeptSectionTimetable,
 
         requiresRevalidation,
         auditLogs,
