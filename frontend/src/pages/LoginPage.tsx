@@ -76,11 +76,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       <main className="flex-1 flex items-center justify-center p-2.5 sm:p-3 lg:p-4 academic-grid-pattern">
         <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
           {/* Card Wrapper: Two-Column Layout matching Dean reference dimensions */}
-          <div className="w-full bg-surface rounded-card border border-border-beige shadow-crisp-lg overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[550px] lg:min-h-[580px]">
-            {/* LEFT SIDE – Feature Image Slideshow */}
-            <div className="lg:col-span-6 bg-canvas-paper p-5 sm:p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-border-beige flex flex-col justify-between">
+          <div className="w-full bg-surface rounded-card border border-border-beige shadow-crisp-lg overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[580px] lg:min-h-[620px]">
+            {/* LEFT SIDE – Feature Image Slideshow with Enlarged Image */}
+            <div className="lg:col-span-6 bg-canvas-paper pt-4 sm:pt-5 px-2.5 sm:px-3.5 lg:px-4 pb-3 sm:pb-4 border-b lg:border-b-0 lg:border-r border-border-beige flex flex-col justify-between">
               {/* AQS Branding Header */}
-              <div>
+              <div className="px-2">
                 <div className="flex flex-col items-start">
                   <h1 className="sr-only">AQS - Academic Quality &amp; Scheduling</h1>
                   <AqsBrandLogo className="h-9 sm:h-11 w-auto max-w-full text-primary-dark" />
@@ -90,8 +90,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
               </div>
 
-              {/* Slideshow Display Area with Floating Image */}
-              <div className="relative my-2 flex-1 min-h-[220px] sm:min-h-[240px] flex items-center justify-center overflow-hidden">
+              {/* Slideshow Display Area with Prominent, Substantially Enlarged Floating Image */}
+              <div className="relative my-2 flex-1 min-h-[300px] sm:min-h-[340px] lg:min-h-[370px] flex items-center justify-center overflow-hidden">
                 {FEATURE_SLIDES.map((slide, idx) => {
                   const isActive = idx === activeSlideIndex;
                   return (
@@ -104,12 +104,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       }`}
                       aria-hidden={!isActive}
                     >
-                      {/* Floating Image */}
-                      <div className="w-full flex-1 flex items-center justify-center px-2 py-0.5">
+                      {/* Floating Image – Nearly fills the horizontal space touching inner edges */}
+                      <div className="w-full flex-1 flex items-center justify-center px-0.5 sm:px-1 py-1">
                         <img
                           src={slide.image}
                           alt={slide.title}
-                          className="w-full h-auto max-h-[170px] sm:max-h-[190px] lg:max-h-[210px] object-contain select-none drop-shadow-sm transition-transform duration-700 ease-out"
+                          className="w-full h-auto max-h-[280px] sm:max-h-[320px] lg:max-h-[350px] object-contain select-none drop-shadow-sm transition-transform duration-700 ease-out"
                         />
                       </div>
 
@@ -128,7 +128,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
 
               {/* Slideshow Indicator Dots */}
-              <div className="pt-2.5 border-t border-border-subtle flex items-center justify-between text-xs text-ink-light">
+              <div className="pt-2 border-t border-border-subtle flex items-center justify-between text-xs text-ink-light px-2">
                 <div className="flex items-center gap-2">
                   {FEATURE_SLIDES.map((_, idx) => (
                     <button

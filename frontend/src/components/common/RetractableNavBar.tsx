@@ -94,11 +94,10 @@ export const RetractableNavBar: React.FC<RetractableNavBarProps> = ({
       >
         {/* Deep maroon sliding pill panel genuinely positioned behind the 56px header */}
         <div
-          className={`bg-[#530e21] text-white rounded-b-2xl border-b border-x border-[#702536] transition-transform duration-300 ease-out flex flex-col items-center ${
-            isOpen
+          className={`bg-[#530e21] text-white rounded-b-2xl border-b border-x border-[#702536] transition-transform duration-300 ease-out flex flex-col items-center ${isOpen
               ? 'translate-y-[56px] shadow-2xl shadow-primary-dark/40'
               : 'translate-y-[calc(66px-100%)] shadow-md shadow-primary-dark/20'
-          }`}
+            }`}
         >
           {/* Main Navigation Bar Content */}
           <div className="px-4 py-2 sm:px-6 sm:py-2.5 flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-center">
@@ -111,11 +110,10 @@ export const RetractableNavBar: React.FC<RetractableNavBarProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => handleTabClick(item.id)}
-                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-150 ${
-                      isActive
+                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-150 ${isActive
                         ? 'bg-white/20 text-white font-semibold shadow-inner'
                         : 'text-white/80 hover:text-white hover:bg-white/10'
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -155,11 +153,10 @@ export const RetractableNavBar: React.FC<RetractableNavBarProps> = ({
           >
             <div className="flex items-center gap-1 py-0.5">
               <span
-                className={`transition-all duration-300 rounded-full ${
-                  isOpen
+                className={`transition-all duration-300 rounded-full ${isOpen
                     ? 'w-10 h-1 bg-white/30'
                     : 'w-14 h-1.5 bg-rose-200/80 shadow-xs'
-                }`}
+                  }`}
               />
               {!isOpen && (
                 <ChevronDown className="w-3 h-3 text-rose-200/90 -ml-0.5 animate-pulse" />

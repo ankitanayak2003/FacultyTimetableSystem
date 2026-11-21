@@ -1,93 +1,75 @@
 import React from 'react';
 import { AqsBrandLogo } from './AqsBrandLogo';
+import { ScrambledText } from './ScrambledText';
 
 export interface GlobalTopHeaderProps {
-  breadcrumbCategory: string;
-  breadcrumbModule: string;
-  pageTitle: string;
   userName: string;
-  academicYear?: string; // Dean user exception only
+  // Optional parameters preserved for interface compatibility
+  breadcrumbCategory?: string;
+  breadcrumbModule?: string;
+  pageTitle?: string;
+  academicYear?: string;
   onToggleMobileNav?: () => void;
 }
 
 /**
- * Top Header Bar – Minimalistic Design
- * Permanently fixed at the top of the viewport (position: fixed, top: 0, left: 0, right: 0, z-50).
- * Displays exactly two text elements on the right: User Name and AQS Brand Name.
- * Dean exception: Displays Academic Year in between.
- * No avatar circles, no profile cards, no role badges, no emojis, no status pills.
+ * Global Top Header Bar (All AQS User Roles)
+ * Fixed at the top of the viewport (position: fixed, top: 0, left: 0, right: 0, z-50).
+ *
+ * Left side:
+ * - AQS Brand: Noticeably enlarged, preserving exact ROMUSA font from login branding without different animations.
+ * - Divider: Subtle vertical separator (|).
+ * - Tagline: "Where Every Academic Hour Finds Its Purpose and Every Schedule Finds Its Rhythm."
+ *   Animated with official React Bits ScrambledText, completes within under 2s, settles to readable static text.
+ *
+ * Right side:
+ * - Logged-in user's name only.
+ *
+ * No logos, avatars, icons, badges, breadcrumbs or page titles.
  */
 export const GlobalTopHeader: React.FC<GlobalTopHeaderProps> = ({
-  breadcrumbCategory,
-  breadcrumbModule,
-  pageTitle,
   userName,
-  academicYear,
-  onToggleMobileNav,
 }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-surface border-b border-border-beige h-14 px-4 sm:px-6 shadow-crisp-sm transition-none">
       <div className="h-full flex items-center justify-between gap-4 max-w-7xl mx-auto">
-        {/* Left side: Breadcrumb & Page Title (No college logos or decorative crests) */}
-        <div className="flex items-center gap-3 min-w-0">
-          {onToggleMobileNav && (
-            <button
-              type="button"
-              onClick={onToggleMobileNav}
-              className="md:hidden p-1.5 text-ink-muted hover:text-ink hover:bg-canvas-muted rounded transition-colors flex-shrink-0"
-              aria-label="Toggle navigation menu"
+        {/* LEFT SIDE: AQS Brand Name & Animated Tagline */}
+        <div className="flex items-center min-w-0 select-none">
+          {/* AQS Brand Name – Enlarged and prominent, preserving exact login branding geometry */}
+          <AqsBrandLogo
+            className="h-8.5 sm:h-9.5 md:h-10 w-auto text-primary flex-shrink-0"
+          />
+
+          {/* Divider & Complete Tagline */}
+          <div className="hidden md:flex items-center min-w-0 ml-3 sm:ml-4">
+            <span
+              className="text-border-beige font-light text-lg sm:text-xl lg:text-2xl mr-3 sm:mr-4 select-none flex-shrink-0"
+              aria-hidden="true"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
-          )}
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-ink-light">
-              <span>{breadcrumbCategory}</span>
-              <span>/</span>
-              <span className="text-primary font-semibold">{breadcrumbModule}</span>
-            </div>
-            <h1 className="font-headline text-base sm:text-lg font-semibold text-primary truncate leading-tight">
-              {pageTitle}
-            </h1>
+              |
+            </span>
+            <ScrambledText
+              radius={100}
+              duration={1.2}
+              speed={0.5}
+              scrambleChars=".:"
+              effect="scramble"
+              strength={1}
+              trail={0.6}
+              clickBurst={false}
+              intro={true}
+              className="font-headline italic text-sm md:text-[14.5px] lg:text-[15.5px] text-ink-muted font-normal tracking-normal select-none truncate"
+            >
+              Where Every Academic Hour Finds Its Purpose and Every Schedule Finds Its Rhythm.
+            </ScrambledText>
           </div>
         </div>
 
-        {/* Right side: Minimalist display */}
-        {/* Only User Name and AQS Brand Name (plus Academic Year for Dean user only) */}
-        {/* Strictly no avatar circles, no user initials, no profile cards, no role badges, no emojis, no status pills */}
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 select-none">
-          <span className="font-semibold text-ink text-xs sm:text-sm tracking-tight">
+        {/* RIGHT SIDE: Logged-in User Name */}
+        <div className="flex items-center select-none flex-shrink-0">
+          <span className="font-semibold text-ink text-sm sm:text-base tracking-tight">
             {userName}
           </span>
-
-          {academicYear && (
-            <>
-              <span className="text-border-beige font-normal text-xs sm:text-sm select-none">
-                •
-              </span>
-              <span className="font-medium text-ink-muted text-xs sm:text-sm">
-                {academicYear}
-              </span>
-            </>
-          )}
-
-          <span className="text-border-beige font-normal text-xs sm:text-sm select-none">
-            •
-          </span>
-
-          <AqsBrandLogo className="h-4 sm:h-4.5 w-auto text-primary" />
         </div>
       </div>
     </header>
