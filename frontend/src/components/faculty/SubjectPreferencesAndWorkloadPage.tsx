@@ -56,8 +56,9 @@ export const SubjectPreferencesAndWorkloadPage: React.FC = () => {
   const uniqueEligibleCourses = useMemo(() => {
     const map = new Map<string, { code: string; title: string; year: string }>();
     eligibleSubjects.forEach((s) => {
-      if (!map.has(s.courseCode)) {
-        map.set(s.courseCode, { code: s.courseCode, title: s.courseTitle, year: s.studentYear });
+      const codeKey = s.courseCode || s.courseTitle;
+      if (!map.has(codeKey)) {
+        map.set(codeKey, { code: s.courseCode || '', title: s.courseTitle, year: s.studentYear });
       }
     });
     return Array.from(map.values());

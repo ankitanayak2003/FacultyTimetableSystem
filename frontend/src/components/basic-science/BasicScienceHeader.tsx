@@ -16,6 +16,8 @@ export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
     switch (tab) {
       case 'subject-allocation':
         return 'Subject & Faculty Allocation';
+      case 'faculty-workload':
+        return 'Faculty Workload & Preferences';
       case 'chemistry-timetable':
         return 'Chemistry Cycle Timetable';
       case 'physics-timetable':

@@ -50,7 +50,7 @@ export const BasicScienceFinalTimetables: React.FC = () => {
       const code = p.subjectCode.trim();
       const existing = map.get(code);
 
-      const orig = subjects.find((s) => s.code.toLowerCase() === code.toLowerCase());
+      const orig = subjects.find((s) => s.code && s.code.toLowerCase() === code.toLowerCase());
       const type = orig?.type || (p.isDeanLocked ? 'Institutional Slot' : 'Theory');
 
       if (!existing) {

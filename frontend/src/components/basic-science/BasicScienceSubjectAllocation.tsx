@@ -42,12 +42,28 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
   const [subjectName, setSubjectName] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
   const [subjectType, setSubjectType] = useState<BasicScienceSubject['type']>('Theory');
+  const [ltp, setLtp] = useState('3:0:0');
+  const [credits, setCredits] = useState<string | number>('3');
   const [numFaculty, setNumFaculty] = useState<number>(1);
   const [facultySelections, setFacultySelections] = useState<string[]>([
     REGISTERED_FACULTY_NAMES[0],
   ]);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const handleTypeChange = (newType: BasicScienceSubject['type']) => {
+    setSubjectType(newType);
+    if (newType === 'Practical') {
+      setLtp('0:0:2');
+      setCredits('1.5');
+    } else if (newType === 'Integrated') {
+      setLtp('3:0:2');
+      setCredits('4');
+    } else {
+      setLtp('3:0:0');
+      setCredits('3');
+    }
+  };
 
   // Soft constraints local state
   const [constraintsText, setConstraintsText] = useState(softConstraints);
@@ -84,8 +100,10 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
   const handleEditClick = (subject: BasicScienceSubject) => {
     setEditingId(subject.id);
     setSubjectName(subject.name);
-    setSubjectCode(subject.code);
-    setSubjectType(subject.type);
+    setSubjectCode(subject.code || '');
+    setSubjectType(subject.type as BasicScienceSubject['type']);
+    setLtp(subject.ltp || (subject.type === 'Practical' ? '0:0:2' : subject.type === 'Integrated' ? '3:0:2' : '3:0:0'));
+    setCredits(subject.credits !== undefined && subject.credits !== null ? subject.credits : (subject.type === 'Practical' ? 1.5 : subject.type === 'Integrated' ? 4 : 3));
     setNumFaculty(subject.numFaculty || subject.facultyNames.length || 1);
     setFacultySelections(
       subject.facultyNames.length > 0 ? subject.facultyNames : [REGISTERED_FACULTY_NAMES[0]]
@@ -99,6 +117,8 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
     setSubjectName('');
     setSubjectCode('');
     setSubjectType('Theory');
+    setLtp('3:0:0');
+    setCredits('3');
     setNumFaculty(1);
     setFacultySelections([REGISTERED_FACULTY_NAMES[0]]);
     setErrorMsg('');
@@ -107,11 +127,15 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!subjectName.trim()) {
-      setErrorMsg('Please enter a Subject Name.');
+      setErrorMsg('Please enter a Subject Name / Course Name.');
       return;
     }
-    if (!subjectCode.trim()) {
-      setErrorMsg('Please enter a Subject Code.');
+    if (!ltp.trim()) {
+      setErrorMsg('Please enter L:T:P structure (e.g. 3:0:0).');
+      return;
+    }
+    if (credits === '' || credits === null || credits === undefined) {
+      setErrorMsg('Please enter Credits value.');
       return;
     }
 
@@ -121,40 +145,41 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
       return;
     }
 
+    const cleanCode = subjectCode.trim() ? subjectCode.trim().toUpperCase() : '';
+
     if (editingId) {
       onUpdateSubject(editingId, {
         name: subjectName.trim(),
-        code: subjectCode.trim().toUpperCase(),
+        code: cleanCode,
         type: subjectType,
+        ltp: ltp.trim(),
+        credits,
         numFaculty,
         facultyNames: assigned,
         cycle,
       });
-      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} updated successfully in ${cycle} Cycle.`);
+      setSuccessMsg(`Subject "${subjectName.trim()}" updated successfully in ${cycle} Cycle.`);
       handleCancelEdit();
     } else {
       onAddSubject({
         name: subjectName.trim(),
-        code: subjectCode.trim().toUpperCase(),
+        code: cleanCode,
         type: subjectType,
+        ltp: ltp.trim(),
+        credits,
         numFaculty,
         facultyNames: assigned,
         cycle,
       });
-      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} added to ${cycle} Cycle.`);
-      setSubjectName('');
-      setSubjectCode('');
-      setSubjectType('Theory');
-      setNumFaculty(1);
-      setFacultySelections([REGISTERED_FACULTY_NAMES[0]]);
-      setErrorMsg('');
+      setSuccessMsg(`Subject "${subjectName.trim()}" added to ${cycle} Cycle.`);
+      handleCancelEdit();
     }
 
     setTimeout(() => setSuccessMsg(''), 4000);
   };
 
-  const handleDelete = (id: string, code: string) => {
-    if (confirm(`Remove subject ${code} from ${cycle} Cycle master list?`)) {
+  const handleDelete = (id: string, code?: string) => {
+    if (confirm(`Remove subject ${code || 'this subject'} from ${cycle} Cycle master list?`)) {
       onDeleteSubject(id);
       if (editingId === id) handleCancelEdit();
     }
@@ -231,11 +256,11 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Subject Name */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Subject Name / Course Name (Required) */}
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
-              Subject Name *
+              Subject Name / Course Name <span className="text-primary">*</span>
             </label>
             <input
               type="text"
@@ -246,28 +271,28 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
             />
           </div>
 
-          {/* Subject Code */}
+          {/* Subject Code (Optional) */}
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
-              Subject Code *
+              Subject Code <span className="text-ink-light font-normal text-[10px]">(Optional)</span>
             </label>
             <input
               type="text"
               value={subjectCode}
               onChange={(e) => setSubjectCode(e.target.value)}
-              placeholder={cycle === 'Physics' ? 'e.g. 22PHY12' : 'e.g. 22CHE12'}
+              placeholder={cycle === 'Physics' ? 'e.g. 22PHY12 (Optional)' : 'e.g. 22CHE12 (Optional)'}
               className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink font-mono focus:outline-none focus:border-primary"
             />
           </div>
 
-          {/* Subject Type */}
+          {/* Course Type (Required) */}
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
-              Subject Type *
+              Course Type <span className="text-primary">*</span>
             </label>
             <select
               value={subjectType}
-              onChange={(e) => setSubjectType(e.target.value as BasicScienceSubject['type'])}
+              onChange={(e) => handleTypeChange(e.target.value as BasicScienceSubject['type'])}
               className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
             >
               {SUBJECT_TYPES.map((t) => (
@@ -277,11 +302,41 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* L:T:P (Required) */}
+          <div>
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
+              L:T:P Structure <span className="text-primary">*</span>
+            </label>
+            <input
+              type="text"
+              value={ltp}
+              onChange={(e) => setLtp(e.target.value)}
+              placeholder="e.g. 3:0:0"
+              className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink font-mono focus:outline-none focus:border-primary"
+            />
+          </div>
+
+          {/* Credits (Required) */}
+          <div>
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
+              Credits <span className="text-primary">*</span>
+            </label>
+            <input
+              type="text"
+              value={credits}
+              onChange={(e) => setCredits(e.target.value)}
+              placeholder="e.g. 3"
+              className="w-full px-3 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink font-mono focus:outline-none focus:border-primary"
+            />
+          </div>
 
           {/* Number of Faculty */}
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-ink-muted mb-1 font-semibold">
-              Number of Faculty *
+              Faculty Member Count <span className="text-primary">*</span>
             </label>
             <select
               value={numFaculty}
@@ -374,16 +429,29 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-mono font-bold text-primary text-xs bg-primary-subtle px-2 py-0.5 rounded">
-                      {sub.code}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-canvas-muted text-ink-muted font-medium">
-                      {sub.type}
-                    </span>
+                    {sub.code ? (
+                      <span className="font-mono font-bold text-primary text-xs bg-primary-subtle px-2 py-0.5 rounded">
+                        {sub.code}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-canvas-muted text-ink-muted font-medium">
+                        {sub.type}
+                      </span>
+                    )}
+                    {sub.code && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-canvas-muted text-ink-muted font-medium">
+                        {sub.type}
+                      </span>
+                    )}
                   </div>
                   <h4 className="font-medium text-ink mt-1.5 leading-snug line-clamp-2" title={sub.name}>
                     {sub.name}
                   </h4>
+                  <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-ink-muted">
+                    <span>L:T:P: {sub.ltp || (sub.type === 'Practical' ? '0:0:2' : sub.type === 'Integrated' ? '3:0:2' : '3:0:0')}</span>
+                    <span>•</span>
+                    <span>Credits: {sub.credits !== undefined ? sub.credits : (sub.type === 'Practical' ? 1.5 : sub.type === 'Integrated' ? 4 : 3)}</span>
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-border-subtle space-y-1 text-[11px]">
@@ -407,15 +475,15 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
                     type="button"
                     onClick={() => handleEditClick(sub)}
                     className="p-1 text-ink-muted hover:text-primary transition-colors"
-                    title={`Edit ${sub.code}`}
+                    title={`Edit ${sub.name}`}
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(sub.id, sub.code)}
+                    onClick={() => handleDelete(sub.id, sub.code || sub.name)}
                     className="p-1 text-ink-muted hover:text-rose-600 transition-colors"
-                    title={`Delete ${sub.code}`}
+                    title={`Delete ${sub.name}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

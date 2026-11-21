@@ -586,8 +586,10 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
 export interface DeanSubject {
   id: string;
   name: string;
-  code: string;
+  code?: string;
+  ltp?: string;
   type: string;
+  credits?: number | string;
   numFaculty: number;
   facultyNames: string[];
   academicYear?: string;
@@ -605,6 +607,7 @@ export interface DeanPlacement {
   facultyName: string;
   room?: string;
   isMerged?: boolean;
+  subjectId?: string;
 }
 
 export interface DeanSectionTimetable {
@@ -623,8 +626,10 @@ export interface BasicScienceSubject {
   id: string;
   cycle: 'Physics' | 'Chemistry';
   name: string;
-  code: string;
-  type: 'Theory' | 'Practical' | 'Integrated';
+  code?: string;
+  ltp?: string;
+  type: 'Theory' | 'Practical' | 'Integrated' | string;
+  credits?: number | string;
   numFaculty: number;
   facultyNames: string[];
 }
@@ -641,6 +646,7 @@ export interface BasicSciencePlacement {
   isMerged?: boolean;
   isDeanLocked?: boolean;
   lockedReason?: string;
+  subjectId?: string;
 }
 
 export interface CycleSectionTimetable {
@@ -1464,14 +1470,183 @@ export const INITIAL_DEPT_FACULTY: DepartmentFaculty[] = [
   },
 ];
 
+export const INITIAL_BASIC_SCIENCE_FACULTY: DepartmentFaculty[] = [
+  {
+    id: 'bs-fac-1',
+    name: 'Dr. Ravindra',
+    empId: 'FAC201',
+    email: 'ravindra.physics@smvitm.ac.in',
+    department: 'Physics',
+    designation: 'Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['First Year'],
+    normHours: 14,
+    minHours: 12,
+    maxHours: 16,
+    theoryHours: 10,
+    labHours: 6,
+    basicScienceHours: 16,
+    additionalDuties: [{ role: 'Basic Science Coordinator', hours: 2 }],
+    preferences: [
+      { id: 'bsp-r1', priority: 1, subjectCode: '22PHY12', subjectTitle: 'Engineering Physics', justification: 'PhD in Solid State Physics with 15+ years teaching Engineering Physics.' },
+      { id: 'bsp-r2', priority: 2, subjectCode: '22PHYL16', subjectTitle: 'Engineering Physics Laboratory' },
+      { id: 'bsp-r3', priority: 3, subjectCode: '22ESC143', subjectTitle: 'Basic Electronics & Comm Engg' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '22PHY12', subjectTitle: 'Engineering Physics', approvedBy: 'Dr. Thirumaleshwara Bhat', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+      { priority: 2, subjectCode: '22PHYL16', subjectTitle: 'Engineering Physics Laboratory', approvedBy: 'Dr. Thirumaleshwara Bhat', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['22PHY12 - Engineering Physics', '22PHYL16 - Physics Lab'],
+  },
+  {
+    id: 'bs-fac-2',
+    name: 'Dr. Subrahmanya',
+    empId: 'FAC202',
+    email: 'subrahmanya.maths@smvitm.ac.in',
+    department: 'Mathematics',
+    designation: 'Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['First Year', 'Second Year'],
+    normHours: 14,
+    minHours: 12,
+    maxHours: 16,
+    theoryHours: 14,
+    labHours: 0,
+    basicScienceHours: 14,
+    additionalDuties: [{ role: 'Mathematics Course Chair', hours: 1 }],
+    preferences: [
+      { id: 'bsp-s1', priority: 1, subjectCode: '22MAT11', subjectTitle: 'Calculus & Linear Algebra', justification: 'Senior Mathematics Professor handling 1st & 2nd year engineering mathematics.' },
+      { id: 'bsp-s2', priority: 2, subjectCode: '22MAT21', subjectTitle: 'Differential Equations' },
+      { id: 'bsp-s3', priority: 3, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '22MAT11', subjectTitle: 'Calculus & Linear Algebra', approvedBy: 'Dr. Thirumaleshwara Bhat', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['22MAT11 - Calculus & Linear Algebra', '22MAT21 - Differential Equations'],
+  },
+  {
+    id: 'bs-fac-3',
+    name: 'Dr. K. K. Srinivasan',
+    empId: 'FAC203',
+    email: 'srinivasan.chem@smvitm.ac.in',
+    department: 'Chemistry',
+    designation: 'Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['First Year'],
+    normHours: 14,
+    minHours: 12,
+    maxHours: 16,
+    theoryHours: 10,
+    labHours: 6,
+    basicScienceHours: 16,
+    additionalDuties: [{ role: 'Chemistry HOD & Lab Safety In-charge', hours: 2 }],
+    preferences: [
+      { id: 'bsp-k1', priority: 1, subjectCode: '22CHE12', subjectTitle: 'Engineering Chemistry', justification: 'PhD in Applied Chemistry with research in polymer materials.' },
+      { id: 'bsp-k2', priority: 2, subjectCode: '22CHEL16', subjectTitle: 'Engineering Chemistry Laboratory' },
+      { id: 'bsp-k3', priority: 3, subjectCode: '22EV15', subjectTitle: 'Environmental Studies' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '22CHE12', subjectTitle: 'Engineering Chemistry', approvedBy: 'Dr. Thirumaleshwara Bhat', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+      { priority: 2, subjectCode: '22CHEL16', subjectTitle: 'Engineering Chemistry Laboratory', approvedBy: 'Dr. Thirumaleshwara Bhat', approvedAt: '2026-11-01', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['22CHE12 - Engineering Chemistry', '22CHEL16 - Chemistry Lab'],
+  },
+  {
+    id: 'bs-fac-4',
+    name: 'Prof. Raghavendra',
+    empId: 'FAC204',
+    email: 'raghavendra.phy@smvitm.ac.in',
+    department: 'Physics',
+    designation: 'Assistant Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['First Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 8,
+    labHours: 8,
+    basicScienceHours: 16,
+    additionalDuties: [{ role: 'Physics Lab 1 Maintenance', hours: 2 }],
+    preferences: [
+      { id: 'bsp-rg1', priority: 1, subjectCode: '22PHYL16', subjectTitle: 'Engineering Physics Laboratory' },
+      { id: 'bsp-rg2', priority: 2, subjectCode: '22PHY12', subjectTitle: 'Engineering Physics' },
+      { id: 'bsp-rg3', priority: 3, subjectCode: '22ESCL147', subjectTitle: 'Basic Electronics Workshop' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '22PHYL16', subjectTitle: 'Engineering Physics Laboratory', approvedBy: 'Dr. Ravindra', approvedAt: '2026-11-02', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['22PHYL16 - Engineering Physics Lab'],
+  },
+  {
+    id: 'bs-fac-5',
+    name: 'Prof. Divya',
+    empId: 'FAC205',
+    email: 'divya.maths@smvitm.ac.in',
+    department: 'Mathematics',
+    designation: 'Assistant Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['First Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 14,
+    labHours: 2,
+    basicScienceHours: 16,
+    additionalDuties: [{ role: 'Student Remedial Classes (Maths)', hours: 2 }],
+    preferences: [
+      { id: 'bsp-d1', priority: 1, subjectCode: '22MAT11', subjectTitle: 'Calculus & Linear Algebra' },
+      { id: 'bsp-d2', priority: 2, subjectCode: '22MAT21', subjectTitle: 'Differential Equations' },
+      { id: 'bsp-d3', priority: 3, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '22MAT11', subjectTitle: 'Calculus & Linear Algebra', approvedBy: 'Dr. Subrahmanya', approvedAt: '2026-11-02', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['22MAT11 - Calculus & Linear Algebra (Sec C)'],
+  },
+  {
+    id: 'bs-fac-6',
+    name: 'Prof. Sumana',
+    empId: 'FAC206',
+    email: 'sumana.chem@smvitm.ac.in',
+    department: 'Chemistry',
+    designation: 'Assistant Professor',
+    hasLoginAccess: true,
+    accountStatus: 'Active',
+    eligibleYears: ['First Year'],
+    normHours: 18,
+    minHours: 16,
+    maxHours: 20,
+    theoryHours: 8,
+    labHours: 8,
+    basicScienceHours: 16,
+    additionalDuties: [{ role: 'Chemistry Stock In-charge', hours: 2 }],
+    preferences: [
+      { id: 'bsp-sm1', priority: 1, subjectCode: '22CHEL16', subjectTitle: 'Engineering Chemistry Laboratory' },
+      { id: 'bsp-sm2', priority: 2, subjectCode: '22CHE12', subjectTitle: 'Engineering Chemistry' },
+      { id: 'bsp-sm3', priority: 3, subjectCode: '22EV15', subjectTitle: 'Environmental Studies' },
+    ],
+    finalizedPreferences: [
+      { priority: 1, subjectCode: '22CHEL16', subjectTitle: 'Engineering Chemistry Laboratory', approvedBy: 'Dr. K. K. Srinivasan', approvedAt: '2026-11-02', matchType: 'Preference Match' },
+    ],
+    assignedCourses: ['22CHEL16 - Chemistry Lab (Sec C & D)'],
+  },
+];
+
 export interface DeptSubjectItem {
   id: string;
-  courseCode: string;
+  courseCode?: string;
   courseTitle: string;
+  ltp?: string;
+  credits?: number | string;
   studentYear: 'Second Year' | 'Third Year' | 'Fourth Year';
   semester: 'Odd Semester' | 'Even Semester';
   semNumber: string;
-  type: 'Theory' | 'Laboratory' | 'Integrated' | 'Elective' | 'Institutional';
+  type: 'Theory' | 'Laboratory' | 'Integrated' | 'Elective' | 'Institutional' | string;
   hoursPerWeek: number;
   venue: string;
   assignedFaculty: string;
@@ -1706,6 +1881,7 @@ export interface DeptPlacement {
   isLockedSlot?: boolean;
   lockedStage?: 'Institutional (Dean)' | 'Basic Science';
   lockedReason?: string;
+  subjectId?: string;
 }
 
 export interface DeptSectionTimetable {

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { BasicScienceTab } from '../components/basic-science/BasicScienceSidebar';
 import { BasicScienceHeader } from '../components/basic-science/BasicScienceHeader';
 import { BasicScienceSubjectAllocation } from '../components/basic-science/BasicScienceSubjectAllocation';
+import { BasicScienceWorkloadView } from '../components/basic-science/BasicScienceWorkloadView';
 import { CycleTimetableEditor } from '../components/basic-science/CycleTimetableEditor';
 import { BasicScienceFinalTimetables } from '../components/basic-science/BasicScienceFinalTimetables';
 import { RetractableNavBar, NavItem } from '../components/common/RetractableNavBar';
 
 const BASIC_SCI_NAV_ITEMS: NavItem[] = [
   { id: 'subject-allocation', label: 'Subject & Faculty Allocation' },
+  { id: 'faculty-workload', label: 'Faculty Workload' },
   { id: 'chemistry-timetable', label: 'Chemistry Cycle' },
   { id: 'physics-timetable', label: 'Physics Cycle' },
   { id: 'final-timetables', label: 'Final Timetables' },
@@ -43,6 +45,8 @@ export const BasicScienceDashboard: React.FC<BasicScienceDashboardProps> = ({
 
       <main className="flex-1 p-3.5 sm:p-5 lg:p-5 max-w-7xl w-full mx-auto space-y-4">
         {activeTab === 'subject-allocation' && <BasicScienceSubjectAllocation />}
+
+        {activeTab === 'faculty-workload' && <BasicScienceWorkloadView />}
 
         {activeTab === 'chemistry-timetable' && (
           <CycleTimetableEditor cycle="Chemistry" />

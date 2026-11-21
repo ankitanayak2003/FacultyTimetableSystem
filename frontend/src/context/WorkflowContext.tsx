@@ -33,6 +33,7 @@ import {
   INITIAL_CHEMISTRY_SUBJECTS,
   INITIAL_CYCLE_TIMETABLES,
   INITIAL_DEPT_FACULTY,
+  INITIAL_BASIC_SCIENCE_FACULTY,
   INITIAL_DEPT_SUBJECTS,
   INITIAL_DEPT_SECTION_TIMETABLES,
   INITIAL_FACULTY_LEAVES,
@@ -111,6 +112,8 @@ interface WorkflowContextType {
   saveCycleTimetable: (key: string, data: CycleSectionTimetable) => void;
   lockCycleTimetable: (key: string) => void;
   unlockCycleTimetable: (key: string) => void;
+  basicScienceFaculty: DepartmentFaculty[];
+  updateBasicScienceFacultyFinalizedPreferences: (id: string, finalized: FinalizedPreferenceItem[]) => void;
 
   // Department Stage
   departmentStatus: WorkflowStageStatus;
@@ -142,6 +145,9 @@ interface WorkflowContextType {
   updateDepartmentFacultyFinalizedPreferences: (id: string, finalized: FinalizedPreferenceItem[]) => void;
 
   deptSubjects: DeptSubjectItem[];
+  addDeptSubject: (sub: Omit<DeptSubjectItem, 'id'>) => void;
+  updateDeptSubject: (id: string, updates: Partial<DeptSubjectItem>) => void;
+  deleteDeptSubject: (id: string) => void;
   updateDeptSubjectAllocation: (id: string, assignedFaculty: string, matchType?: DeptSubjectItem['preferenceMatch']) => void;
   autoAllocateDeptSubjects: (academicYear: string, semester: string, studentYear: string) => void;
 
@@ -230,6 +236,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [physicsSections, setPhysicsSections] = useState<string[]>(['Section A', 'Section B']);
   const [chemistrySections, setChemistrySections] = useState<string[]>(['Section C', 'Section D']);
   const [cycleTimetables, setCycleTimetables] = useState<Record<string, CycleSectionTimetable>>(INITIAL_CYCLE_TIMETABLES);
+  const [basicScienceFaculty, setBasicScienceFaculty] = useState<DepartmentFaculty[]>(INITIAL_BASIC_SCIENCE_FACULTY);
 
   // Computed status for Basic Science: if Dean is DRAFT, Basic Science is BLOCKED
   const basicScienceStatus: WorkflowStageStatus =
@@ -576,6 +583,15 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  const updateBasicScienceFacultyFinalizedPreferences = (
+    id: string,
+    finalized: FinalizedPreferenceItem[]
+  ) => {
+    setBasicScienceFaculty((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, finalizedPreferences: finalized } : f))
+    );
+  };
+
   // Department Handlers
   const updatePreferenceStatus = (
     prefId: string,
@@ -702,6 +718,24 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setDepartmentFaculty((prev) =>
       prev.map((f) => (f.id === id ? { ...f, finalizedPreferences: finalized } : f))
     );
+  };
+
+  const addDeptSubject = (sub: Omit<DeptSubjectItem, 'id'>) => {
+    const newSub: DeptSubjectItem = {
+      ...sub,
+      id: `dsub-${Date.now()}`,
+    };
+    setDeptSubjects((prev) => [newSub, ...prev]);
+  };
+
+  const updateDeptSubject = (id: string, updates: Partial<DeptSubjectItem>) => {
+    setDeptSubjects((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
+
+  const deleteDeptSubject = (id: string) => {
+    setDeptSubjects((prev) => prev.filter((s) => s.id !== id));
   };
 
   const updateDeptSubjectAllocation = (id: string, assignedFaculty: string, matchType?: DeptSubjectItem['preferenceMatch']) => {
@@ -1028,6 +1062,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveCycleTimetable,
         lockCycleTimetable,
         unlockCycleTimetable,
+        basicScienceFaculty,
+        updateBasicScienceFacultyFinalizedPreferences,
 
         departmentStatus,
         departments,
@@ -1053,6 +1089,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateDepartmentFacultyFinalizedPreferences,
 
         deptSubjects,
+        addDeptSubject,
+        updateDeptSubject,
+        deleteDeptSubject,
         updateDeptSubjectAllocation,
         autoAllocateDeptSubjects,
 

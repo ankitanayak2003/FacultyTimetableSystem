@@ -9,11 +9,13 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Sliders,
 } from 'lucide-react';
 import smvitmLogo from '../../assets/smvitm_logo.webp';
 
 export type BasicScienceTab =
   | 'subject-allocation'
+  | 'faculty-workload'
   | 'chemistry-timetable'
   | 'physics-timetable'
   | 'final-timetables';
@@ -42,6 +44,11 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
       id: 'subject-allocation' as BasicScienceTab,
       label: 'Subject & Faculty Allocation',
       icon: Layers,
+    },
+    {
+      id: 'faculty-workload' as BasicScienceTab,
+      label: 'Faculty Workload',
+      icon: Sliders,
     },
     {
       id: 'chemistry-timetable' as BasicScienceTab,
