@@ -1,11 +1,17 @@
 import React from 'react';
 
+export interface AqsBrandLogoProps {
+  className?: string;
+}
+
 /**
  * Prominent AQS Institutional Brand Mark
  * Faithfully matches the exact geometry, rounded tube monoline strokes, and terminals
- * from the institutional reference font ROMUSA (aqs font.jpeg).
+ * from the institutional reference font ROMUSA (aqs font.jpeg) as used in the login branding.
  */
-export const AqsBrandLogo: React.FC<{ className?: string }> = ({ className = 'h-5 w-auto text-primary' }) => (
+export const AqsBrandLogo: React.FC<AqsBrandLogoProps> = ({
+  className = 'h-5 w-auto text-primary',
+}) => (
   <svg
     viewBox="0 0 740 236"
     fill="none"
