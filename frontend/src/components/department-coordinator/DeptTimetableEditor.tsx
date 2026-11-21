@@ -11,6 +11,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { useDragAutoScroll } from '../../hooks/useDragAutoScroll';
 import {
   DeptPlacement,
   DeptSectionTimetable,
@@ -18,6 +19,7 @@ import {
   INITIAL_AIDS_3A_PLACEMENTS,
   INITIAL_AIDS_3B_PLACEMENTS,
 } from '../../data/workflowDemoData';
+import { GeneratorCourseTable, GeneratorCourseItem } from '../common/GeneratorCourseTable';
 
 const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
 const STUDENT_YEARS = ['Second Year', 'Third Year', 'Fourth Year'];
@@ -42,6 +44,9 @@ export const DeptTimetableEditor: React.FC = () => {
     publishDeptSectionTimetable,
     unpublishDeptSectionTimetable,
   } = useWorkflow();
+
+  // Automatic scrolling during timetable drag-and-drop
+  useDragAutoScroll();
 
   // Selectors
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('2026–2027');
@@ -71,7 +76,8 @@ export const DeptTimetableEditor: React.FC = () => {
   const [pendingDrop, setPendingDrop] = useState<{
     day: (typeof DAYS)[number];
     startPeriod: number;
-    subjectCode: string;
+    subjectId?: string;
+    subjectCode?: string;
     subjectTitle: string;
     facultyName: string;
     venue: string;
@@ -111,11 +117,52 @@ export const DeptTimetableEditor: React.FC = () => {
     );
   }, [deptSubjects, selectedStudentYear, selectedSemester]);
 
+  // Generator Course Table Items (Sl. No., Course Code, Course Name, L:T:P, Course Type, Credit, Name of the Faculty Member)
+  const generatorCourses = useMemo<GeneratorCourseItem[]>(() => {
+    const list: GeneratorCourseItem[] = [];
+    const seenKeys = new Set<string>();
+
+    availableTraySubjects.forEach((sub) => {
+      seenKeys.add(sub.id);
+      if (sub.courseCode) seenKeys.add(sub.courseCode);
+      list.push({
+        id: sub.id,
+        courseCode: sub.courseCode || '',
+        courseName: sub.courseTitle,
+        ltp: sub.ltp || (sub.type?.toLowerCase().includes('lab') ? '0:0:2' : '3:0:0'),
+        courseType: sub.type,
+        credit: sub.credits !== undefined ? sub.credits : (sub.type?.toLowerCase().includes('lab') ? 1 : 3),
+        facultyName: sub.assignedFaculty || 'Unassigned',
+      });
+    });
+
+    placements.forEach((p) => {
+      if (p.subjectId && seenKeys.has(p.subjectId)) return;
+      if (p.subjectCode && seenKeys.has(p.subjectCode)) return;
+      if (seenKeys.has(p.subjectTitle)) return;
+
+      const key = p.subjectId || p.subjectCode || p.subjectTitle;
+      seenKeys.add(key);
+      list.push({
+        id: p.id,
+        courseCode: p.subjectCode || '',
+        courseName: p.subjectTitle || p.subjectCode || 'Institutional Slot',
+        ltp: '—',
+        courseType: p.isLockedSlot ? 'Institutional' : 'Core',
+        credit: '—',
+        facultyName: p.facultyName || 'Staff',
+      });
+    });
+
+    return list;
+  }, [availableTraySubjects, placements]);
+
   // Drag handlers
   const handleTrayDragStart = (e: React.DragEvent, sub: (typeof availableTraySubjects)[0]) => {
     if (isPublished) return;
     const data = JSON.stringify({
-      courseCode: sub.courseCode,
+      subjectId: sub.id,
+      courseCode: sub.courseCode || '',
       courseTitle: sub.courseTitle,
       assignedFaculty: sub.assignedFaculty,
       venue: sub.venue,
@@ -150,7 +197,8 @@ export const DeptTimetableEditor: React.FC = () => {
       setPendingDrop({
         day,
         startPeriod,
-        subjectCode: parsed.courseCode,
+        subjectId: parsed.subjectId,
+        subjectCode: parsed.courseCode || '',
         subjectTitle: parsed.courseTitle,
         facultyName: parsed.assignedFaculty || 'Prof. Rajesh Shetty',
         venue: parsed.venue || 'LH-201',
@@ -164,7 +212,7 @@ export const DeptTimetableEditor: React.FC = () => {
 
   const handleConfirmDrop = () => {
     if (!pendingDrop) return;
-    const { day, startPeriod, subjectCode, subjectTitle, facultyName } = pendingDrop;
+    const { day, startPeriod, subjectId, subjectCode, subjectTitle, facultyName } = pendingDrop;
 
     // Remove any overlapping non-locked placements
     const filtered = placements.filter((p) => {
@@ -186,7 +234,8 @@ export const DeptTimetableEditor: React.FC = () => {
       day,
       startPeriod,
       duration: modalDuration,
-      subjectCode,
+      subjectId,
+      subjectCode: subjectCode || '',
       subjectTitle,
       facultyName,
       room: modalRoom,
@@ -194,7 +243,10 @@ export const DeptTimetableEditor: React.FC = () => {
 
     setPlacements([...filtered, newPlacement]);
     setPendingDrop(null);
-    setToastMsg({ type: 'success', text: `Placed ${subjectCode} on ${day} Period ${startPeriod}.` });
+    setToastMsg({
+      type: 'success',
+      text: `Placed ${subjectTitle}${subjectCode ? ` (${subjectCode})` : ''} on ${day} Period ${startPeriod}.`,
+    });
     setTimeout(() => setToastMsg(null), 3000);
   };
 
@@ -727,22 +779,18 @@ export const DeptTimetableEditor: React.FC = () => {
                     ? 'opacity-60 cursor-not-allowed'
                     : 'cursor-grab hover:border-primary hover:shadow-crisp active:cursor-grabbing hover:bg-canvas'
                 }`}
-                title={`Course: ${sub.courseTitle}\nAssigned: ${sub.assignedFaculty}\nDrag to timetable cell`}
+                title={`Course: ${sub.courseTitle}${sub.courseCode ? ` (${sub.courseCode})` : ''}\nDrag to timetable cell`}
               >
                 <GripVertical className="w-3.5 h-3.5 text-ink-light flex-shrink-0" />
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-primary text-[11px]">{sub.courseCode}</span>
-                    <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-canvas-muted text-ink-muted">
-                      {sub.type}
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-medium text-ink truncate max-w-[190px]">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-ink truncate max-w-[190px]" title={sub.courseTitle}>
                     {sub.courseTitle}
                   </p>
-                  <p className="text-[10px] text-ink-muted font-mono truncate max-w-[190px]">
-                    Fac: {sub.assignedFaculty}
-                  </p>
+                  {sub.courseCode && sub.courseCode.trim() !== '' && (
+                    <span className="font-mono font-semibold text-primary text-[10px] block">
+                      {sub.courseCode}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -862,6 +910,13 @@ export const DeptTimetableEditor: React.FC = () => {
         </div>
       </div>
 
+      {/* Table 1: Automatic Timetable Generator Course & Faculty Allocation Registry */}
+      <GeneratorCourseTable
+        courses={generatorCourses}
+        title={`Course & Faculty Allocation Registry — ${selectedStudentYear} (${selectedSection})`}
+        subtitle="Table 1 (VTU Format)"
+      />
+
       {/* Drop Placement Modal */}
       {pendingDrop && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-xs animate-fade-in">
@@ -885,7 +940,9 @@ export const DeptTimetableEditor: React.FC = () => {
             </div>
 
             <div className="p-2 bg-canvas-paper rounded border border-border-beige text-xs space-y-1">
-              <span className="font-mono font-bold text-primary block">{pendingDrop.subjectCode}</span>
+              {pendingDrop.subjectCode && pendingDrop.subjectCode.trim() !== '' && (
+                <span className="font-mono font-bold text-primary block">{pendingDrop.subjectCode}</span>
+              )}
               <p className="font-medium text-ink">{pendingDrop.subjectTitle}</p>
               <span className="text-[10px] text-ink-muted block font-mono">
                 Assigned: {pendingDrop.facultyName}
@@ -985,9 +1042,11 @@ export const DeptTimetableEditor: React.FC = () => {
                 </button>
               )
             )}
-            <span className="font-mono font-bold text-primary text-[10px] leading-tight block">
-              {placement.subjectCode}
-            </span>
+            {placement.subjectCode && placement.subjectCode.trim() !== '' && (
+              <span className="font-mono font-bold text-primary text-[10px] leading-tight block">
+                {placement.subjectCode}
+              </span>
+            )}
             <span className="text-[9px] text-ink font-semibold truncate max-w-[120px] block leading-tight">
               {placement.subjectTitle}
             </span>
