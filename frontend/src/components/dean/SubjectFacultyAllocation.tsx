@@ -22,10 +22,30 @@ export const SubjectFacultyAllocation: React.FC = () => {
   const [subjectName, setSubjectName] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
   const [subjectType, setSubjectType] = useState(SUBJECT_TYPES[0]);
+  const [ltp, setLtp] = useState('3:0:0');
+  const [credits, setCredits] = useState<string | number>('3');
   const [numFaculty, setNumFaculty] = useState<number>(1);
   const [facultySelections, setFacultySelections] = useState<string[]>([REGISTERED_FACULTY_NAMES[0]]);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Auto-fill sensible default L:T:P and credits based on course type
+  const handleTypeChange = (newType: string) => {
+    setSubjectType(newType);
+    if (newType.includes('Integrated') || newType.includes('IPCC')) {
+      setLtp('3:0:2');
+      setCredits('4');
+    } else if (newType.includes('Laboratory') || newType.includes('PCCL') || newType.includes('Practical')) {
+      setLtp('0:0:2');
+      setCredits('1.5');
+    } else if (newType.includes('Theory') || newType.includes('PCC')) {
+      setLtp('3:0:0');
+      setCredits('3');
+    } else if (newType.includes('Elective')) {
+      setLtp('3:0:0');
+      setCredits('3');
+    }
+  };
 
   // Handle number of faculty changes dynamically
   const handleNumFacultyChange = (count: number) => {
@@ -54,8 +74,10 @@ export const SubjectFacultyAllocation: React.FC = () => {
   const handleEditClick = (subject: DeanSubject) => {
     setEditingId(subject.id);
     setSubjectName(subject.name);
-    setSubjectCode(subject.code);
+    setSubjectCode(subject.code || '');
     setSubjectType(subject.type);
+    setLtp(subject.ltp || (subject.type.includes('Lab') ? '0:0:2' : subject.type.includes('Integrated') ? '3:0:2' : '3:0:0'));
+    setCredits(subject.credits !== undefined && subject.credits !== null ? subject.credits : '3');
     setNumFaculty(subject.numFaculty || subject.facultyNames.length || 1);
     setFacultySelections(
       subject.facultyNames.length > 0 ? subject.facultyNames : [REGISTERED_FACULTY_NAMES[0]]
@@ -70,6 +92,8 @@ export const SubjectFacultyAllocation: React.FC = () => {
     setSubjectName('');
     setSubjectCode('');
     setSubjectType(SUBJECT_TYPES[0]);
+    setLtp('3:0:0');
+    setCredits('3');
     setNumFaculty(1);
     setFacultySelections([REGISTERED_FACULTY_NAMES[0]]);
     setErrorMsg('');
@@ -78,11 +102,15 @@ export const SubjectFacultyAllocation: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!subjectName.trim()) {
-      setErrorMsg('Please enter a Subject Name.');
+      setErrorMsg('Please enter a Subject Name / Course Name.');
       return;
     }
-    if (!subjectCode.trim()) {
-      setErrorMsg('Please enter a Subject Code.');
+    if (!ltp.trim()) {
+      setErrorMsg('Please enter L:T:P structure (e.g. 3:0:0).');
+      return;
+    }
+    if (credits === '' || credits === null || credits === undefined) {
+      setErrorMsg('Please enter Credits value.');
       return;
     }
 
@@ -92,38 +120,39 @@ export const SubjectFacultyAllocation: React.FC = () => {
       return;
     }
 
+    const cleanCode = subjectCode.trim() ? subjectCode.trim().toUpperCase() : '';
+
     if (editingId) {
       updateDeanSubject(editingId, {
         name: subjectName.trim(),
-        code: subjectCode.trim().toUpperCase(),
+        code: cleanCode,
         type: subjectType,
+        ltp: ltp.trim(),
+        credits,
         numFaculty,
         facultyNames: assigned,
       });
-      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} updated successfully in master catalog.`);
+      setSuccessMsg(`Subject "${subjectName.trim()}" updated successfully in master catalog.`);
       handleCancelEdit();
     } else {
       addDeanSubject({
         name: subjectName.trim(),
-        code: subjectCode.trim().toUpperCase(),
+        code: cleanCode,
         type: subjectType,
+        ltp: ltp.trim(),
+        credits,
         numFaculty,
         facultyNames: assigned,
       });
-      setSuccessMsg(`Subject ${subjectCode.trim().toUpperCase()} added to master catalog.`);
-      setSubjectName('');
-      setSubjectCode('');
-      setSubjectType(SUBJECT_TYPES[0]);
-      setNumFaculty(1);
-      setFacultySelections([REGISTERED_FACULTY_NAMES[0]]);
-      setErrorMsg('');
+      setSuccessMsg(`Subject "${subjectName.trim()}" added to master catalog.`);
+      handleCancelEdit();
     }
 
     setTimeout(() => setSuccessMsg(''), 4000);
   };
 
-  const handleDeleteClick = (id: string, code: string) => {
-    if (window.confirm(`Delete subject ${code} from master list?`)) {
+  const handleDeleteClick = (id: string, code?: string) => {
+    if (window.confirm(`Delete subject ${code || 'this subject'} from master list?`)) {
       deleteDeanSubject(id);
       if (editingId === id) handleCancelEdit();
     }
@@ -151,10 +180,10 @@ export const SubjectFacultyAllocation: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Subject Name */}
+            {/* Subject Name / Course Name (Required) */}
             <div className="lg:col-span-2">
               <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
-                Subject Name <span className="text-primary">*</span>
+                Subject Name / Course Name <span className="text-primary">*</span>
               </label>
               <input
                 type="text"
@@ -165,28 +194,28 @@ export const SubjectFacultyAllocation: React.FC = () => {
               />
             </div>
 
-            {/* Subject Code */}
+            {/* Subject Code / Course Code (Optional) */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
-                Subject Code <span className="text-primary">*</span>
+                Subject Code <span className="text-ink-light font-normal text-[10px]">(Optional)</span>
               </label>
               <input
                 type="text"
                 value={subjectCode}
                 onChange={(e) => setSubjectCode(e.target.value)}
-                placeholder="e.g. BCS301"
+                placeholder="e.g. BCS301 (Optional)"
                 className="w-full px-3 py-1.5 bg-surface text-ink text-xs sm:text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm uppercase font-mono"
               />
             </div>
 
-            {/* Subject Type */}
+            {/* Course Type (Required) */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
-                Subject Type
+                Course Type <span className="text-primary">*</span>
               </label>
               <select
                 value={subjectType}
-                onChange={(e) => setSubjectType(e.target.value)}
+                onChange={(e) => handleTypeChange(e.target.value)}
                 className="w-full px-3 py-1.5 bg-surface text-ink text-xs sm:text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm"
               >
                 {SUBJECT_TYPES.map((t) => (
@@ -198,26 +227,56 @@ export const SubjectFacultyAllocation: React.FC = () => {
             </div>
           </div>
 
-          {/* Number of Faculty */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
-              Number of Faculty
-            </label>
-            <div className="flex items-center gap-2 max-w-xs">
-              <select
-                value={numFaculty}
-                onChange={(e) => handleNumFacultyChange(parseInt(e.target.value, 10))}
-                className="w-28 sm:w-32 px-2.5 py-1.5 bg-surface text-ink text-xs sm:text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm"
-              >
-                {[1, 2, 3, 4, 5, 6].map((num) => (
-                  <option key={num} value={num}>
-                    {num} Faculty
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-ink-muted">
-                (Generates {numFaculty} faculty selection {numFaculty === 1 ? 'field' : 'fields'})
-              </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* L:T:P (Required) */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
+                L:T:P Structure <span className="text-primary">*</span>
+              </label>
+              <input
+                type="text"
+                value={ltp}
+                onChange={(e) => setLtp(e.target.value)}
+                placeholder="e.g. 3:0:0"
+                className="w-full px-3 py-1.5 bg-surface text-ink text-xs sm:text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm font-mono"
+              />
+            </div>
+
+            {/* Credits (Required) */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
+                Credits <span className="text-primary">*</span>
+              </label>
+              <input
+                type="text"
+                value={credits}
+                onChange={(e) => setCredits(e.target.value)}
+                placeholder="e.g. 3"
+                className="w-full px-3 py-1.5 bg-surface text-ink text-xs sm:text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm font-mono"
+              />
+            </div>
+
+            {/* Number of Faculty */}
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1">
+                Faculty Allocation Count
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={numFaculty}
+                  onChange={(e) => handleNumFacultyChange(parseInt(e.target.value, 10))}
+                  className="w-32 px-2.5 py-1.5 bg-surface text-ink text-xs sm:text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm"
+                >
+                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                    <option key={num} value={num}>
+                      {num} Faculty
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs text-ink-muted">
+                  (Assign {numFaculty} {numFaculty === 1 ? 'instructor' : 'instructors'} below)
+                </span>
+              </div>
             </div>
           </div>
 
@@ -297,18 +356,31 @@ export const SubjectFacultyAllocation: React.FC = () => {
               >
                 <div className="space-y-1.5">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded bg-primary-subtle text-primary font-mono font-bold text-xs">
-                      {subject.code}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-canvas text-ink-muted border border-border-subtle">
-                      {subject.type}
-                    </span>
+                    {subject.code ? (
+                      <span className="px-2 py-0.5 rounded bg-primary-subtle text-primary font-mono font-bold text-xs">
+                        {subject.code}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-canvas text-ink-muted border border-border-subtle">
+                        {subject.type}
+                      </span>
+                    )}
+                    {subject.code && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-canvas text-ink-muted border border-border-subtle">
+                        {subject.type}
+                      </span>
+                    )}
                   </div>
 
                   <div>
                     <h4 className="font-semibold text-ink text-xs sm:text-sm leading-snug">
                       {subject.name}
                     </h4>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-ink-muted">
+                      <span>L:T:P: {subject.ltp || '3:0:0'}</span>
+                      <span>•</span>
+                      <span>Credits: {subject.credits || 3}</span>
+                    </div>
                   </div>
 
                   <div className="pt-1.5 border-t border-border-subtle">
@@ -339,7 +411,7 @@ export const SubjectFacultyAllocation: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteClick(subject.id, subject.code)}
+                    onClick={() => handleDeleteClick(subject.id, subject.code || subject.name)}
                     className="p-1 text-ink-muted hover:text-red-600 rounded hover:bg-canvas transition-colors"
                     title="Delete Subject"
                   >

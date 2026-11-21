@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { useDragAutoScroll } from '../../hooks/useDragAutoScroll';
 import { InstitutionalSlot } from '../../data/workflowDemoData';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
@@ -26,6 +27,9 @@ export const InstitutionalTimetableView: React.FC = () => {
     addInstitutionalSlot,
     removeInstitutionalSlot,
   } = useWorkflow();
+
+  // Automatic scrolling during timetable drag-and-drop
+  useDragAutoScroll();
 
   const isLocked = deanStatus === 'LOCKED';
 

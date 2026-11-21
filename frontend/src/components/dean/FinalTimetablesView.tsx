@@ -40,7 +40,7 @@ export const FinalTimetablesView: React.FC = () => {
       const existing = map.get(code);
 
       // Find original subject in deanSubjects if available
-      const orig = deanSubjects.find((s) => s.code.toLowerCase() === code.toLowerCase());
+      const orig = deanSubjects.find((s) => s.code && s.code.toLowerCase() === code.toLowerCase());
       const type = orig?.type || 'Theory (PCC/BSC)';
 
       if (!existing) {
