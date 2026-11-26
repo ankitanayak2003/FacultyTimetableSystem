@@ -35,6 +35,7 @@ async def create_timetable_slot(
     return created
 
 
+@router.get("", response_model=List[TimetableSlot], include_in_schema=False)
 @router.get("/", response_model=List[TimetableSlot])
 async def list_timetable_slots(
     timetable_id: Optional[str] = None,
@@ -71,7 +72,14 @@ async def list_timetable_slots(
     if subject_id:
         filters["subject_id"] = subject_id
 
-    return await timetable_slot_repository.list_all(filters=filters, limit=limit, offset=offset)
+    slots = await timetable_slot_repository.list_all(filters=filters, limit=limit, offset=offset)
+    if not auth_ctx.is_coordinator and not timetable_id:
+        published_tts = await timetable_repository.list_all(
+            filters={"status": TimetableStatus.PUBLISHED.value}, limit=500
+        )
+        published_ids = {t["id"] for t in published_tts if t.get("id")}
+        slots = [s for s in slots if s.get("timetable_id") in published_ids]
+    return slots
 
 
 @router.get("/{slot_id}", response_model=TimetableSlot)

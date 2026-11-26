@@ -19,6 +19,7 @@ from app.core.exceptions import (
     DatabaseNotReadyError,
 )
 from app.routers import (
+    auth,
     health,
     system,
     users,
@@ -30,6 +31,11 @@ from app.routers import (
     timetables,
     timetable_slots,
     workload_records,
+    preferences,
+    fixed_classrooms,
+    realtime,
+    departments,
+    sections,
 )
 
 # Configure standard logging
@@ -47,6 +53,15 @@ async def lifespan(app: FastAPI):
     
     # Initialize Firebase safely
     fb_ok = firebase_manager.initialize()
+    if settings.is_production:
+        if settings.DEBUG or settings.ENABLE_DEV_AUTH_BYPASS:
+            raise RuntimeError(
+                "Unsafe production configuration: DEBUG and ENABLE_DEV_AUTH_BYPASS must be False in production."
+            )
+        if not fb_ok:
+            raise RuntimeError(
+                "Production startup aborted: Firebase Admin SDK credentials are required for real authentication."
+            )
     if fb_ok:
         logger.info("Firebase Cloud Firestore initialized successfully.")
     else:
@@ -131,16 +146,22 @@ async def database_not_ready_handler(request: Request, exc: DatabaseNotReadyErro
 app.include_router(health.router)
 app.include_router(system.router)
 
-# 9 Firestore Collections
+# 10 Firestore Collections + Fixed Classrooms
 app.include_router(users.router)
+app.include_router(departments.router)
 app.include_router(faculty.router)
 app.include_router(subjects.router)
 app.include_router(rooms.router)
 app.include_router(labs.router)
+app.include_router(sections.router)
 app.include_router(allotments.router)
 app.include_router(timetables.router)
 app.include_router(timetable_slots.router)
 app.include_router(workload_records.router)
+app.include_router(preferences.router)
+app.include_router(fixed_classrooms.router)
+app.include_router(realtime.router)
+app.include_router(auth.router)
 
 
 @app.get("/", summary="Root Index", tags=["General"])
@@ -164,5 +185,7 @@ async def root_endpoint():
             "timetables",
             "timetableSlots",
             "workloadRecords",
+            "facultyPreferences",
+            "fixedClassrooms",
         ],
     }

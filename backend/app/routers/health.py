@@ -27,6 +27,13 @@ def check_solver_availability() -> bool:
     summary="Application Health & Firebase Connection Status",
     description="Reports the live health status of the API, OR-Tools CP-SAT solver, and honest Firebase state.",
 )
+@router.get(
+    "/api/v1/health",
+    response_model=HealthResponse,
+    summary="Application Health & Firebase Connection Status (API v1)",
+    description="Alias for /health under the /api/v1 namespace.",
+    include_in_schema=False,
+)
 async def get_health() -> HealthResponse:
     fb_status = firebase_manager.get_status_info()
     solver_ok = check_solver_availability()

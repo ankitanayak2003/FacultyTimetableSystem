@@ -26,6 +26,7 @@ async def create_lab(
     return created
 
 
+@router.get("", response_model=List[Lab], include_in_schema=False)
 @router.get("/", response_model=List[Lab])
 async def list_labs(
     department_id: Optional[str] = None,

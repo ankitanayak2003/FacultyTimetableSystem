@@ -29,6 +29,7 @@ async def create_workload_record(
     return created
 
 
+@router.get("", response_model=List[WorkloadRecord], include_in_schema=False)
 @router.get("/", response_model=List[WorkloadRecord])
 async def list_workload_records(
     academic_year: Optional[str] = None,

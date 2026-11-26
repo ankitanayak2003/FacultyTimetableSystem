@@ -24,6 +24,7 @@ async def create_room(
     return created
 
 
+@router.get("", response_model=List[Room], include_in_schema=False)
 @router.get("/", response_model=List[Room])
 async def list_rooms(
     room_type: Optional[RoomType] = None,

@@ -1,6 +1,7 @@
 """FastAPI routers export."""
 
 from app.routers import (
+    auth,
     health,
     system,
     users,
@@ -12,18 +13,29 @@ from app.routers import (
     timetables,
     timetable_slots,
     workload_records,
+    preferences,
+    fixed_classrooms,
+    realtime,
+    departments,
+    sections,
 )
 
 __all__ = [
+    "auth",
     "health",
     "system",
     "users",
     "faculty",
+    "departments",
     "subjects",
     "rooms",
     "labs",
+    "sections",
     "allotments",
     "timetables",
     "timetable_slots",
     "workload_records",
+    "preferences",
+    "fixed_classrooms",
+    "realtime",
 ]
