@@ -132,8 +132,8 @@ class MockBatch:
     def __init__(self):
         self._operations = []
 
-    def set(self, doc_ref: MockDocumentReference, data: Dict[str, Any]):
-        self._operations.append(("set", doc_ref, data))
+    def set(self, doc_ref: MockDocumentReference, data: Dict[str, Any], merge: bool = False):
+        self._operations.append(("set", doc_ref, (data, merge)))
 
     def update(self, doc_ref: MockDocumentReference, data: Dict[str, Any]):
         self._operations.append(("update", doc_ref, data))
@@ -142,13 +142,19 @@ class MockBatch:
         self._operations.append(("delete", doc_ref, None))
 
     def commit(self):
-        for op, doc_ref, data in self._operations:
+        for op, doc_ref, payload in self._operations:
             if op == "delete":
                 doc_ref.delete()
             elif op == "set":
-                doc_ref.set(data)
+                data, merge = payload
+                if merge and doc_ref.get().exists:
+                    merged = doc_ref.get().to_dict()
+                    merged.update(data)
+                    doc_ref.set(merged)
+                else:
+                    doc_ref.set(data)
             elif op == "update":
-                doc_ref.update(data)
+                doc_ref.update(payload)
         self._operations.clear()
 
 
