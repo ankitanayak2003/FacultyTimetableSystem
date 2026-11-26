@@ -155,11 +155,15 @@ class BaseFirestoreRepository:
                 if val is not None:
                     query = query.where(field, "==", val)
 
+        # Ensure limit and offset are integers (e.g. if Query object passed when invoked directly)
+        actual_limit = getattr(limit, "default", limit) if not isinstance(limit, int) else limit
+        actual_offset = getattr(offset, "default", offset) if not isinstance(offset, int) else offset
+
         # Apply query-level offset and limit where supported
-        if hasattr(query, "offset") and offset > 0:
-            query = query.offset(offset)
-        if hasattr(query, "limit") and limit > 0:
-            query = query.limit(limit)
+        if hasattr(query, "offset") and actual_offset > 0:
+            query = query.offset(actual_offset)
+        if hasattr(query, "limit") and actual_limit > 0:
+            query = query.limit(actual_limit)
 
         stream = query.stream()
         results: List[Dict[str, Any]] = []
