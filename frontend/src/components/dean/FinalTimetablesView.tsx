@@ -1,6 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { Printer, ShieldCheck } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import { getTimetablePdfFilename } from '../../utils/timetablePdfExport';
+import smvitmLogo from '../../assets/smvitm_logo.webp';
+import sodeLogo from '../../assets/sode_group_logo.png';
 import {
   DEAN_DEPARTMENTS,
 } from '../../data/workflowDemoData';
@@ -17,16 +21,34 @@ export const FinalTimetablesView: React.FC = () => {
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('2026–2027');
   const [selectedStudentYear, setSelectedStudentYear] = useState('Second Year');
   const [selectedSemester, setSelectedSemester] = useState('Odd Semester');
-  const [selectedDepartment, setSelectedDepartment] = useState('DS');
+  const [selectedDepartment, setSelectedDepartment] = useState('AIDS');
   const [selectedSection, setSelectedSection] = useState('Section A');
 
-  // Composite key
-  const timetableKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_${selectedDepartment}_${selectedSection}`;
+  const isFirstYear = selectedStudentYear === 'First Year';
+
+  // Dynamic sections per department
+  const sectionsByDept: Record<string, string[]> = {
+    AIDS: ['Section A', 'Section B'],
+    AIML: ['Section A'],
+    CSE: ['Section A', 'Section B', 'Section C'],
+    ECE: ['Section A', 'Section B'],
+    MECH: ['Section A'],
+    CIVIL: ['Section A'],
+    DS: ['Section A', 'Section B'],
+    ML: ['Section A'],
+    EC: ['Section A', 'Section B'],
+    'First Year': ['Section A', 'Section B', 'Section C', 'Section D'],
+  };
+
+  // Composite key: First Year is section-based without department
+  const timetableKey = isFirstYear
+    ? `${selectedAcademicYear}_First Year_${selectedSemester}_${selectedSection}`
+    : `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_${selectedDepartment}_${selectedSection}`;
   const currentTimetable = deanTimetables[timetableKey];
   const placements = currentTimetable?.placements || [];
 
   const departmentObj = DEAN_DEPARTMENTS.find((d) => d.code === selectedDepartment);
-  const departmentFullName = departmentObj ? departmentObj.name : selectedDepartment;
+  const departmentFullName = isFirstYear ? 'First Year (Mixed Batch)' : (departmentObj ? departmentObj.name : selectedDepartment);
 
   // Auto-generate course table (Table 1 of reference document)
   const courseSummary = useMemo(() => {
@@ -36,11 +58,13 @@ export const FinalTimetablesView: React.FC = () => {
     >();
 
     placements.forEach((p) => {
-      const code = p.subjectCode.trim();
-      const existing = map.get(code);
+      const code = (p.subjectCode || '').trim();
+      if (!code) return;
+      const codeKey = code.toUpperCase();
+      const existing = map.get(codeKey);
 
       // Find original subject in deanSubjects if available
-      const orig = deanSubjects.find((s) => s.code && s.code.toLowerCase() === code.toLowerCase());
+      const orig = deanSubjects.find((s) => s.code && s.code.trim().toUpperCase() === codeKey);
       const type = orig?.type || 'Theory (PCC/BSC)';
 
       if (!existing) {
@@ -48,18 +72,18 @@ export const FinalTimetablesView: React.FC = () => {
         if (p.facultyName) {
           p.facultyName.split(/[,/&]/).forEach((f) => set.add(f.trim()));
         }
-        map.set(code, {
+        map.set(codeKey, {
           code,
-          name: p.subjectName || code,
+          name: p.subjectName || orig?.name || code,
           facultySet: set,
           type,
-          hours: p.duration,
+          hours: p.duration || 1,
         });
       } else {
         if (p.facultyName) {
           p.facultyName.split(/[,/&]/).forEach((f) => existing.facultySet.add(f.trim()));
         }
-        existing.hours += p.duration;
+        existing.hours += (p.duration || 1);
       }
     });
 
@@ -72,9 +96,7 @@ export const FinalTimetablesView: React.FC = () => {
     }));
   }, [placements, deanSubjects]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const timetableDocRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="space-y-4 animate-fade-in text-ink">
@@ -98,14 +120,18 @@ export const FinalTimetablesView: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-canvas-paper hover:bg-canvas text-primary border border-primary hover:border-primary-hover transition-colors shadow-crisp-sm"
-          >
-            <Printer className="w-3.5 h-3.5 text-primary" />
-            <span>Print / Save PDF</span>
-          </button>
+          <DownloadPdfButton
+            targetRef={timetableDocRef}
+            filename={() =>
+              getTimetablePdfFilename({
+                department: isFirstYear ? undefined : selectedDepartment,
+                studentYear: selectedStudentYear,
+                semester: selectedSemester,
+                section: selectedSection,
+              })
+            }
+            label="Download PDF"
+          />
         </div>
 
         {/* 5 Selectors Row */}
@@ -133,7 +159,16 @@ export const FinalTimetablesView: React.FC = () => {
             </label>
             <select
               value={selectedStudentYear}
-              onChange={(e) => setSelectedStudentYear(e.target.value)}
+              onChange={(e) => {
+                const newYear = e.target.value;
+                setSelectedStudentYear(newYear);
+                if (newYear === 'First Year') {
+                  setSelectedSection('Section A');
+                } else {
+                  const deptSecs = sectionsByDept[selectedDepartment] || ['Section A'];
+                  setSelectedSection(deptSecs[0]);
+                }
+              }}
               className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
             >
               {STUDENT_YEARS.map((sy) => (
@@ -165,17 +200,34 @@ export const FinalTimetablesView: React.FC = () => {
             <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
               Department
             </label>
-            <select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
-            >
-              {DEAN_DEPARTMENTS.map((dept) => (
-                <option key={dept.code} value={dept.code}>
-                  {dept.code} — {dept.name}
+            {isFirstYear ? (
+              <select
+                disabled
+                value="NOT_APPLICABLE"
+                className="w-full px-2.5 py-1 text-xs bg-canvas-muted rounded border border-border-beige text-ink-muted italic select-none cursor-not-allowed"
+                title="First-year students are a mixed batch and are not grouped under individual departments."
+              >
+                <option value="NOT_APPLICABLE">
+                  Not applicable — First Year is a mixed batch
                 </option>
-              ))}
-            </select>
+              </select>
+            ) : (
+              <select
+                value={selectedDepartment}
+                onChange={(e) => {
+                  setSelectedDepartment(e.target.value);
+                  const nextSections = sectionsByDept[e.target.value] || ['Section A'];
+                  setSelectedSection(nextSections[0]);
+                }}
+                className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
+              >
+                {DEAN_DEPARTMENTS.map((dept) => (
+                  <option key={dept.code} value={dept.code}>
+                    {dept.code} — {dept.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>
@@ -187,41 +239,71 @@ export const FinalTimetablesView: React.FC = () => {
               onChange={(e) => setSelectedSection(e.target.value)}
               className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
             >
-              <option value="Section A">Section A</option>
-              <option value="Section B">Section B</option>
-              <option value="Section C">Section C</option>
+              {(isFirstYear
+                ? (sectionsByDept['First Year'] || ['Section A', 'Section B', 'Section C', 'Section D'])
+                : (sectionsByDept[selectedDepartment] || ['Section A', 'Section B'])
+              ).map((sec) => (
+                <option key={sec} value={sec}>
+                  {sec}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
       {/* Official Timetable Document Container (Styled for Screen and Clean Print) */}
-      <div className="bg-surface rounded-card border border-border-beige shadow-crisp p-4 sm:p-5 space-y-4 print:border-none print:shadow-none print:p-0">
+      <div
+        ref={timetableDocRef}
+        className="bg-surface rounded-card border border-border-beige shadow-crisp p-4 sm:p-5 space-y-4 print:border-none print:shadow-none print:p-0"
+      >
         {/* Document Institutional Header (Reproducing Class Timetable DS-3rd sem.docx) */}
-        <div className="text-center pb-3 border-b-2 border-primary space-y-0.5">
-          <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light">
-            SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
-          </div>
-          <h1 className="font-headline text-lg sm:text-xl font-bold text-primary uppercase tracking-tight">
-            SHRI MADHWA VADIRAJA INSTITUTE OF TECHNOLOGY & MANAGEMENT
-          </h1>
-          <div className="text-[11px] text-ink-muted">
-            Vishwothama Nagar, Bantakal, Udupi - 574 115, Karnataka
-          </div>
-          <div className="pt-1.5">
-            <h2 className="font-headline text-xs sm:text-sm font-semibold text-ink uppercase tracking-wider">
-              DEPARTMENT OF {departmentFullName.toUpperCase()}
-            </h2>
-            <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[11px] font-mono font-semibold text-primary">
-              CLASS TIMETABLE — ACADEMIC YEAR {selectedAcademicYear} ({selectedSemester.toUpperCase()})
+        <div className="pb-3 border-b-2 border-primary space-y-1">
+          <div className="flex items-center justify-between gap-4">
+            <img
+              src={smvitmLogo}
+              alt="SMVITM Logo"
+              className="h-14 sm:h-16 w-auto object-contain flex-shrink-0"
+            />
+            <div className="text-center flex-1 min-w-0">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light font-semibold">
+                SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
+              </div>
+              <h1 className="font-headline text-base sm:text-lg font-bold text-[#530e21] uppercase tracking-tight leading-tight">
+                SHRI MADHWA VADIRAJA INSTITUTE OF TECHNOLOGY &amp; MANAGEMENT
+              </h1>
+              <div className="text-[10px] text-ink-muted">
+                Vishwothama Nagar, Bantakal, Udupi - 574 115, Karnataka
+              </div>
+              <div className="pt-0.5">
+                <h2 className="font-headline text-xs sm:text-sm font-bold text-primary uppercase tracking-wider">
+                  DEPARTMENT OF {departmentFullName.toUpperCase()}
+                </h2>
+                <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[10px] sm:text-[11px] font-mono font-semibold text-primary border border-border-subtle">
+                  CLASS TIMETABLE — ACADEMIC YEAR {selectedAcademicYear} ({selectedSemester.toUpperCase()})
+                </div>
+              </div>
             </div>
+            <img
+              src={sodeLogo}
+              alt="Sode Group Logo"
+              className="h-12 sm:h-14 w-auto object-contain flex-shrink-0"
+            />
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1.5">
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1 border-t border-border-subtle/50">
             <span>Class: <strong>{selectedStudentYear}</strong></span>
             <span>•</span>
             <span>Section: <strong>{selectedSection}</strong></span>
-            <span>•</span>
-            <span>Room: <strong>LH-201 / Hardware Lab</strong></span>
+            {(() => {
+              const assignedRoom = placements.find((p) => p.room && p.room.trim() && p.room !== 'LH-201' && !p.room.toLowerCase().includes('provisional'))?.room;
+              return assignedRoom ? (
+                <>
+                  <span>•</span>
+                  <span>Room: <strong>{assignedRoom}</strong></span>
+                </>
+              ) : null;
+            })()}
             <span>•</span>
             <span className="text-emerald-700 font-semibold flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" /> Approved by Dean
@@ -431,7 +513,7 @@ export const FinalTimetablesView: React.FC = () => {
                 {courseSummary.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-3 text-center text-ink-muted italic border border-black">
-                      No timetable placements found for this section.
+                      No eligible subjects added to this class timetable yet.
                     </td>
                   </tr>
                 ) : (

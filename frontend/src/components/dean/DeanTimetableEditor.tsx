@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Save,
   Lock,
@@ -11,16 +11,17 @@ import {
   Calendar,
   X,
   Info,
+  Loader2,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
 import { useDragAutoScroll } from '../../hooks/useDragAutoScroll';
 import { GeneratorCourseTable, GeneratorCourseItem } from '../common/GeneratorCourseTable';
+import { shouldApplyRemotePlacements } from '../../utils/syncIntegrity';
 import {
   DeanSubject,
   DeanPlacement,
   DeanSectionTimetable,
   DEAN_DEPARTMENTS,
-  REGISTERED_FACULTY_NAMES,
 } from '../../data/workflowDemoData';
 
 const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
@@ -46,7 +47,17 @@ export const DeanTimetableEditor: React.FC = () => {
     saveDeanSectionTimetable,
     lockDeanSectionTimetable,
     unlockDeanSectionTimetable,
+    departmentFaculty,
+    syncStatus,
+    isBackendConnected,
+    backendSyncError,
+    refreshBackendData,
   } = useWorkflow();
+
+  const registeredFaculty = useMemo(() => {
+    const names = departmentFaculty.map((f) => f.name).filter(Boolean);
+    return names.length > 0 ? names : ['Faculty Member'];
+  }, [departmentFaculty]);
 
   // Automatic scrolling during timetable drag-and-drop
   useDragAutoScroll();
@@ -55,29 +66,49 @@ export const DeanTimetableEditor: React.FC = () => {
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('2026–2027');
   const [selectedStudentYear, setSelectedStudentYear] = useState('Second Year');
   const [selectedSemester, setSelectedSemester] = useState('Odd Semester');
-  const [selectedDepartment, setSelectedDepartment] = useState('DS');
+  const [selectedDepartment, setSelectedDepartment] = useState('AIDS');
   const [selectedSection, setSelectedSection] = useState('Section A');
+
+  const isFirstYear = selectedStudentYear === 'First Year';
 
   // Dynamic sections per department
   const [sectionsByDept, setSectionsByDept] = useState<Record<string, string[]>>({
-    DS: ['Section A', 'Section B'],
-    ML: ['Section A'],
+    AIDS: ['Section A', 'Section B'],
+    AIML: ['Section A'],
     CSE: ['Section A', 'Section B', 'Section C'],
-    EC: ['Section A', 'Section B'],
+    ECE: ['Section A', 'Section B'],
     MECH: ['Section A'],
     CIVIL: ['Section A'],
+    DS: ['Section A', 'Section B'],
+    ML: ['Section A'],
+    EC: ['Section A', 'Section B'],
     'First Year': ['Section A', 'Section B', 'Section C', 'Section D'],
   });
 
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
   const [newSectionName, setNewSectionName] = useState('');
 
-  // Active composite key
-  const timetableKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_${selectedDepartment}_${selectedSection}`;
+  // Active composite key: First Year is section-based without department
+  const timetableKey = isFirstYear
+    ? `${selectedAcademicYear}_First Year_${selectedSemester}_${selectedSection}`
+    : `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_${selectedDepartment}_${selectedSection}`;
 
   // Local Timetable Placements and Lock State
   const [placements, setPlacements] = useState<DeanPlacement[]>([]);
   const [isLocked, setIsLocked] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const activeScopeRef = useRef<string>(timetableKey);
+  const previousScopeRef = useRef<string | null>(null);
+  const isDirtyRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Status notifications
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -95,13 +126,29 @@ export const DeanTimetableEditor: React.FC = () => {
 
   const [modalFaculty, setModalFaculty] = useState<string>('');
   const [modalDuration, setModalDuration] = useState<number>(1);
-  const [modalRoom, setModalRoom] = useState<string>('LH-201');
+  const [modalRoom, setModalRoom] = useState<string>('');
 
   // Drag-over styling tracking
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
-  // Synchronize when selector changes or when deanTimetables updates
+  // Synchronize when selector changes or when deanTimetables updates (preserving unsaved local edits)
   useEffect(() => {
+    activeScopeRef.current = timetableKey;
+    const scopeChanged = previousScopeRef.current !== timetableKey;
+    previousScopeRef.current = timetableKey;
+
+    if (scopeChanged) {
+      isDirtyRef.current = false;
+    }
+
+    if (!scopeChanged && !shouldApplyRemotePlacements({
+      currentScopeKey: activeScopeRef.current,
+      targetScopeKey: timetableKey,
+      isDirty: isDirtyRef.current,
+    })) {
+      return;
+    }
+
     const existing = deanTimetables[timetableKey];
     if (existing) {
       setPlacements(existing.placements || []);
@@ -173,11 +220,11 @@ export const DeanTimetableEditor: React.FC = () => {
         const defaultDur = isLabOrIntegrated ? 2 : 1;
 
         // Determine default faculty
-        const defaultFac = sub.facultyNames?.[0] || REGISTERED_FACULTY_NAMES[0];
+        const defaultFac = sub.facultyNames?.[0] || registeredFaculty[0];
 
         setModalFaculty(defaultFac);
         setModalDuration(defaultDur);
-        setModalRoom(isLabOrIntegrated ? 'Laboratory' : 'LH-201');
+        setModalRoom(isLabOrIntegrated ? 'Laboratory' : '');
         setPendingDrop({
           day,
           startPeriod,
@@ -185,6 +232,7 @@ export const DeanTimetableEditor: React.FC = () => {
         });
       } else if (data.type === 'MOVE_PLACEMENT') {
         const placementId = data.placementId;
+        isDirtyRef.current = true;
         setPlacements((prev) => {
           const target = prev.find((p) => p.id === placementId);
           if (!target) return prev;
@@ -224,7 +272,7 @@ export const DeanTimetableEditor: React.FC = () => {
       subjectCode: subject.code || '',
       subjectName: subject.name,
       facultyName: modalFaculty,
-      room: modalRoom.trim() || 'LH-201',
+      room: modalRoom.trim() || undefined,
       isMerged: modalDuration > 1,
       subjectId: subject.id,
     };
@@ -238,6 +286,7 @@ export const DeanTimetableEditor: React.FC = () => {
       return !hasOverlap;
     });
 
+    isDirtyRef.current = true;
     setPlacements([...updated, newPlacement]);
     setPendingDrop(null);
     setToastMsg({
@@ -250,6 +299,7 @@ export const DeanTimetableEditor: React.FC = () => {
   // Delete / Remove placement
   const handleRemovePlacement = (placementId: string) => {
     if (isLocked) return;
+    isDirtyRef.current = true;
     setPlacements((prev) => prev.filter((p) => p.id !== placementId));
     setToastMsg({ type: 'info', text: 'Placement removed from schedule.' });
     setHasRunClashCheck(false);
@@ -359,101 +409,209 @@ export const DeanTimetableEditor: React.FC = () => {
   };
 
   // Action: Save Draft
-  const handleSaveDraft = () => {
+  const canPersistToBackend = isBackendConnected === true && syncStatus !== 'loading' && syncStatus !== 'error';
+
+  const handleSaveDraft = async () => {
+    if (!canPersistToBackend) {
+      setToastMsg({
+        type: 'error',
+        text: 'Cannot save draft: backend synchronization is pending or failed. Please retry sync first.',
+      });
+      return;
+    }
+    const initiatedKey = timetableKey;
+    const initiatedIsFY = isFirstYear;
+    const initiatedDept = selectedDepartment;
+    const initiatedSection = selectedSection;
+
+    setIsSaving(true);
     const timetableData: DeanSectionTimetable = {
       academicYear: selectedAcademicYear,
       studentYear: selectedStudentYear,
       semester: selectedSemester,
-      department: selectedDepartment,
+      department: isFirstYear ? null : selectedDepartment,
       section: selectedSection,
       placements,
       isLocked,
     };
-    saveDeanSectionTimetable(timetableKey, timetableData);
-    setToastMsg({
-      type: 'success',
-      text: `Draft saved successfully for ${selectedDepartment} - ${selectedSection}.`,
-    });
+    try {
+      await saveDeanSectionTimetable(initiatedKey, timetableData);
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedKey) {
+        return;
+      }
+      isDirtyRef.current = false;
+      setToastMsg({
+        type: 'success',
+        text: initiatedIsFY
+          ? `Draft saved successfully for First Year (Mixed Batch) - ${initiatedSection}.`
+          : `Draft saved successfully for ${initiatedDept} - ${initiatedSection}.`,
+      });
+    } catch (err: any) {
+      console.error('Failed to save Dean draft:', err);
+      if (isMountedRef.current && activeScopeRef.current === initiatedKey) {
+        setToastMsg({
+          type: 'error',
+          text: `Failed to save draft to Firestore: ${err?.message || 'Network/Server Error'}. Your local changes have been preserved.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   // Action: Lock Timetable
-  const handleLockTimetable = () => {
+  const handleLockTimetable = async () => {
+    if (!canPersistToBackend) {
+      setToastMsg({
+        type: 'error',
+        text: 'Cannot lock timetable: backend synchronization is pending or failed. Please retry sync first.',
+      });
+      return;
+    }
+    const initiatedKey = timetableKey;
+    const initiatedIsFY = isFirstYear;
+    const initiatedDept = selectedDepartment;
+    const initiatedSection = selectedSection;
+
+    setIsSaving(true);
     const timetableData: DeanSectionTimetable = {
       academicYear: selectedAcademicYear,
       studentYear: selectedStudentYear,
       semester: selectedSemester,
-      department: selectedDepartment,
+      department: isFirstYear ? null : selectedDepartment,
       section: selectedSection,
       placements,
       isLocked: true,
     };
-    saveDeanSectionTimetable(timetableKey, timetableData);
-    lockDeanSectionTimetable(timetableKey);
-    setIsLocked(true);
-    setToastMsg({
-      type: 'info',
-      text: `Timetable locked and finalized for ${selectedDepartment} - ${selectedSection}. Editing frozen.`,
-    });
+    try {
+      await saveDeanSectionTimetable(initiatedKey, timetableData);
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedKey) {
+        return;
+      }
+      isDirtyRef.current = false;
+      lockDeanSectionTimetable(initiatedKey);
+      setIsLocked(true);
+      setToastMsg({
+        type: 'info',
+        text: initiatedIsFY
+          ? `Timetable locked and finalized for First Year (Mixed Batch) - ${initiatedSection}. Editing frozen.`
+          : `Timetable locked and finalized for ${initiatedDept} - ${initiatedSection}. Editing frozen.`,
+      });
+    } catch (err: any) {
+      console.error('Failed to lock Dean timetable:', err);
+      if (isMountedRef.current && activeScopeRef.current === initiatedKey) {
+        setToastMsg({
+          type: 'error',
+          text: `Failed to lock timetable in Firestore: ${err?.message || 'Network/Server Error'}.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   // Action: Unlock Timetable
   const handleUnlockTimetable = () => {
+    isDirtyRef.current = true;
     unlockDeanSectionTimetable(timetableKey);
     setIsLocked(false);
     setToastMsg({
       type: 'info',
-      text: `Timetable unlocked. You may now modify slots for ${selectedDepartment} - ${selectedSection}.`,
+      text: isFirstYear
+        ? `Timetable unlocked for First Year (Mixed Batch) - ${selectedSection}. You may now modify slots.`
+        : `Timetable unlocked. You may now modify slots for ${selectedDepartment} - ${selectedSection}.`,
     });
   };
 
-  // Auto-Generated Course Table Data for Timetable Generator
+  // Course Table Data for Automatic Timetable Generator
+  // Strictly includes a subject ONLY if:
+  // 1. The subject has actually been added/placed in the currently selected class timetable (placements).
+  // 2. The subject has a valid, non-empty course code (empty course codes are strictly excluded).
+  // 3. The subject belongs to the selected class's academic year, semester, department (where applicable), and section.
+  // 4. The subject is a valid active subject in the project data model.
   const generatorCourses = useMemo<GeneratorCourseItem[]>(() => {
-    // 1. All valid defined subjects for this curriculum (with or without course code)
-    const list: GeneratorCourseItem[] = deanSubjects.map((sub) => {
-      const matchingPlacements = placements.filter(
-        (p) => (p.subjectId && p.subjectId === sub.id) || p.subjectName === sub.name || (sub.code && p.subjectCode === sub.code)
+    if (!placements || placements.length === 0) {
+      return [];
+    }
+
+    const list: GeneratorCourseItem[] = [];
+    const seenCodes = new Set<string>();
+
+    placements.forEach((p) => {
+      // Find matching subject definition in deanSubjects
+      const matchedSub = deanSubjects.find(
+        (s) =>
+          (p.subjectId && s.id === p.subjectId) ||
+          (s.code && p.subjectCode && s.code.trim().toUpperCase() === p.subjectCode.trim().toUpperCase()) ||
+          s.name === p.subjectName
       );
-      const placedFaculty = matchingPlacements.map((p) => p.facultyName).filter(Boolean);
-      const finalFaculty = placedFaculty.length > 0
-        ? Array.from(new Set(placedFaculty)).join(', ')
-        : (sub.facultyNames && sub.facultyNames.length > 0 ? sub.facultyNames.join(', ') : 'Unassigned');
 
-      const ltp = sub.ltp || (sub.type?.includes('Lab') ? '0:0:2' : sub.type?.includes('Integrated') ? '3:0:2' : '3:0:0');
-      const credit = sub.credits !== undefined && sub.credits !== null && sub.credits !== ''
-        ? sub.credits
-        : (sub.type?.includes('Lab') ? 1.5 : sub.type?.includes('Integrated') ? 4 : 3);
+      // Rule 2: Must have a valid, non-empty course code
+      // If code was cleared in editor or is missing, strictly exclude
+      const courseCode = (matchedSub?.code || p.subjectCode || '').trim();
+      if (!courseCode) {
+        return;
+      }
 
-      return {
-        id: sub.id,
-        courseCode: sub.code ? sub.code.trim() : '',
-        courseName: sub.name,
+      // Rule 3: Must belong to selected class's year, semester, academic year, and department (where applicable)
+      if (matchedSub) {
+        if (matchedSub.academicYear && matchedSub.academicYear !== selectedAcademicYear) {
+          return;
+        }
+        if (matchedSub.studentYear && matchedSub.studentYear !== selectedStudentYear) {
+          return;
+        }
+        if (matchedSub.semester && matchedSub.semester !== selectedSemester) {
+          return;
+        }
+        if (!isFirstYear && (matchedSub as any).department && (matchedSub as any).department !== selectedDepartment) {
+          return;
+        }
+      }
+
+      // Deduplicate by uppercase courseCode so each course appears once in generator table
+      const codeKey = courseCode.toUpperCase();
+      if (seenCodes.has(codeKey)) {
+        return;
+      }
+      seenCodes.add(codeKey);
+
+      // Collect all faculty assigned to this subject across placements in this class
+      const matchingPlacements = placements.filter(
+        (pl) =>
+          (pl.subjectCode && pl.subjectCode.trim().toUpperCase() === codeKey) ||
+          (pl.subjectId && pl.subjectId === p.subjectId) ||
+          pl.subjectName === p.subjectName
+      );
+      const placedFaculty = Array.from(new Set(matchingPlacements.map((pl) => pl.facultyName).filter(Boolean)));
+      const finalFaculty = placedFaculty.length > 0 ? placedFaculty.join(', ') : (p.facultyName || 'Unassigned');
+
+      const ltp =
+        matchedSub?.ltp ||
+        (matchedSub?.type?.includes('Lab') ? '0:0:2' : matchedSub?.type?.includes('Integrated') ? '3:0:2' : '3:0:0');
+      const credit =
+        matchedSub?.credits !== undefined && matchedSub?.credits !== null && matchedSub?.credits !== ''
+          ? matchedSub.credits
+          : (matchedSub?.type?.includes('Lab') ? 1.5 : matchedSub?.type?.includes('Integrated') ? 4 : 3);
+      const courseType = matchedSub?.type || (p.isMerged ? 'Practical / Lab' : 'Theory');
+
+      list.push({
+        id: matchedSub?.id || p.subjectId || p.id,
+        courseCode,
+        courseName: matchedSub?.name || p.subjectName,
         ltp,
-        courseType: sub.type,
+        courseType,
         credit,
         facultyName: finalFaculty,
-      };
-    });
-
-    // 2. Also include any placed entries in the grid not in deanSubjects (e.g. ad-hoc or institutional slots)
-    placements.forEach((p) => {
-      const alreadyInList = list.some(
-        (item) => (p.subjectId && item.id === p.subjectId) || item.courseName === p.subjectName || (p.subjectCode && item.courseCode === p.subjectCode)
-      );
-      if (!alreadyInList && p.subjectName) {
-        list.push({
-          id: p.subjectId || p.id,
-          courseCode: p.subjectCode ? p.subjectCode.trim() : '',
-          courseName: p.subjectName,
-          ltp: '3:0:0',
-          courseType: 'Institutional Placement',
-          credit: 3,
-          facultyName: p.facultyName || 'Unassigned',
-        });
-      }
+      });
     });
 
     return list;
-  }, [placements, deanSubjects]);
+  }, [placements, deanSubjects, selectedAcademicYear, selectedStudentYear, selectedSemester, selectedDepartment, isFirstYear]);
 
   // Check if a placement is involved in a clash
   const isClashingPlacement = (placementId: string) => {
@@ -462,6 +620,31 @@ export const DeanTimetableEditor: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in text-ink">
+      {/* Backend Synchronization Status Banner */}
+      {syncStatus === 'loading' && (
+        <div className="px-4 py-2.5 rounded-card border border-border-beige bg-canvas-paper text-xs text-ink-muted flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary flex-shrink-0" />
+          <span>Synchronizing timetable data with Firestore... Draft saving is paused until sync completes.</span>
+        </div>
+      )}
+      {syncStatus === 'error' && (
+        <div className="px-4 py-2.5 rounded-card border border-rose-300 bg-rose-50 text-xs text-rose-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+            <span>
+              <strong>Backend sync failed:</strong> {backendSyncError || 'Unable to reach FastAPI server.'} Draft saving is disabled to protect existing Firestore records.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshBackendData()}
+            className="px-2.5 py-1 rounded bg-white border border-rose-300 text-rose-900 font-semibold hover:bg-rose-100 flex-shrink-0"
+          >
+            Retry Sync
+          </button>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toastMsg && (
         <div
@@ -530,15 +713,19 @@ export const DeanTimetableEditor: React.FC = () => {
             <button
               type="button"
               onClick={handleSaveDraft}
-              disabled={isLocked}
+              disabled={isLocked || isSaving || !canPersistToBackend}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded border transition-colors shadow-crisp-sm ${
-                isLocked
+                isLocked || isSaving || !canPersistToBackend
                   ? 'bg-canvas-muted text-ink-light border-border-beige cursor-not-allowed'
                   : 'bg-canvas-paper hover:bg-canvas text-primary border-primary hover:border-primary-hover'
               }`}
             >
-              <Save className="w-3.5 h-3.5 text-primary" />
-              <span>Save Draft</span>
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5 text-primary" />
+              )}
+              <span>{isSaving ? 'Saving Draft...' : 'Save Draft'}</span>
             </button>
 
             {isLocked ? (
@@ -554,7 +741,12 @@ export const DeanTimetableEditor: React.FC = () => {
               <button
                 type="button"
                 onClick={handleLockTimetable}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded bg-primary hover:bg-primary-hover text-white transition-colors shadow-crisp-sm"
+                disabled={isSaving || !canPersistToBackend}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded transition-colors shadow-crisp-sm ${
+                  isSaving || !canPersistToBackend
+                    ? 'bg-canvas-muted text-ink-light border border-border-beige cursor-not-allowed'
+                    : 'bg-primary hover:bg-primary-hover text-white'
+                }`}
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span>Lock Timetable</span>
@@ -590,7 +782,16 @@ export const DeanTimetableEditor: React.FC = () => {
             </label>
             <select
               value={selectedStudentYear}
-              onChange={(e) => setSelectedStudentYear(e.target.value)}
+              onChange={(e) => {
+                const newYear = e.target.value;
+                setSelectedStudentYear(newYear);
+                if (newYear === 'First Year') {
+                  setSelectedSection('Section A');
+                } else {
+                  const deptSecs = sectionsByDept[selectedDepartment] || ['Section A'];
+                  setSelectedSection(deptSecs[0]);
+                }
+              }}
               className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
             >
               {STUDENT_YEARS.map((sy) => (
@@ -624,21 +825,34 @@ export const DeanTimetableEditor: React.FC = () => {
             <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
               Department
             </label>
-            <select
-              value={selectedDepartment}
-              onChange={(e) => {
-                setSelectedDepartment(e.target.value);
-                const nextSections = sectionsByDept[e.target.value] || ['Section A'];
-                setSelectedSection(nextSections[0]);
-              }}
-              className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
-            >
-              {DEAN_DEPARTMENTS.map((dept) => (
-                <option key={dept.code} value={dept.code}>
-                  {dept.code} — {dept.name}
+            {isFirstYear ? (
+              <select
+                disabled
+                value="NOT_APPLICABLE"
+                className="w-full px-2.5 py-1 text-xs bg-canvas-muted rounded border border-border-beige text-ink-muted italic select-none cursor-not-allowed"
+                title="First-year students are a mixed batch and are not grouped under individual departments."
+              >
+                <option value="NOT_APPLICABLE">
+                  Not applicable — First Year is a mixed batch
                 </option>
-              ))}
-            </select>
+              </select>
+            ) : (
+              <select
+                value={selectedDepartment}
+                onChange={(e) => {
+                  setSelectedDepartment(e.target.value);
+                  const nextSections = sectionsByDept[e.target.value] || ['Section A'];
+                  setSelectedSection(nextSections[0]);
+                }}
+                className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
+              >
+                {DEAN_DEPARTMENTS.map((dept) => (
+                  <option key={dept.code} value={dept.code}>
+                    {dept.code} — {dept.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Section (Dynamic + Add option) */}
@@ -647,20 +861,25 @@ export const DeanTimetableEditor: React.FC = () => {
               <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted font-semibold">
                 Section
               </label>
-              <button
-                type="button"
-                onClick={() => setShowAddSectionModal(true)}
-                className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-0.5"
-              >
-                <Plus className="w-3 h-3" /> Add Section
-              </button>
+              {!isFirstYear && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddSectionModal(true)}
+                  className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-0.5"
+                >
+                  <Plus className="w-3 h-3" /> Add Section
+                </button>
+              )}
             </div>
             <select
               value={selectedSection}
               onChange={(e) => setSelectedSection(e.target.value)}
               className="w-full px-2.5 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
             >
-              {(sectionsByDept[selectedDepartment] || ['Section A']).map((sec) => (
+              {(isFirstYear
+                ? (sectionsByDept['First Year'] || ['Section A', 'Section B', 'Section C', 'Section D'])
+                : (sectionsByDept[selectedDepartment] || ['Section A'])
+              ).map((sec) => (
                 <option key={sec} value={sec}>
                   {sec}
                 </option>
@@ -847,7 +1066,7 @@ export const DeanTimetableEditor: React.FC = () => {
                               ? 'border-rose-600 bg-rose-50 text-rose-950 shadow-crisp'
                               : 'border-neutral-300 bg-white hover:border-[#993366] text-black shadow-xs'
                           } ${isLocked ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
-                          title={`Draggable: Drag to another slot to move slot and faculty.\nSubject: ${placement.subjectName}\nFaculty: ${placement.facultyName}\nRoom: ${placement.room || 'LH-201'}`}
+                          title={`Draggable: Drag to another slot to move slot and faculty.\nSubject: ${placement.subjectName}\nFaculty: ${placement.facultyName}${placement.room && placement.room !== 'LH-201' ? `\nRoom: ${placement.room}` : ''}`}
                         >
                           {/* Top row: Subject Code (if available) + Delete Button */}
                           <div className="flex items-center justify-between gap-1">
@@ -883,7 +1102,7 @@ export const DeanTimetableEditor: React.FC = () => {
                             <span className="truncate font-semibold text-black max-w-[70px]" title={placement.facultyName}>
                               {placement.facultyName}
                             </span>
-                            {placement.room && (
+                            {placement.room && placement.room.trim() && placement.room !== 'LH-201' && (
                               <span className="text-[8px] px-1 py-0.2 rounded bg-neutral-100 text-neutral-600 ml-0.5">
                                 {placement.room}
                               </span>
@@ -1038,7 +1257,16 @@ export const DeanTimetableEditor: React.FC = () => {
       )}
 
       {/* Course Table for Automatic Timetable Generator */}
-      <GeneratorCourseTable courses={generatorCourses} />
+      <GeneratorCourseTable
+        courses={generatorCourses}
+        title={
+          isFirstYear
+            ? `Course & Faculty Allocation Registry — First Year (${selectedSection})`
+            : `Course & Faculty Allocation Registry — ${selectedDepartment} ${selectedStudentYear} (${selectedSection})`
+        }
+        subtitle="Table 1 (VTU Format)"
+        emptyMessage="No eligible subjects added to this class timetable yet."
+      />
 
       {/* Drop Modal: Select Assigned Faculty & Slot Duration */}
       {pendingDrop && (
@@ -1090,7 +1318,7 @@ export const DeanTimetableEditor: React.FC = () => {
                   ))}
                   {/* Secondary list of other registered faculty */}
                   <optgroup label="Other Registered Faculty">
-                    {REGISTERED_FACULTY_NAMES.filter(
+                    {registeredFaculty.filter(
                       (r) => !pendingDrop.subject.facultyNames?.includes(r)
                     ).map((r) => (
                       <option key={r} value={r}>
@@ -1134,7 +1362,7 @@ export const DeanTimetableEditor: React.FC = () => {
                   type="text"
                   value={modalRoom}
                   onChange={(e) => setModalRoom(e.target.value)}
-                  placeholder="e.g. LH-201, Systems Lab, AI Lab 1"
+                  placeholder="Optional: leave blank if unassigned"
                   className="w-full px-3 py-2 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
                 />
               </div>

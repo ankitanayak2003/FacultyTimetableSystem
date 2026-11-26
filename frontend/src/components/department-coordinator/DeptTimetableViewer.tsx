@@ -1,15 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
-  Printer,
   Users,
   Layers,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
-import {
-  DeptPlacement,
-  INITIAL_AIDS_3A_PLACEMENTS,
-  INITIAL_AIDS_3B_PLACEMENTS,
-} from '../../data/workflowDemoData';
+import { DeptPlacement } from '../../data/workflowDemoData';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import { getTimetablePdfFilename } from '../../utils/timetablePdfExport';
+import smvitmLogo from '../../assets/smvitm_logo.webp';
+import sodeLogo from '../../assets/sode_group_logo.png';
 
 const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
 const STUDENT_YEARS = ['Second Year', 'Third Year', 'Fourth Year'];
@@ -40,10 +39,8 @@ export const DeptTimetableViewer: React.FC = () => {
   // Active timetable data for class-wise
   const timetableKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_AIDS_${selectedSection}`;
   const currentTimetable = deptTimetables[timetableKey];
-  const isPublished = currentTimetable ? currentTimetable.isPublished : true;
-  const placements: DeptPlacement[] = currentTimetable
-    ? currentTimetable.placements
-    : (selectedSection === 'Section B' ? INITIAL_AIDS_3B_PLACEMENTS : INITIAL_AIDS_3A_PLACEMENTS);
+  const isPublished = currentTimetable ? currentTimetable.isPublished : false;
+  const placements: DeptPlacement[] = currentTimetable?.placements || [];
 
   // Selected faculty record
   const selectedFaculty = useMemo(() => {
@@ -70,18 +67,6 @@ export const DeptTimetableViewer: React.FC = () => {
       });
     });
 
-    // If context doesn't have Section B yet, check INITIAL_AIDS_3B_PLACEMENTS
-    if (!deptTimetables[`${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_AIDS_Section B`]) {
-      INITIAL_AIDS_3B_PLACEMENTS.forEach((p) => {
-        if (p.facultyName && p.facultyName.includes(selectedFaculty.name)) {
-          results.push({
-            ...p,
-            sectionName: '2nd Sec B',
-          });
-        }
-      });
-    }
-
     return results;
   }, [selectedFaculty, deptTimetables, selectedAcademicYear, selectedStudentYear, selectedSemester]);
 
@@ -93,29 +78,55 @@ export const DeptTimetableViewer: React.FC = () => {
     >();
 
     placements.forEach((p) => {
-      const code = p.subjectCode.trim();
-      const existing = map.get(code);
-      const originalSubject = deptSubjects.find((s) => s.courseCode === code);
+      const code = (p.subjectCode || '').trim();
+      if (!code) return;
+      const codeKey = code.toUpperCase();
+      const existing = map.get(codeKey);
+      const originalSubject = deptSubjects.find(
+        (s) => (s.courseCode || '').trim().toUpperCase() === codeKey
+      );
       const type = originalSubject?.type || 'Theory';
 
       if (!existing) {
-        map.set(code, {
+        map.set(codeKey, {
           code,
-          title: p.subjectTitle || code,
-          facultyName: p.facultyName,
+          title: p.subjectTitle || originalSubject?.courseTitle || code,
+          facultyName: p.facultyName || originalSubject?.assignedFaculty || 'Staff',
           type,
-          hours: p.duration,
+          hours: p.duration || 1,
         });
       } else {
-        existing.hours += p.duration;
+        existing.hours += (p.duration || 1);
       }
     });
 
     return Array.from(map.values());
   }, [placements, deptSubjects]);
 
-  const handlePrint = () => {
-    window.print();
+  const classTimetableRef = useRef<HTMLDivElement>(null);
+  const facultyTimetableRef = useRef<HTMLDivElement>(null);
+  const semesterTimetableRef = useRef<HTMLDivElement>(null);
+
+  const activeTargetRef =
+    viewMode === 'class-wise'
+      ? classTimetableRef
+      : viewMode === 'faculty-wise'
+      ? facultyTimetableRef
+      : semesterTimetableRef;
+
+  const getDynamicFilename = () => {
+    if (viewMode === 'class-wise') {
+      return getTimetablePdfFilename({
+        department: 'AIDS',
+        studentYear: selectedStudentYear,
+        semester: selectedSemester,
+        section: selectedSection,
+      });
+    }
+    if (viewMode === 'faculty-wise') {
+      return `Class Timetable AIDS - ${selectedFaculty?.name || 'Faculty'}.pdf`;
+    }
+    return `Class Timetable AIDS - ${selectedSemester}.pdf`;
   };
 
   return (
@@ -178,14 +189,11 @@ export const DeptTimetableViewer: React.FC = () => {
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-canvas-paper hover:bg-canvas text-primary border border-primary transition-colors shadow-crisp-sm"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print / PDF</span>
-            </button>
+            <DownloadPdfButton
+              targetRef={activeTargetRef}
+              filename={getDynamicFilename}
+              label="Download PDF"
+            />
           </div>
         </div>
 
@@ -340,22 +348,56 @@ export const DeptTimetableViewer: React.FC = () => {
       {/* MODE 1: CLASS-WISE TIMETABLE (Full VTU Blueprint)                         */}
       {/* ========================================================================= */}
       {viewMode === 'class-wise' && (
-        <div className="bg-white p-4 sm:p-6 rounded-card border border-border-beige shadow-crisp space-y-4 print:p-0 print:border-none print:shadow-none">
+        <div ref={classTimetableRef} className="bg-white p-4 sm:p-6 rounded-card border border-border-beige shadow-crisp space-y-4 print:p-0 print:border-none print:shadow-none">
           {/* Institutional Header */}
-          <div className="text-center pb-3 border-b-2 border-black space-y-0.5">
-            <h2 className="font-headline font-bold text-base sm:text-lg text-[#530e21] tracking-wide uppercase">
-              Shri Madhwa Vadiraja Institute of Technology &amp; Management
-            </h2>
-            <p className="text-[11px] font-medium text-ink">
-              Vishwothama Nagar, Bantakal, Udupi – 574 115
-            </p>
-            <p className="text-[11px] font-bold text-primary uppercase">
-              Department of Artificial Intelligence &amp; Data Science
-            </p>
-            <div className="pt-1 flex items-center justify-between text-xs font-mono font-semibold px-2">
-              <span>Class: {selectedStudentYear} (3rd Sem)</span>
-              <span className="font-bold underline uppercase">Class Timetable — {selectedSection}</span>
-              <span>Academic Year: {selectedAcademicYear}</span>
+          <div className="pb-3 border-b-2 border-primary space-y-1">
+            <div className="flex items-center justify-between gap-4">
+              <img
+                src={smvitmLogo}
+                alt="SMVITM Logo"
+                className="h-14 sm:h-16 w-auto object-contain flex-shrink-0"
+              />
+              <div className="text-center flex-1 min-w-0">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light font-semibold">
+                  SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
+                </div>
+                <h2 className="font-headline font-bold text-base sm:text-lg text-[#530e21] tracking-wide uppercase leading-tight">
+                  Shri Madhwa Vadiraja Institute of Technology &amp; Management
+                </h2>
+                <p className="text-[10px] text-ink-muted">
+                  Vishwothama Nagar, Bantakal, Udupi – 574 115, Karnataka
+                </p>
+                <div className="pt-0.5">
+                  <p className="text-xs sm:text-sm font-bold text-primary uppercase">
+                    Department of Artificial Intelligence &amp; Data Science
+                  </p>
+                  <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[10px] sm:text-[11px] font-mono font-semibold text-primary border border-border-subtle">
+                    CLASS TIMETABLE — ACADEMIC YEAR {selectedAcademicYear} ({selectedSemester.toUpperCase()})
+                  </div>
+                </div>
+              </div>
+              <img
+                src={sodeLogo}
+                alt="Sode Group Logo"
+                className="h-12 sm:h-14 w-auto object-contain flex-shrink-0"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1 border-t border-border-subtle/50">
+              <span>Class: <strong>{selectedStudentYear}</strong></span>
+              <span>•</span>
+              <span>Section: <strong>{selectedSection}</strong></span>
+              {(() => {
+                const assignedRoom = placements.find((p) => p.room && p.room.trim() && p.room !== 'LH-201' && !p.room.toLowerCase().includes('provisional'))?.room;
+                return assignedRoom ? (
+                  <>
+                    <span>•</span>
+                    <span>Room: <strong>{assignedRoom}</strong></span>
+                  </>
+                ) : null;
+              })()}
+              <span>•</span>
+              <span className="text-emerald-700 font-semibold">Official Timetable</span>
             </div>
           </div>
 
@@ -481,16 +523,24 @@ export const DeptTimetableViewer: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-black font-mono text-[11px]">
-                {courseSummary.map((item, idx) => (
-                  <tr key={item.code} className="border border-black">
-                    <td className="py-1 px-2 border border-black text-center">{idx + 1}</td>
-                    <td className="py-1 px-2 border border-black font-bold text-primary">{item.code}</td>
-                    <td className="py-1 px-2 border border-black font-sans font-medium text-ink">{item.title}</td>
-                    <td className="py-1 px-2 border border-black font-sans">{item.facultyName}</td>
-                    <td className="py-1 px-2 border border-black text-ink-muted">{item.type}</td>
-                    <td className="py-1 px-2 border border-black text-center font-bold">{item.hours}</td>
+                {courseSummary.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-3 text-center text-ink-muted italic border border-black">
+                      No eligible subjects added to this class timetable yet.
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  courseSummary.map((item, idx) => (
+                    <tr key={item.code} className="border border-black">
+                      <td className="py-1 px-2 border border-black text-center">{idx + 1}</td>
+                      <td className="py-1 px-2 border border-black font-bold text-primary">{item.code}</td>
+                      <td className="py-1 px-2 border border-black font-sans font-medium text-ink">{item.title}</td>
+                      <td className="py-1 px-2 border border-black font-sans">{item.facultyName}</td>
+                      <td className="py-1 px-2 border border-black text-ink-muted">{item.type}</td>
+                      <td className="py-1 px-2 border border-black text-center font-bold">{item.hours}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -517,7 +567,7 @@ export const DeptTimetableViewer: React.FC = () => {
       {/* MODE 2: FACULTY-WISE TIMETABLE                                            */}
       {/* ========================================================================= */}
       {viewMode === 'faculty-wise' && selectedFaculty && (
-        <div className="space-y-4">
+        <div ref={facultyTimetableRef} className="space-y-4 bg-white p-4 rounded-card">
           {/* Faculty Header Card */}
           <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -607,7 +657,7 @@ export const DeptTimetableViewer: React.FC = () => {
       {/* MODE 3: SEMESTER-WISE COMPARISON (Section A vs Section B)                 */}
       {/* ========================================================================= */}
       {viewMode === 'semester-wise' && (
-        <div className="space-y-4">
+        <div ref={semesterTimetableRef} className="space-y-4 bg-white p-4 rounded-card">
           <div className="p-3 bg-canvas-muted rounded-card border border-border-beige text-xs flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-primary" />
@@ -650,8 +700,8 @@ export const DeptTimetableViewer: React.FC = () => {
                       <tr key={d} className="border border-black h-8 text-center">
                         <td className="p-1 font-bold border border-black bg-canvas-paper">{d.slice(0, 3)}</td>
                         {[1, 2, 3, 4, 5, 6, 7].map((p) => {
-                          const pl = INITIAL_AIDS_3A_PLACEMENTS.find(
-                            (x) => x.day === d && p >= x.startPeriod && p < x.startPeriod + x.duration
+                          const pl = (deptTimetables['2026–2027_Second Year_Odd Semester_AIDS_Section A']?.placements || []).find(
+                            (x: DeptPlacement) => x.day === d && p >= x.startPeriod && p < x.startPeriod + x.duration
                           );
                           return (
                             <td key={p} className="p-0.5 border border-black">
@@ -700,8 +750,8 @@ export const DeptTimetableViewer: React.FC = () => {
                       <tr key={d} className="border border-black h-8 text-center">
                         <td className="p-1 font-bold border border-black bg-canvas-paper">{d.slice(0, 3)}</td>
                         {[1, 2, 3, 4, 5, 6, 7].map((p) => {
-                          const pl = INITIAL_AIDS_3B_PLACEMENTS.find(
-                            (x) => x.day === d && p >= x.startPeriod && p < x.startPeriod + x.duration
+                          const pl = (deptTimetables['2026–2027_Second Year_Odd Semester_AIDS_Section B']?.placements || []).find(
+                            (x: DeptPlacement) => x.day === d && p >= x.startPeriod && p < x.startPeriod + x.duration
                           );
                           return (
                             <td key={p} className="p-0.5 border border-black">

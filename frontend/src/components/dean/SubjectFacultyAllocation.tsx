@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Check, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
-import { DeanSubject, REGISTERED_FACULTY_NAMES } from '../../data/workflowDemoData';
+import { DeanSubject, DEAN_DEPARTMENTS } from '../../data/workflowDemoData';
+
+const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
+const STUDENT_YEARS = ['First Year', 'Second Year', 'Third Year', 'Fourth Year'];
+const SEMESTERS = ['Odd Semester', 'Even Semester'];
+const SECTIONS = ['Section A', 'Section B', 'Section C', 'Section D'];
 
 const SUBJECT_TYPES = [
   'Theory (PCC/BSC)',
@@ -15,7 +20,40 @@ const SUBJECT_TYPES = [
 ];
 
 export const SubjectFacultyAllocation: React.FC = () => {
-  const { deanSubjects, addDeanSubject, updateDeanSubject, deleteDeanSubject } = useWorkflow();
+  const {
+    deanSubjects,
+    addDeanSubject,
+    updateDeanSubject,
+    deleteDeanSubject,
+    departmentFaculty,
+    basicScienceFaculty,
+    syncStatus,
+    isBackendConnected,
+    backendSyncError,
+    refreshBackendData,
+  } = useWorkflow();
+
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2026–2027');
+  const [selectedStudentYear, setSelectedStudentYear] = useState('Second Year');
+  const [selectedSemester, setSelectedSemester] = useState('Odd Semester');
+  const [selectedDepartment, setSelectedDepartment] = useState('AIDS');
+  const [selectedSection, setSelectedSection] = useState('Section A');
+  const isFirstYear = selectedStudentYear === 'First Year';
+
+  const registeredFaculty = React.useMemo(() => {
+    // Dean faculty selection includes all faculty from all departments without department filtering
+    const combined = [...departmentFaculty, ...basicScienceFaculty];
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const f of combined) {
+      const trimmed = f.name?.trim();
+      if (trimmed && !seen.has(trimmed)) {
+        seen.add(trimmed);
+        names.push(trimmed);
+      }
+    }
+    return names.sort((a, b) => a.localeCompare(b));
+  }, [departmentFaculty, basicScienceFaculty]);
 
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -25,9 +63,37 @@ export const SubjectFacultyAllocation: React.FC = () => {
   const [ltp, setLtp] = useState('3:0:0');
   const [credits, setCredits] = useState<string | number>('3');
   const [numFaculty, setNumFaculty] = useState<number>(1);
-  const [facultySelections, setFacultySelections] = useState<string[]>([REGISTERED_FACULTY_NAMES[0]]);
+  const [facultySelections, setFacultySelections] = useState<string[]>(['']);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const canPersistToBackend = isBackendConnected === true && syncStatus !== 'loading' && syncStatus !== 'error';
+
+  const scopedSubjects = React.useMemo(() => {
+    return deanSubjects.filter((s) => {
+      const yearMatch = !s.studentYear || s.studentYear === selectedStudentYear;
+      const semMatch = !s.semester || s.semester === selectedSemester;
+      const deptMatch = isFirstYear
+        ? !s.department || s.department === null
+        : !s.department || s.department.toUpperCase() === selectedDepartment.toUpperCase();
+      return yearMatch && semMatch && deptMatch;
+    });
+  }, [deanSubjects, selectedStudentYear, selectedSemester, selectedDepartment, isFirstYear]);
+
+  React.useEffect(() => {
+    if (facultySelections.length === 1 && (!facultySelections[0] || facultySelections[0] === '') && registeredFaculty.length > 0) {
+      setFacultySelections([registeredFaculty[0]]);
+    }
+  }, [registeredFaculty]);
 
   // Auto-fill sensible default L:T:P and credits based on course type
   const handleTypeChange = (newType: string) => {
@@ -54,7 +120,7 @@ export const SubjectFacultyAllocation: React.FC = () => {
       const next = [...prev];
       if (count > next.length) {
         for (let i = next.length; i < count; i++) {
-          next.push(REGISTERED_FACULTY_NAMES[i % REGISTERED_FACULTY_NAMES.length] || '');
+          next.push(registeredFaculty[i % registeredFaculty.length] || '');
         }
       } else {
         next.splice(count);
@@ -80,7 +146,7 @@ export const SubjectFacultyAllocation: React.FC = () => {
     setCredits(subject.credits !== undefined && subject.credits !== null ? subject.credits : '3');
     setNumFaculty(subject.numFaculty || subject.facultyNames.length || 1);
     setFacultySelections(
-      subject.facultyNames.length > 0 ? subject.facultyNames : [REGISTERED_FACULTY_NAMES[0]]
+      subject.facultyNames.length > 0 ? subject.facultyNames : [registeredFaculty[0] || '']
     );
     setErrorMsg('');
     setSuccessMsg('');
@@ -95,12 +161,16 @@ export const SubjectFacultyAllocation: React.FC = () => {
     setLtp('3:0:0');
     setCredits('3');
     setNumFaculty(1);
-    setFacultySelections([REGISTERED_FACULTY_NAMES[0]]);
+    setFacultySelections([registeredFaculty[0] || '']);
     setErrorMsg('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canPersistToBackend) {
+      setErrorMsg('Cannot save allocation: backend synchronization is pending or failed.');
+      return;
+    }
     if (!subjectName.trim()) {
       setErrorMsg('Please enter a Subject Name / Course Name.');
       return;
@@ -121,45 +191,114 @@ export const SubjectFacultyAllocation: React.FC = () => {
     }
 
     const cleanCode = subjectCode.trim() ? subjectCode.trim().toUpperCase() : '';
+    setIsSaving(true);
+    setErrorMsg('');
+    setSuccessMsg('');
 
-    if (editingId) {
-      updateDeanSubject(editingId, {
-        name: subjectName.trim(),
-        code: cleanCode,
-        type: subjectType,
-        ltp: ltp.trim(),
-        credits,
-        numFaculty,
-        facultyNames: assigned,
-      });
-      setSuccessMsg(`Subject "${subjectName.trim()}" updated successfully in master catalog.`);
-      handleCancelEdit();
-    } else {
-      addDeanSubject({
-        name: subjectName.trim(),
-        code: cleanCode,
-        type: subjectType,
-        ltp: ltp.trim(),
-        credits,
-        numFaculty,
-        facultyNames: assigned,
-      });
-      setSuccessMsg(`Subject "${subjectName.trim()}" added to master catalog.`);
-      handleCancelEdit();
+    try {
+      if (editingId) {
+        await updateDeanSubject(editingId, {
+          name: subjectName.trim(),
+          code: cleanCode,
+          type: subjectType,
+          ltp: ltp.trim(),
+          credits,
+          numFaculty,
+          facultyNames: assigned,
+          academicYear: selectedAcademicYear,
+          studentYear: selectedStudentYear,
+          semester: selectedSemester,
+          department: isFirstYear ? null : selectedDepartment,
+          section: selectedSection,
+        });
+        if (!isMountedRef.current) return;
+        setSuccessMsg(`Subject "${subjectName.trim()}" and faculty allocation updated in Firestore.`);
+        handleCancelEdit();
+      } else {
+        await addDeanSubject({
+          name: subjectName.trim(),
+          code: cleanCode,
+          type: subjectType,
+          ltp: ltp.trim(),
+          credits,
+          numFaculty,
+          facultyNames: assigned,
+          academicYear: selectedAcademicYear,
+          studentYear: selectedStudentYear,
+          semester: selectedSemester,
+          department: isFirstYear ? null : selectedDepartment,
+          section: selectedSection,
+        });
+        if (!isMountedRef.current) return;
+        setSuccessMsg(`Subject "${subjectName.trim()}" and faculty allocation saved to Firestore.`);
+        handleCancelEdit();
+      }
+      setTimeout(() => {
+        if (isMountedRef.current) setSuccessMsg('');
+      }, 4000);
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setErrorMsg(`Failed to save allocation: ${err?.message || 'Backend error'}. Unsaved changes preserved.`);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
     }
-
-    setTimeout(() => setSuccessMsg(''), 4000);
   };
 
-  const handleDeleteClick = (id: string, code?: string) => {
+  const handleDeleteClick = async (id: string, code?: string) => {
+    if (!canPersistToBackend) {
+      setErrorMsg('Cannot delete subject: backend synchronization is pending or failed.');
+      return;
+    }
     if (window.confirm(`Delete subject ${code || 'this subject'} from master list?`)) {
-      deleteDeanSubject(id);
-      if (editingId === id) handleCancelEdit();
+      setIsSaving(true);
+      setErrorMsg('');
+      try {
+        await deleteDeanSubject(id);
+        if (!isMountedRef.current) return;
+        if (editingId === id) handleCancelEdit();
+        setSuccessMsg(`Deleted subject ${code || id} from Firestore.`);
+      } catch (err: any) {
+        if (isMountedRef.current) {
+          setErrorMsg(`Failed to delete subject: ${err?.message || 'Backend error'}.`);
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+      }
     }
   };
 
   return (
     <div className="space-y-4">
+      {/* Backend Synchronization Status Banner */}
+      {syncStatus === 'loading' && (
+        <div className="px-4 py-2.5 rounded-card border border-border-beige bg-canvas-paper text-xs text-ink-muted flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary flex-shrink-0" />
+          <span>Loading subjects and faculty allocations from Firestore...</span>
+        </div>
+      )}
+      {syncStatus === 'error' && (
+        <div className="px-4 py-2.5 rounded-card border border-rose-300 bg-rose-50 text-xs text-rose-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+            <span>
+              <strong>Backend sync failed:</strong> {backendSyncError || 'Unable to reach FastAPI server.'} Allocation saving is disabled.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshBackendData()}
+            className="px-2.5 py-1 rounded bg-white border border-rose-300 text-rose-900 font-semibold hover:bg-rose-100 flex-shrink-0"
+          >
+            Retry Sync
+          </button>
+        </div>
+      )}
+
       {/* Notifications / Alerts */}
       {errorMsg && (
         <div className="p-2.5 bg-red-50 border border-red-200 text-red-900 text-xs rounded-md">
@@ -171,6 +310,81 @@ export const SubjectFacultyAllocation: React.FC = () => {
           {successMsg}
         </div>
       )}
+
+      {/* Allocation Scope Selectors */}
+      <div className="bg-surface rounded-card border border-border-beige p-3.5 shadow-crisp">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <div>
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
+              Academic Year
+            </label>
+            <select
+              value={selectedAcademicYear}
+              onChange={(e) => setSelectedAcademicYear(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink"
+            >
+              {ACADEMIC_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
+              Student Year
+            </label>
+            <select
+              value={selectedStudentYear}
+              onChange={(e) => setSelectedStudentYear(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink"
+            >
+              {STUDENT_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
+              Semester
+            </label>
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink"
+            >
+              {SEMESTERS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
+              Department
+            </label>
+            <select
+              value={isFirstYear ? 'First Year' : selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              disabled={isFirstYear}
+              className={`w-full px-2.5 py-1.5 text-xs rounded border border-border-beige ${
+                isFirstYear ? 'bg-canvas-muted text-ink-light cursor-not-allowed' : 'bg-canvas text-ink'
+              }`}
+            >
+              {isFirstYear ? (
+                <option value="First Year">First Year (No Dept)</option>
+              ) : (
+                DEAN_DEPARTMENTS.filter((d) => d.code !== 'First Year').map((d) => (
+                  <option key={d.code} value={d.code}>{d.code} — {d.name}</option>
+                ))
+              )}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-ink-muted mb-0.5 font-semibold">
+              Section
+            </label>
+            <select
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink"
+            >
+              {SECTIONS.map((sec) => <option key={sec} value={sec}>{sec}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* Subject Entry Form */}
       <div className="bg-surface rounded-card border border-border-beige p-4 sm:p-5 shadow-crisp">
@@ -296,7 +510,8 @@ export const SubjectFacultyAllocation: React.FC = () => {
                     onChange={(e) => handleFacultySelectChange(index, e.target.value)}
                     className="w-full px-2.5 py-1.5 bg-surface text-ink text-xs sm:text-sm rounded-md border border-border-beige focus:border-primary focus:ring-1 focus:ring-primary shadow-crisp-sm"
                   >
-                    {REGISTERED_FACULTY_NAMES.map((fName) => (
+                    <option value="">Select Faculty...</option>
+                    {registeredFaculty.map((fName) => (
                       <option key={fName} value={fName}>
                         {fName}
                       </option>
@@ -311,10 +526,15 @@ export const SubjectFacultyAllocation: React.FC = () => {
           <div className="flex items-center gap-2.5 pt-1">
             <button
               type="submit"
-              className="px-4 py-1.5 bg-primary text-white text-xs sm:text-sm font-semibold rounded-md hover:bg-primary-hover transition-colors shadow-crisp flex items-center gap-1.5"
+              disabled={isSaving || !canPersistToBackend}
+              className={`px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-md transition-colors shadow-crisp flex items-center gap-1.5 ${
+                isSaving || !canPersistToBackend
+                  ? 'bg-canvas-muted text-ink-light border border-border-beige cursor-not-allowed'
+                  : 'bg-primary text-white hover:bg-primary-hover'
+              }`}
             >
-              {editingId ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-              <span>{editingId ? 'Update Subject' : 'Save Subject'}</span>
+              {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : editingId ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              <span>{isSaving ? 'Saving...' : editingId ? 'Update Subject' : 'Save Subject'}</span>
             </button>
             {editingId && (
               <button
@@ -336,20 +556,20 @@ export const SubjectFacultyAllocation: React.FC = () => {
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm sm:text-base font-bold text-ink">
-            Master Subject & Faculty Catalog ({deanSubjects.length})
+            Master Subject & Faculty Catalog ({scopedSubjects.length})
           </h3>
           <span className="text-xs text-ink-muted font-mono">
-            Institution-Wide Master Directory
+            {isFirstYear ? 'First Year (No Dept)' : selectedDepartment} • {selectedSemester}
           </span>
         </div>
 
-        {deanSubjects.length === 0 ? (
+        {scopedSubjects.length === 0 ? (
           <div className="p-6 text-center bg-surface rounded-card border border-border-beige text-xs sm:text-sm text-ink-muted">
-            No subjects added to master catalog yet. Use the form above to add subjects.
+            No subjects found in Firestore for {isFirstYear ? 'First Year' : selectedDepartment} ({selectedSemester}). Use the form above to add subjects.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {deanSubjects.map((subject) => (
+            {scopedSubjects.map((subject) => (
               <div
                 key={subject.id}
                 className="bg-surface rounded-card border border-border-beige p-3.5 shadow-crisp flex flex-col justify-between"
@@ -388,14 +608,20 @@ export const SubjectFacultyAllocation: React.FC = () => {
                       Assigned Faculty ({subject.facultyNames.length}):
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {subject.facultyNames.map((fac, idx) => (
-                        <span
-                          key={idx}
-                          className="px-1.5 py-0.5 rounded bg-canvas-muted text-ink text-[11px] font-medium border border-border-subtle"
-                        >
-                          {fac}
+                      {subject.facultyNames.length === 0 ? (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 text-[11px] font-medium border border-amber-200">
+                          Unassigned
                         </span>
-                      ))}
+                      ) : (
+                        subject.facultyNames.map((fac, idx) => (
+                          <span
+                            key={idx}
+                            className="px-1.5 py-0.5 rounded bg-canvas-muted text-ink text-[11px] font-medium border border-border-subtle"
+                          >
+                            {fac}
+                          </span>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>

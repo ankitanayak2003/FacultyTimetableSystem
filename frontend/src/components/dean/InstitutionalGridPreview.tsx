@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   CheckCircle2,
-  Printer,
   Sparkles,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
 
 export const InstitutionalGridPreview: React.FC = () => {
   const { institutionalSlots, deanVersion } = useWorkflow();
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const days: Array<'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday'> = [
     'Monday',
@@ -61,20 +62,17 @@ export const InstitutionalGridPreview: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-3.5 py-2 bg-surface text-ink hover:bg-canvas-muted text-xs font-semibold rounded-card border border-border-beige transition-colors shadow-crisp-sm flex items-center gap-1.5"
-            >
-              <Printer className="w-3.5 h-3.5 text-primary" />
-              <span>Print Master Grid</span>
-            </button>
+            <DownloadPdfButton
+              targetRef={gridRef}
+              filename="Institutional Master Timetable Grid.pdf"
+              label="Download PDF"
+            />
           </div>
         </div>
       </div>
 
       {/* Grid Table Container */}
-      <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
+      <div ref={gridRef} className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden p-3 bg-white">
         <div className="p-4 bg-canvas-paper border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="font-headline text-base font-semibold text-primary">

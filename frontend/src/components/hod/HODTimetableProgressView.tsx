@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   CheckCircle2,
   Clock,
@@ -9,13 +9,15 @@ import {
   X,
   FileCheck2,
   Send,
-  Printer,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import { getTimetablePdfFilename } from '../../utils/timetablePdfExport';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 
 export const HODTimetableProgressView: React.FC = () => {
+  const modalTimetableRef = useRef<HTMLDivElement>(null);
   const {
     sectionProgressList,
     deptTimetables,
@@ -387,14 +389,18 @@ export const HODTimetableProgressView: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-2.5 py-1 bg-white text-ink border border-border-beige rounded text-xs font-semibold shadow-crisp-sm flex items-center gap-1"
-                >
-                  <Printer className="w-3 h-3 text-primary" />
-                  <span>Print</span>
-                </button>
+                <DownloadPdfButton
+                  targetRef={modalTimetableRef}
+                  filename={() =>
+                    getTimetablePdfFilename({
+                      department: 'AIDS',
+                      studentYear: reviewingItem.year,
+                      semester: 'Odd Semester',
+                      section: reviewingItem.section,
+                    })
+                  }
+                  label="Download PDF"
+                />
                 <button
                   type="button"
                   onClick={() => setReviewingSectionId(null)}
@@ -406,7 +412,7 @@ export const HODTimetableProgressView: React.FC = () => {
             </div>
 
             {/* Modal Body: Scrollable Table 0 View */}
-            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+            <div ref={modalTimetableRef} className="p-4 space-y-4 overflow-y-auto flex-1 bg-white">
               {/* Compliance & Clash Strip */}
               <div className="p-3 bg-canvas-paper rounded border border-border-subtle flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-3">

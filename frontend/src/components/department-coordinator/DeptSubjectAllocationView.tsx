@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Layers,
   Wand2,
@@ -10,9 +10,12 @@ import {
   BookOpen,
   AlertCircle,
   RotateCcw,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
 import { DeptSubjectItem } from '../../data/workflowDemoData';
+import { resolveSectionAllocation } from '../../utils/syncIntegrity';
 
 const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
 const STUDENT_YEARS = ['Second Year', 'Third Year', 'Fourth Year'];
@@ -29,13 +32,20 @@ const COURSE_TYPES = [
 
 export const DeptSubjectAllocationView: React.FC = () => {
   const {
+    activeDepartmentId,
+    activeDepartmentCode,
     deptSubjects,
     departmentFaculty,
+    subjectAllocations,
     addDeptSubject,
     updateDeptSubject,
     deleteDeptSubject,
     updateDeptSubjectAllocation,
     autoAllocateDeptSubjects,
+    syncStatus,
+    isBackendConnected,
+    backendSyncError,
+    refreshBackendData,
   } = useWorkflow();
 
   // Selectors
@@ -50,7 +60,25 @@ export const DeptSubjectAllocationView: React.FC = () => {
   const [newSectionName, setNewSectionName] = useState('');
 
   // Status notification message
-  const [notificationMsg, setNotificationMsg] = useState<{ type: 'success' | 'info'; text: string } | null>(null);
+  const [notificationMsg, setNotificationMsg] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isMountedRef = useRef(true);
+  const activeScopeRef = useRef('');
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const currentScopeKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_${selectedSection}`;
+  activeScopeRef.current = currentScopeKey;
+  const canPersistToBackend =
+    isBackendConnected === true &&
+    syncStatus !== 'loading' &&
+    syncStatus !== 'error' &&
+    Boolean(activeDepartmentId);
 
   // Subject Entry / Edit Form State
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
@@ -89,12 +117,23 @@ export const DeptSubjectAllocationView: React.FC = () => {
     setShowAddSectionModal(false);
   };
 
-  // Filter applicable subjects for current selection
+  // Filter applicable subjects for current selection and overlay section-specific saved allocations
   const filteredSubjects = useMemo(() => {
-    return deptSubjects.filter(
-      (s) => s.studentYear === selectedStudentYear && s.semester === selectedSemester
-    );
-  }, [deptSubjects, selectedStudentYear, selectedSemester]);
+    if (!activeDepartmentId) return [];
+    return deptSubjects
+      .filter((s) => s.studentYear === selectedStudentYear && s.semester === selectedSemester)
+      .map((s) => ({
+        ...s,
+        assignedFaculty: resolveSectionAllocation(
+          subjectAllocations,
+          s.id,
+          s.courseCode || '',
+          selectedAcademicYear,
+          selectedSemester,
+          selectedSection
+        ),
+      }));
+  }, [activeDepartmentId, deptSubjects, subjectAllocations, selectedAcademicYear, selectedStudentYear, selectedSemester, selectedSection]);
 
   // Handle Type Change with sensible defaults
   const handleTypeChange = (newType: string) => {
@@ -112,7 +151,7 @@ export const DeptSubjectAllocationView: React.FC = () => {
   };
 
   // Handle Save / Add / Update Subject
-  const handleSaveSubject = (e: React.FormEvent) => {
+  const handleSaveSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim()) {
       setFormError('Subject Name / Course Name is required.');
@@ -150,43 +189,73 @@ export const DeptSubjectAllocationView: React.FC = () => {
       ? 5
       : 3;
 
-    if (editingSubjectId) {
-      updateDeptSubject(editingSubjectId, {
-        courseTitle: formTitle.trim(),
-        courseCode: formCode.trim() || undefined,
-        ltp: formLtp.trim(),
-        credits: formCredits,
-        type: formType,
-        assignedFaculty: formFaculty,
-        hoursPerWeek: hrs,
-      });
-      setNotificationMsg({ type: 'success', text: `Updated course "${formTitle.trim()}".` });
-      setEditingSubjectId(null);
-    } else {
-      addDeptSubject({
-        courseTitle: formTitle.trim(),
-        courseCode: formCode.trim() || undefined,
-        ltp: formLtp.trim(),
-        credits: formCredits,
-        studentYear: selectedStudentYear as 'Second Year' | 'Third Year' | 'Fourth Year',
-        semester: selectedSemester as 'Odd Semester' | 'Even Semester',
-        semNumber: semNum,
-        type: formType,
-        hoursPerWeek: hrs,
-        venue: 'LH-201',
-        assignedFaculty: formFaculty,
-        preferenceMatch: 'Administrative Allocation',
-      });
-      setNotificationMsg({ type: 'success', text: `Added new course "${formTitle.trim()}".` });
+    if (!canPersistToBackend) {
+      setFormError('Cannot save subject allocation: backend synchronization is pending or failed.');
+      return;
     }
 
-    setFormTitle('');
-    setFormCode('');
-    setFormType('Theory');
-    setFormLtp('3:0:0');
-    setFormCredits('3');
+    const initiatedScope = currentScopeKey;
+    setIsSaving(true);
     setFormError('');
-    setTimeout(() => setNotificationMsg(null), 5000);
+
+    try {
+      if (editingSubjectId) {
+        await updateDeptSubject(
+          editingSubjectId,
+          {
+            courseTitle: formTitle.trim(),
+            courseCode: formCode.trim() || undefined,
+            ltp: formLtp.trim(),
+            credits: formCredits,
+            type: formType,
+            assignedFaculty: formFaculty,
+            hoursPerWeek: hrs,
+          },
+          { academicYear: selectedAcademicYear, section: selectedSection }
+        );
+        if (!isMountedRef.current || activeScopeRef.current !== initiatedScope) return;
+        setNotificationMsg({ type: 'success', text: `Updated course "${formTitle.trim()}" and saved allocation to Firestore.` });
+        setEditingSubjectId(null);
+      } else {
+        await addDeptSubject(
+          {
+            courseTitle: formTitle.trim(),
+            courseCode: formCode.trim() || undefined,
+            ltp: formLtp.trim(),
+            credits: formCredits,
+            studentYear: selectedStudentYear as 'Second Year' | 'Third Year' | 'Fourth Year',
+            semester: selectedSemester as 'Odd Semester' | 'Even Semester',
+            semNumber: semNum,
+            type: formType,
+            hoursPerWeek: hrs,
+            venue: '',
+            assignedFaculty: formFaculty,
+            preferenceMatch: 'Administrative Allocation',
+          },
+          { academicYear: selectedAcademicYear, section: selectedSection }
+        );
+        if (!isMountedRef.current || activeScopeRef.current !== initiatedScope) return;
+        setNotificationMsg({ type: 'success', text: `Added course "${formTitle.trim()}" and saved allocation to Firestore.` });
+      }
+
+      setFormTitle('');
+      setFormCode('');
+      setFormType('Theory');
+      setFormLtp('3:0:0');
+      setFormCredits('3');
+      setFormError('');
+      setTimeout(() => {
+        if (isMountedRef.current) setNotificationMsg(null);
+      }, 5000);
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setFormError(`Failed to save to Firestore: ${err?.message || 'Backend error'}. Unsaved changes preserved.`);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   const handleEditSubject = (sub: DeptSubjectItem) => {
@@ -202,7 +271,7 @@ export const DeptSubjectAllocationView: React.FC = () => {
         ? 1.5
         : 3
     );
-    setFormFaculty(sub.assignedFaculty || eligibleFaculty[0]?.name || '');
+    setFormFaculty(sub.assignedFaculty || '');
     setFormError('');
   };
 
@@ -216,29 +285,74 @@ export const DeptSubjectAllocationView: React.FC = () => {
     setFormError('');
   };
 
-  const handleDeleteSubject = (id: string, name: string) => {
+  const handleDeleteSubject = async (id: string, name: string) => {
+    if (!canPersistToBackend) {
+      setNotificationMsg({ type: 'error', text: 'Cannot delete subject: backend synchronization is pending or failed.' });
+      return;
+    }
     if (window.confirm(`Are you sure you want to delete course "${name}"?`)) {
-      deleteDeptSubject(id);
-      if (editingSubjectId === id) {
-        handleCancelEdit();
+      setIsSaving(true);
+      try {
+        await deleteDeptSubject(id);
+        if (!isMountedRef.current) return;
+        if (editingSubjectId === id) {
+          handleCancelEdit();
+        }
+        setNotificationMsg({ type: 'info', text: `Deleted course "${name}" from Firestore.` });
+        setTimeout(() => {
+          if (isMountedRef.current) setNotificationMsg(null);
+        }, 4000);
+      } catch (err: any) {
+        if (isMountedRef.current) {
+          setNotificationMsg({ type: 'error', text: `Failed to delete course: ${err?.message || 'Backend error'}.` });
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
       }
-      setNotificationMsg({ type: 'info', text: `Deleted course "${name}".` });
-      setTimeout(() => setNotificationMsg(null), 4000);
     }
   };
 
   // Handle Auto-Allocation
-  const handleRunAutoAllocation = () => {
-    autoAllocateDeptSubjects(selectedAcademicYear, selectedSemester, selectedStudentYear);
-    setNotificationMsg({
-      type: 'success',
-      text: `Generated initial faculty allocations for ${selectedStudentYear} (${selectedSemester}). Soft constraints prioritized Priority 1 > 2 > 3 choices, teaching year eligibility, and balanced workload capacity.`,
-    });
-    setTimeout(() => setNotificationMsg(null), 6000);
+  const handleRunAutoAllocation = async () => {
+    if (!canPersistToBackend) {
+      setNotificationMsg({ type: 'error', text: 'Cannot run allocation: backend synchronization is pending or failed.' });
+      return;
+    }
+    const initiatedScope = currentScopeKey;
+    setIsSaving(true);
+    try {
+      await autoAllocateDeptSubjects(selectedAcademicYear, selectedSemester, selectedStudentYear, selectedSection);
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedScope) return;
+      setNotificationMsg({
+        type: 'success',
+        text: `Saved faculty allocations to Firestore for ${selectedStudentYear} (${selectedSemester}, ${selectedSection}).`,
+      });
+      setTimeout(() => {
+        if (isMountedRef.current) setNotificationMsg(null);
+      }, 6000);
+    } catch (err: any) {
+      if (isMountedRef.current && activeScopeRef.current === initiatedScope) {
+        setNotificationMsg({
+          type: 'error',
+          text: `Failed to persist auto-allocations: ${err?.message || 'Backend error'}.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   // Helper to determine preference match badge for manual selection
-  const handleFacultyChange = (subjectId: string, facultyName: string, subjectCode?: string) => {
+  const handleFacultyChange = async (subjectId: string, facultyName: string, subjectCode?: string) => {
+    if (!canPersistToBackend) {
+      setNotificationMsg({ type: 'error', text: 'Cannot save faculty assignment: backend synchronization is pending or failed.' });
+      return;
+    }
+    const initiatedScope = currentScopeKey;
     const fac = departmentFaculty.find((f) => f.name === facultyName);
     let match: DeptSubjectItem['preferenceMatch'] = 'Administrative Allocation';
     if (fac && subjectCode) {
@@ -249,11 +363,63 @@ export const DeptSubjectAllocationView: React.FC = () => {
       else if (p2) match = 'Priority 2';
       else if (p3) match = 'Priority 3';
     }
-    updateDeptSubjectAllocation(subjectId, facultyName, match);
+    setIsSaving(true);
+    try {
+      await updateDeptSubjectAllocation(subjectId, facultyName, match, {
+        academicYear: selectedAcademicYear,
+        semester: selectedSemester,
+        studentYear: selectedStudentYear,
+        section: selectedSection,
+      });
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedScope) return;
+      setNotificationMsg({
+        type: 'success',
+        text: `Assigned "${facultyName}" for ${selectedSection} and persisted to Firestore.`,
+      });
+      setTimeout(() => {
+        if (isMountedRef.current) setNotificationMsg(null);
+      }, 4000);
+    } catch (err: any) {
+      if (isMountedRef.current && activeScopeRef.current === initiatedScope) {
+        setNotificationMsg({
+          type: 'error',
+          text: `Failed to save faculty assignment: ${err?.message || 'Backend error'}.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   return (
     <div className="space-y-4 animate-fade-in text-ink">
+      {/* Backend Synchronization Status Banner */}
+      {syncStatus === 'loading' && (
+        <div className="px-4 py-2.5 rounded-card border border-border-beige bg-canvas-paper text-xs text-ink-muted flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary flex-shrink-0" />
+          <span>Synchronizing subjects and allocations with Firestore...</span>
+        </div>
+      )}
+      {syncStatus === 'error' && (
+        <div className="px-4 py-2.5 rounded-card border border-rose-300 bg-rose-50 text-xs text-rose-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+            <span>
+              <strong>Backend sync failed:</strong> {backendSyncError || 'Unable to reach FastAPI server.'} Allocation saving is disabled.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshBackendData()}
+            className="px-2.5 py-1 rounded bg-white border border-rose-300 text-rose-900 font-semibold hover:bg-rose-100 flex-shrink-0"
+          >
+            Retry Sync
+          </button>
+        </div>
+      )}
+
       {/* Selector Card (Matches Dean layout) */}
       <div className="p-3.5 sm:p-4 bg-surface rounded-card border border-border-beige shadow-crisp space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-border-beige">
@@ -263,12 +429,20 @@ export const DeptSubjectAllocationView: React.FC = () => {
                 Department Course Allocation
               </span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider bg-primary-subtle text-primary border border-primary/20">
-                AIDS Curriculum
+                {activeDepartmentCode ? `${activeDepartmentCode} Curriculum` : 'Department Unresolved'}
               </span>
             </div>
             <h2 className="font-headline text-xl sm:text-2xl font-semibold text-primary">
               Subject Allocation Engine
             </h2>
+            {!activeDepartmentId && syncStatus !== 'loading' && (
+              <div className="mt-2 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                <span>
+                  No department scope is assigned to this coordinator session. Subject & allocation actions are disabled to prevent cross-department data leaks.
+                </span>
+              </div>
+            )}
             <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">
               Define departmental subjects and assign faculty per student year and section. Run constraint-aware auto-allocation or override manually with live preference indicators.
             </p>
@@ -277,10 +451,15 @@ export const DeptSubjectAllocationView: React.FC = () => {
           <button
             type="button"
             onClick={handleRunAutoAllocation}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded bg-primary hover:bg-primary-hover text-white shadow-crisp transition-colors flex-shrink-0"
+            disabled={isSaving || !canPersistToBackend}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded shadow-crisp transition-colors flex-shrink-0 ${
+              isSaving || !canPersistToBackend
+                ? 'bg-canvas-muted text-ink-light cursor-not-allowed'
+                : 'bg-primary hover:bg-primary-hover text-white'
+            }`}
           >
-            <Wand2 className="w-3.5 h-3.5" />
-            <span>Generate Initial Allocations</span>
+            {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+            <span>{isSaving ? 'Saving Allocations...' : 'Generate Initial Allocations'}</span>
           </button>
         </div>
 
@@ -370,8 +549,18 @@ export const DeptSubjectAllocationView: React.FC = () => {
       </div>
 
       {notificationMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-card text-xs text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+        <div
+          className={`p-3 rounded-card text-xs flex items-center gap-2 border ${
+            notificationMsg.type === 'error'
+              ? 'bg-rose-50 border-rose-300 text-rose-950'
+              : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+          }`}
+        >
+          {notificationMsg.type === 'error' ? (
+            <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+          )}
           <span>{notificationMsg.text}</span>
         </div>
       )}
@@ -615,9 +804,11 @@ export const DeptSubjectAllocationView: React.FC = () => {
                       <td className="py-2.5 px-3">
                         <select
                           value={sub.assignedFaculty}
+                          disabled={isSaving || !canPersistToBackend}
                           onChange={(e) => handleFacultyChange(sub.id, e.target.value, sub.courseCode)}
-                          className="w-full px-2 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
+                          className="w-full px-2 py-1 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary disabled:opacity-60 disabled:cursor-not-allowed"
                         >
+                          <option value="">Unassigned</option>
                           {eligibleFaculty.map((fac) => (
                             <option key={fac.id} value={fac.name}>
                               {fac.name} ({fac.designation.split(' ')[0]})

@@ -1,6 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
-  Printer,
   Calendar,
   Users,
   CheckCircle2,
@@ -9,6 +8,10 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import { getTimetablePdfFilename } from '../../utils/timetablePdfExport';
+import smvitmLogo from '../../assets/smvitm_logo.webp';
+import sodeLogo from '../../assets/sode_group_logo.png';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 
@@ -35,6 +38,8 @@ export const HODDepartmentTimetableView: React.FC = () => {
 
   // Mode: Class-wise vs Faculty-wise
   const [viewMode, setViewMode] = useState<'class-wise' | 'faculty-wise'>('class-wise');
+  const classTimetableRef = useRef<HTMLDivElement>(null);
+  const facultyTimetableRef = useRef<HTMLDivElement>(null);
 
   // Class-wise state
   const [selectedYear, setSelectedYear] = useState<'Second Year' | 'Third Year' | 'Final Year'>('Second Year');
@@ -73,23 +78,29 @@ export const HODDepartmentTimetableView: React.FC = () => {
   // Metadata for the active class
   const classMetadata = useMemo(() => {
     let advisor = 'Dr. Ananya Rao';
-    let room = 'LH-201';
+    let room = '';
     let semesterCode = '3rd Semester';
 
     if (selectedYear === 'Second Year') {
       semesterCode = '3rd Semester';
       if (activeSection === 'Section B') {
         advisor = 'Prof. Sneha Kamath';
-        room = 'LH-202';
       }
     } else if (selectedYear === 'Third Year') {
       semesterCode = '5th Semester';
       advisor = 'Prof. Rajesh Shetty';
-      room = 'LH-203';
     } else {
       semesterCode = '7th Semester';
       advisor = 'Dr. Vasudeva';
-      room = 'LH-204';
+    }
+
+    if (currentTimetable?.placements) {
+      const assigned = currentTimetable.placements.find(
+        (p) => p.room && p.room.trim() && !p.room.startsWith('LH-20') && p.room !== 'LH-201' && !p.room.toLowerCase().includes('provisional')
+      );
+      if (assigned && assigned.room) {
+        room = assigned.room.trim();
+      }
     }
 
     return {
@@ -101,18 +112,53 @@ export const HODDepartmentTimetableView: React.FC = () => {
       advisor,
       room,
     };
-  }, [selectedYear, activeSection]);
+  }, [selectedYear, activeSection, currentTimetable]);
 
-  // Subjects belonging to this class
+  // Subjects belonging to this class (derived strictly from active timetable placements)
   const classSubjects = useMemo(() => {
-    const semMap: Record<string, string> = {
-      'Second Year': '3rd Sem',
-      'Third Year': '5th Sem',
-      'Final Year': '7th Sem',
-    };
-    const semTarget = semMap[selectedYear] || '3rd Sem';
-    return deptSubjects.filter((s) => s.semester === semTarget);
-  }, [deptSubjects, selectedYear]);
+    if (!currentTimetable?.placements || currentTimetable.placements.length === 0) {
+      return [];
+    }
+
+    const map = new Map<string, {
+      id: string;
+      courseCode: string;
+      courseTitle: string;
+      type: string;
+      venue: string;
+      assignedFaculty: string;
+      hoursPerWeek: number;
+    }>();
+
+    currentTimetable.placements.forEach((p) => {
+      const code = (p.subjectCode || '').trim();
+      if (!code) return;
+      const codeKey = code.toUpperCase();
+      const matched = deptSubjects.find(
+        (s) => (s.courseCode || '').trim().toUpperCase() === codeKey || s.courseTitle === p.subjectTitle
+      );
+
+      const existing = map.get(codeKey);
+      if (!existing) {
+        map.set(codeKey, {
+          id: matched?.id || p.id,
+          courseCode: code,
+          courseTitle: matched?.courseTitle || p.subjectTitle || code,
+          type: matched?.type || (p.isLockedSlot ? 'Institutional' : 'Core'),
+          venue: matched?.venue || p.room || classMetadata.room,
+          assignedFaculty: p.facultyName || matched?.assignedFaculty || 'Staff',
+          hoursPerWeek: p.duration || 1,
+        });
+      } else {
+        existing.hoursPerWeek += (p.duration || 1);
+        if (p.facultyName && !existing.assignedFaculty.includes(p.facultyName)) {
+          existing.assignedFaculty += `, ${p.facultyName}`;
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }, [currentTimetable, deptSubjects, classMetadata.room]);
 
   // Unified Faculty Schedule aggregator (Mode B)
   const facultySlots = useMemo(() => {
@@ -133,7 +179,7 @@ export const HODDepartmentTimetableView: React.FC = () => {
               subjectCode: p.subjectCode,
               subjectTitle: p.subjectTitle,
               section: `${tt.studentYear.replace(' Year', '')} Sem - ${tt.section}`,
-              room: p.room,
+              room: (p.room && p.room.trim() && p.room !== 'LH-201' && !p.room.toLowerCase().includes('provisional')) ? p.room : '',
               category: 'Department',
             });
           }
@@ -154,7 +200,7 @@ export const HODDepartmentTimetableView: React.FC = () => {
               subjectCode: p.subjectCode,
               subjectTitle: p.subjectName,
               section: `1st Yr (${ct.cycle} - ${ct.section})`,
-              room: p.room || 'AB-101',
+              room: (p.room && p.room !== 'AB-101' && p.room !== 'AB-103' && !p.room.toLowerCase().includes('provisional')) ? p.room : '',
               category: 'Basic Science',
             });
           }
@@ -175,7 +221,7 @@ export const HODDepartmentTimetableView: React.FC = () => {
               subjectCode: p.subjectCode,
               subjectTitle: p.subjectName,
               section: `Inst (${dt.section})`,
-              room: p.room || 'Auditorium',
+              room: (p.room && p.room !== 'Auditorium' && !p.room.toLowerCase().includes('provisional')) ? p.room : '',
               category: 'Institutional',
             });
           }
@@ -242,15 +288,21 @@ export const HODDepartmentTimetableView: React.FC = () => {
               </button>
             </div>
 
-            {/* Print Button */}
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-3 py-1.5 bg-surface text-ink hover:bg-canvas-muted text-xs font-semibold rounded-card border border-border-beige shadow-crisp-sm transition-colors flex items-center gap-1.5"
-            >
-              <Printer className="w-3.5 h-3.5 text-primary" />
-              <span>Print Schedule</span>
-            </button>
+            {/* Download PDF Button */}
+            <DownloadPdfButton
+              targetRef={viewMode === 'class-wise' ? classTimetableRef : facultyTimetableRef}
+              filename={() =>
+                viewMode === 'class-wise'
+                  ? getTimetablePdfFilename({
+                      department: 'AIDS',
+                      studentYear: selectedYear,
+                      semester: classMetadata.semester,
+                      section: activeSection,
+                    })
+                  : `Class Timetable AIDS - ${currentFaculty?.name || 'Faculty'}.pdf`
+              }
+              label="Download PDF"
+            />
           </div>
         </div>
       </div>
@@ -344,31 +396,66 @@ export const HODDepartmentTimetableView: React.FC = () => {
                 <span className="text-[10px] font-mono text-ink-light block uppercase">Class Advisor</span>
                 <span className="font-semibold text-primary text-xs">{classMetadata.advisor}</span>
               </div>
-              <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
-                <span className="text-[10px] font-mono text-ink-light block uppercase">Lecture Hall</span>
-                <span className="font-semibold text-ink text-xs">{classMetadata.room} (Academic Block)</span>
-              </div>
+              {classMetadata.room && (
+                <div className="p-2 bg-canvas-paper rounded border border-border-subtle">
+                  <span className="text-[10px] font-mono text-ink-light block uppercase">Lecture Hall</span>
+                  <span className="font-semibold text-ink text-xs">{classMetadata.room} (Academic Block)</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Table 0 VTU Grid Container */}
-          <div className="bg-white p-3 sm:p-4 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3">
-            {/* Printable Institutional Header */}
-            <div className="hidden print:block text-center pb-2 border-b-2 border-black space-y-0.5">
-              <h2 className="font-headline font-bold text-sm text-[#530e21] tracking-wide uppercase">
-                Shri Madhwa Vadiraja Institute of Technology &amp; Management
-              </h2>
-              <p className="text-[10px] font-medium text-ink">
-                Vishwothama Nagar, Bantakal, Udupi – 574 115
-              </p>
-              <p className="text-[10px] font-bold text-primary uppercase">
-                Department of Artificial Intelligence &amp; Data Science — Class Timetable
-              </p>
-              <div className="pt-1 flex items-center justify-between text-[11px] font-mono font-semibold px-2">
-                <span>Year: {classMetadata.studentYear} ({classMetadata.section})</span>
-                <span>Semester: {classMetadata.semester}</span>
-                <span>Room: {classMetadata.room}</span>
-                <span>Advisor: {classMetadata.advisor}</span>
+          <div
+            ref={classTimetableRef}
+            className="bg-white p-3 sm:p-5 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3"
+          >
+            {/* Document Institutional Header with Logos */}
+            <div className="pb-3 border-b-2 border-primary space-y-1">
+              <div className="flex items-center justify-between gap-4">
+                <img
+                  src={smvitmLogo}
+                  alt="SMVITM Logo"
+                  className="h-14 sm:h-16 w-auto object-contain flex-shrink-0"
+                />
+                <div className="text-center flex-1 min-w-0">
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light font-semibold">
+                    SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
+                  </div>
+                  <h2 className="font-headline font-bold text-base sm:text-lg text-[#530e21] tracking-wide uppercase leading-tight">
+                    Shri Madhwa Vadiraja Institute of Technology &amp; Management
+                  </h2>
+                  <p className="text-[10px] text-ink-muted">
+                    Vishwothama Nagar, Bantakal, Udupi – 574 115, Karnataka
+                  </p>
+                  <div className="pt-0.5">
+                    <p className="text-xs sm:text-sm font-bold text-primary uppercase">
+                      Department of Artificial Intelligence &amp; Data Science — Class Timetable
+                    </p>
+                    <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[10px] sm:text-[11px] font-mono font-semibold text-primary border border-border-subtle">
+                      CLASS TIMETABLE — {classMetadata.studentYear.toUpperCase()} ({classMetadata.semester.toUpperCase()})
+                    </div>
+                  </div>
+                </div>
+                <img
+                  src={sodeLogo}
+                  alt="Sode Group Logo"
+                  className="h-12 sm:h-14 w-auto object-contain flex-shrink-0"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1 border-t border-border-subtle/50">
+                <span>Class: <strong>{classMetadata.studentYear}</strong></span>
+                <span>•</span>
+                <span>Section: <strong>{classMetadata.section}</strong></span>
+                {classMetadata.room && (
+                  <>
+                    <span>•</span>
+                    <span>Room: <strong>{classMetadata.room}</strong></span>
+                  </>
+                )}
+                <span>•</span>
+                <span>Advisor: <strong>{classMetadata.advisor}</strong></span>
               </div>
             </div>
 
@@ -465,9 +552,11 @@ export const HODDepartmentTimetableView: React.FC = () => {
                               <span className="text-[8px] text-ink-muted line-clamp-1 max-w-[140px]">
                                 {placement.facultyName}
                               </span>
-                              <span className="text-[8px] font-mono text-ink-light">
-                                [{placement.room || classMetadata.room}]
-                              </span>
+                              {placement.room && placement.room.trim() && !placement.room.startsWith('LH-20') && !placement.room.toLowerCase().includes('provisional') && (
+                                <span className="text-[8px] font-mono text-ink-light">
+                                  [{placement.room}]
+                                </span>
+                              )}
                             </div>
                           </td>
                         );
@@ -569,24 +658,32 @@ export const HODDepartmentTimetableView: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-subtle">
-                    {classSubjects.map((sub) => (
-                      <tr key={sub.id} className="hover:bg-canvas-muted/20">
-                        <td className="p-2 font-mono font-semibold text-primary text-[11px]">
-                          {sub.courseCode}
-                        </td>
-                        <td className="p-2 font-medium text-ink">{sub.courseTitle}</td>
-                        <td className="p-2 text-ink-muted text-[11px]">{sub.type}</td>
-                        <td className="p-2 font-mono text-[11px] text-ink-light">
-                          {sub.venue || classMetadata.room}
-                        </td>
-                        <td className="p-2 text-ink font-semibold">
-                          {sub.assignedFaculty || 'Prof. Rajesh Shetty'}
-                        </td>
-                        <td className="p-2 text-right font-mono font-semibold text-ink">
-                          {sub.hoursPerWeek}h
+                    {classSubjects.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-3 text-center text-ink-muted italic">
+                          No eligible subjects added to this class timetable yet.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      classSubjects.map((sub) => (
+                        <tr key={sub.id} className="hover:bg-canvas-muted/20">
+                          <td className="p-2 font-mono font-semibold text-primary text-[11px]">
+                            {sub.courseCode}
+                          </td>
+                          <td className="p-2 font-medium text-ink">{sub.courseTitle}</td>
+                          <td className="p-2 text-ink-muted text-[11px]">{sub.type}</td>
+                          <td className="p-2 font-mono text-[11px] text-ink-light">
+                            {sub.venue && !sub.venue.startsWith('LH-20') && !sub.venue.toLowerCase().includes('provisional') ? sub.venue : (classMetadata.room || '—')}
+                          </td>
+                          <td className="p-2 text-ink font-semibold">
+                            {sub.assignedFaculty || 'Prof. Rajesh Shetty'}
+                          </td>
+                          <td className="p-2 text-right font-mono font-semibold text-ink">
+                            {sub.hoursPerWeek}h
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -690,7 +787,7 @@ export const HODDepartmentTimetableView: React.FC = () => {
           </div>
 
           {/* Table 0 VTU Grid for Faculty */}
-          <div className="bg-white p-3 sm:p-4 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3">
+          <div ref={facultyTimetableRef} className="bg-white p-3 sm:p-5 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3">
             {/* Printable Institutional Header */}
             <div className="hidden print:block text-center pb-2 border-b-2 border-black space-y-0.5">
               <h2 className="font-headline font-bold text-sm text-[#530e21] tracking-wide uppercase">
@@ -796,7 +893,7 @@ export const HODDepartmentTimetableView: React.FC = () => {
                                 {slot.subjectTitle}
                               </span>
                               <span className="text-[8px] font-mono text-ink-light">
-                                {slot.section} • {slot.room}
+                                {slot.section}{slot.room && slot.room.trim() && !slot.room.startsWith('LH-20') && slot.room !== 'AB-101' && slot.room !== 'Auditorium' && !slot.room.toLowerCase().includes('provisional') ? ` • ${slot.room}` : ''}
                               </span>
                             </div>
                           </td>

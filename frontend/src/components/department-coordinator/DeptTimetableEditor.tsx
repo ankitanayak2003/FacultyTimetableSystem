@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Save,
   Send,
@@ -9,17 +9,17 @@ import {
   Calendar,
   X,
   Lock,
+  Loader2,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
 import { useDragAutoScroll } from '../../hooks/useDragAutoScroll';
 import {
   DeptPlacement,
   DeptSectionTimetable,
-  DEAN_LOCKED_DEPT_SLOTS,
-  INITIAL_AIDS_3A_PLACEMENTS,
-  INITIAL_AIDS_3B_PLACEMENTS,
 } from '../../data/workflowDemoData';
 import { GeneratorCourseTable, GeneratorCourseItem } from '../common/GeneratorCourseTable';
+import { aqsApi } from '../../services/api';
+import { resolveSectionAllocation, shouldApplyRemotePlacements } from '../../utils/syncIntegrity';
 
 const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
 const STUDENT_YEARS = ['Second Year', 'Third Year', 'Fourth Year'];
@@ -38,11 +38,18 @@ interface ClashRecord {
 
 export const DeptTimetableEditor: React.FC = () => {
   const {
+    activeDepartmentId,
+    activeDepartmentCode,
     deptSubjects,
     deptTimetables,
+    subjectAllocations,
     saveDeptSectionTimetable,
     publishDeptSectionTimetable,
     unpublishDeptSectionTimetable,
+    syncStatus,
+    isBackendConnected,
+    backendSyncError,
+    refreshBackendData,
   } = useWorkflow();
 
   // Automatic scrolling during timetable drag-and-drop
@@ -58,12 +65,14 @@ export const DeptTimetableEditor: React.FC = () => {
   const [sections] = useState<string[]>(['Section A', 'Section B']);
 
   // Composite key for department section
-  const timetableKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_AIDS_${selectedSection}`;
+  const deptCodeTag = activeDepartmentCode || 'UNRESOLVED';
+  const timetableKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_${deptCodeTag}_${selectedSection}`;
 
   // Local Placements and Status
   const [placements, setPlacements] = useState<DeptPlacement[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [isDraft, setIsDraft] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Status notifications
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -84,25 +93,46 @@ export const DeptTimetableEditor: React.FC = () => {
   } | null>(null);
 
   const [modalDuration, setModalDuration] = useState<number>(1);
-  const [modalRoom, setModalRoom] = useState<string>('LH-201');
+  const [modalRoom, setModalRoom] = useState<string>('');
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
-  // Sync when key changes
+  const activeScopeRef = useRef<string>(timetableKey);
+  const previousScopeRef = useRef<string | null>(null);
+  const isDirtyRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Sync when key changes or when deptTimetables updates (preserving unsaved local edits)
+  useEffect(() => {
+    activeScopeRef.current = timetableKey;
+    const scopeChanged = previousScopeRef.current !== timetableKey;
+    previousScopeRef.current = timetableKey;
+
+    if (scopeChanged) {
+      isDirtyRef.current = false;
+    }
+
+    if (!scopeChanged && !shouldApplyRemotePlacements({
+      currentScopeKey: activeScopeRef.current,
+      targetScopeKey: timetableKey,
+      isDirty: isDirtyRef.current,
+    })) {
+      return;
+    }
+
     const existing = deptTimetables[timetableKey];
     if (existing) {
       setPlacements(existing.placements || []);
       setIsPublished(existing.isPublished || false);
       setIsDraft(existing.isDraft !== false);
     } else {
-      // Default initial slots with Dean-locked slots
-      if (selectedSection === 'Section A') {
-        setPlacements(INITIAL_AIDS_3A_PLACEMENTS);
-      } else if (selectedSection === 'Section B') {
-        setPlacements(INITIAL_AIDS_3B_PLACEMENTS);
-      } else {
-        setPlacements([...DEAN_LOCKED_DEPT_SLOTS]);
-      }
+      setPlacements([]);
       setIsPublished(false);
       setIsDraft(true);
     }
@@ -110,52 +140,104 @@ export const DeptTimetableEditor: React.FC = () => {
     setHasRunClashCheck(false);
   }, [timetableKey, deptTimetables, selectedSection]);
 
-  // Page 3 subjects for tray
+  // Page 3 subjects for tray (with section-specific saved faculty allocations overlaid)
   const availableTraySubjects = useMemo(() => {
-    return deptSubjects.filter(
-      (s) => s.studentYear === selectedStudentYear && s.semester === selectedSemester
-    );
-  }, [deptSubjects, selectedStudentYear, selectedSemester]);
+    if (!activeDepartmentId) return [];
+    return deptSubjects
+      .filter((s) => s.studentYear === selectedStudentYear && s.semester === selectedSemester)
+      .map((s) => ({
+        ...s,
+        assignedFaculty: resolveSectionAllocation(
+          subjectAllocations,
+          s.id,
+          s.courseCode || '',
+          selectedAcademicYear,
+          selectedSemester,
+          selectedSection
+        ),
+      }));
+  }, [activeDepartmentId, deptSubjects, subjectAllocations, selectedAcademicYear, selectedStudentYear, selectedSemester, selectedSection]);
 
-  // Generator Course Table Items (Sl. No., Course Code, Course Name, L:T:P, Course Type, Credit, Name of the Faculty Member)
+  // Generator Course Table Items (Only Include Subjects Actually Added to this Class Timetable)
+  // Strictly includes a subject ONLY when ALL these conditions are met:
+  // 1. The subject has actually been added/placed into the currently selected class timetable (placements).
+  // 2. The subject has a valid, non-empty course code (empty course codes are strictly excluded).
+  // 3. The subject belongs to the selected class's student year, semester, and section.
+  // 4. The subject is a valid active subject in the project data model.
   const generatorCourses = useMemo<GeneratorCourseItem[]>(() => {
-    const list: GeneratorCourseItem[] = [];
-    const seenKeys = new Set<string>();
+    if (!placements || placements.length === 0) {
+      return [];
+    }
 
-    availableTraySubjects.forEach((sub) => {
-      seenKeys.add(sub.id);
-      if (sub.courseCode) seenKeys.add(sub.courseCode);
-      list.push({
-        id: sub.id,
-        courseCode: sub.courseCode || '',
-        courseName: sub.courseTitle,
-        ltp: sub.ltp || (sub.type?.toLowerCase().includes('lab') ? '0:0:2' : '3:0:0'),
-        courseType: sub.type,
-        credit: sub.credits !== undefined ? sub.credits : (sub.type?.toLowerCase().includes('lab') ? 1 : 3),
-        facultyName: sub.assignedFaculty || 'Unassigned',
-      });
-    });
+    const list: GeneratorCourseItem[] = [];
+    const seenCodes = new Set<string>();
 
     placements.forEach((p) => {
-      if (p.subjectId && seenKeys.has(p.subjectId)) return;
-      if (p.subjectCode && seenKeys.has(p.subjectCode)) return;
-      if (seenKeys.has(p.subjectTitle)) return;
+      // Find matching subject in deptSubjects
+      const matchedSub = deptSubjects.find(
+        (s) =>
+          (p.subjectId && s.id === p.subjectId) ||
+          (s.courseCode && p.subjectCode && s.courseCode.trim().toUpperCase() === p.subjectCode.trim().toUpperCase()) ||
+          s.courseTitle === p.subjectTitle
+      );
 
-      const key = p.subjectId || p.subjectCode || p.subjectTitle;
-      seenKeys.add(key);
+      // Rule 2: Must have a valid, non-empty course code
+      // If code was cleared or is missing, strictly exclude
+      const courseCode = (matchedSub?.courseCode || p.subjectCode || '').trim();
+      if (!courseCode) {
+        return;
+      }
+
+      // Rule 3: Must belong to selected class's student year, semester, and academic year
+      if (matchedSub) {
+        if ((matchedSub as any).academicYear && (matchedSub as any).academicYear !== selectedAcademicYear) {
+          return;
+        }
+        if (matchedSub.studentYear && matchedSub.studentYear !== selectedStudentYear) {
+          return;
+        }
+        if (matchedSub.semester && matchedSub.semester !== selectedSemester) {
+          return;
+        }
+      }
+
+      // Deduplicate by courseCode
+      const codeKey = courseCode.toUpperCase();
+      if (seenCodes.has(codeKey)) {
+        return;
+      }
+      seenCodes.add(codeKey);
+
+      // Collect all faculty assigned to this subject across placements in this class
+      const matchingPlacements = placements.filter(
+        (pl) =>
+          (pl.subjectCode && pl.subjectCode.trim().toUpperCase() === codeKey) ||
+          (pl.subjectId && pl.subjectId === p.subjectId) ||
+          pl.subjectTitle === p.subjectTitle
+      );
+      const placedFaculty = Array.from(new Set(matchingPlacements.map((pl) => pl.facultyName).filter(Boolean)));
+      const finalFaculty = placedFaculty.length > 0 ? placedFaculty.join(', ') : (p.facultyName || matchedSub?.assignedFaculty || 'Staff');
+
+      const ltp = matchedSub?.ltp || (matchedSub?.type?.toLowerCase().includes('lab') ? '0:0:2' : (p.isLockedSlot ? '—' : '3:0:0'));
+      const courseType = p.isLockedSlot ? 'Institutional' : (matchedSub?.type || 'Core');
+      const credit =
+        matchedSub?.credits !== undefined && matchedSub?.credits !== null && matchedSub?.credits !== ''
+          ? matchedSub.credits
+          : (p.isLockedSlot ? '—' : (matchedSub?.type?.toLowerCase().includes('lab') ? 1.5 : 3));
+
       list.push({
-        id: p.id,
-        courseCode: p.subjectCode || '',
-        courseName: p.subjectTitle || p.subjectCode || 'Institutional Slot',
-        ltp: '—',
-        courseType: p.isLockedSlot ? 'Institutional' : 'Core',
-        credit: '—',
-        facultyName: p.facultyName || 'Staff',
+        id: matchedSub?.id || p.subjectId || p.id,
+        courseCode,
+        courseName: matchedSub?.courseTitle || p.subjectTitle || p.subjectCode || 'Course',
+        ltp,
+        courseType,
+        credit,
+        facultyName: finalFaculty,
       });
     });
 
     return list;
-  }, [availableTraySubjects, placements]);
+  }, [placements, deptSubjects, selectedStudentYear, selectedSemester]);
 
   // Drag handlers
   const handleTrayDragStart = (e: React.DragEvent, sub: (typeof availableTraySubjects)[0]) => {
@@ -200,11 +282,11 @@ export const DeptTimetableEditor: React.FC = () => {
         subjectId: parsed.subjectId,
         subjectCode: parsed.courseCode || '',
         subjectTitle: parsed.courseTitle,
-        facultyName: parsed.assignedFaculty || 'Prof. Rajesh Shetty',
-        venue: parsed.venue || 'LH-201',
+        facultyName: parsed.assignedFaculty || 'Unassigned',
+        venue: parsed.venue && parsed.venue !== 'LH-201' ? parsed.venue : '',
       });
       setModalDuration(1);
-      setModalRoom(parsed.venue || 'LH-201');
+      setModalRoom(parsed.venue && parsed.venue !== 'LH-201' ? parsed.venue : '');
     } catch (err) {
       console.error('Error handling drop', err);
     }
@@ -238,9 +320,10 @@ export const DeptTimetableEditor: React.FC = () => {
       subjectCode: subjectCode || '',
       subjectTitle,
       facultyName,
-      room: modalRoom,
+      room: modalRoom.trim() || undefined,
     };
 
+    isDirtyRef.current = true;
     setPlacements([...filtered, newPlacement]);
     setPendingDrop(null);
     setToastMsg({
@@ -257,6 +340,7 @@ export const DeptTimetableEditor: React.FC = () => {
       alert('Cannot remove Dean-locked or Basic Science-locked institutional slots!');
       return;
     }
+    isDirtyRef.current = true;
     setPlacements((prev) => prev.filter((p) => p.id !== placementId));
   };
 
@@ -303,9 +387,9 @@ export const DeptTimetableEditor: React.FC = () => {
 
     // 2. Check cross-section conflicts with the other section (e.g. Section B)
     const otherSection = selectedSection === 'Section A' ? 'Section B' : 'Section A';
-    const otherKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_AIDS_${otherSection}`;
+    const otherKey = `${selectedAcademicYear}_${selectedStudentYear}_${selectedSemester}_${deptCodeTag}_${otherSection}`;
     const otherTimetable = deptTimetables[otherKey];
-    const otherPlacements = otherTimetable ? otherTimetable.placements : (otherSection === 'Section B' ? INITIAL_AIDS_3B_PLACEMENTS : INITIAL_AIDS_3A_PLACEMENTS);
+    const otherPlacements = otherTimetable ? otherTimetable.placements : [];
 
     placements.forEach((p) => {
       if (p.isLockedSlot) return; // Dean slots are shared institutional slots
@@ -379,60 +463,94 @@ export const DeptTimetableEditor: React.FC = () => {
     setTimeout(() => setToastMsg(null), 6000);
   };
 
-  // Generate Timetable Action
-  const handleGenerateTimetable = () => {
-    // 1. Keep Dean-locked institutional slots
-    const preserved = [...DEAN_LOCKED_DEPT_SLOTS];
+  // Generate Timetable Action with Real Backend OR-Tools CP-SAT Solver
+  const handleGenerateTimetable = async () => {
+    if (!activeDepartmentId) {
+      setToastMsg({
+        type: 'error',
+        text: 'Cannot generate timetable: no department scope is assigned to this coordinator session.',
+      });
+      return;
+    }
+    const initiatedKey = timetableKey;
+    try {
+      const semNum = selectedSemester === 'Odd Semester' ? 3 : 4;
+      const res = await aqsApi.generateTimetable({
+        academic_year: selectedAcademicYear,
+        semester: semNum,
+        department_id: activeDepartmentId,
+        section: selectedSection,
+      });
 
-    // 2. Sample balanced generation matching Page 3 allocations
-    const generated: DeptPlacement[] = [
-      ...preserved,
-      // Monday
-      { id: `gen-m1-${Date.now()}`, day: 'Monday', startPeriod: 1, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
-      { id: `gen-m2-${Date.now()}`, day: 'Monday', startPeriod: 2, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
-      { id: `gen-m3-${Date.now()}`, day: 'Monday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
-      { id: `gen-m4-${Date.now()}`, day: 'Monday', startPeriod: 4, duration: 1, subjectCode: '21CIP37', subjectTitle: 'Constitution of India', facultyName: 'Prof. Vignesh Pai', room: 'LH-201' },
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedKey) {
+        return;
+      }
 
-      // Tuesday
-      { id: `gen-t1-${Date.now()}`, day: 'Tuesday', startPeriod: 1, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
-      { id: `gen-t2-${Date.now()}`, day: 'Tuesday', startPeriod: 2, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
-      { id: `gen-t3-${Date.now()}`, day: 'Tuesday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
-      { id: `gen-t4-${Date.now()}`, day: 'Tuesday', startPeriod: 4, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
+      if (res && res.slots && res.slots.length > 0) {
+        // Map backend CP-SAT generated slots to DeptPlacement
+        const mappedPlacements: DeptPlacement[] = res.slots.map((s: any) => {
+          const rawDay = s.day || 'Monday';
+          const dayName = (rawDay.charAt(0).toUpperCase() + rawDay.slice(1).toLowerCase()) as any;
+          return {
+            id: s.id,
+            day: dayName,
+            startPeriod: s.slot_number,
+            duration: s.duration_slots || 1,
+            subjectCode: s.subject_id,
+            subjectTitle: s.allocation_notes || s.subject_id,
+            facultyName: s.faculty_id,
+            room: s.lab_id ? `Lab: ${s.lab_id}` : (s.room_id && s.room_id !== 'LH-201' && s.room_id !== 'room_default' && !s.room_id.toLowerCase().includes('provisional') ? s.room_id : undefined),
+            isLockedSlot: Boolean(s.id && s.id.includes('locked')),
+            lockedStage: (s.id && s.id.includes('locked')) ? 'Institutional (Dean)' : undefined,
+          };
+        });
 
-      // Wednesday
-      { id: `gen-w1-${Date.now()}`, day: 'Wednesday', startPeriod: 1, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
-      { id: `gen-w2-${Date.now()}`, day: 'Wednesday', startPeriod: 2, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
-      { id: `gen-w3-${Date.now()}`, day: 'Wednesday', startPeriod: 3, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
-      { id: `gen-w6-${Date.now()}`, day: 'Wednesday', startPeriod: 6, duration: 2, subjectCode: '21AIL38', subjectTitle: 'Java Programming Laboratory', facultyName: 'Prof. Sneha Kamath', room: 'AI Computing Lab 2' },
-
-      // Thursday
-      { id: `gen-th1-${Date.now()}`, day: 'Thursday', startPeriod: 1, duration: 2, subjectCode: '21AIL37', subjectTitle: 'Data Structures Laboratory', facultyName: 'Dr. Ananya Rao', room: 'AI Computing Lab 1' },
-      { id: `gen-th3-${Date.now()}`, day: 'Thursday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
-      { id: `gen-th4-${Date.now()}`, day: 'Thursday', startPeriod: 4, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
-
-      // Friday
-      { id: `gen-f1-${Date.now()}`, day: 'Friday', startPeriod: 1, duration: 1, subjectCode: '21AI33', subjectTitle: 'Discrete Mathematical Structures', facultyName: 'Prof. Rajesh Shetty', room: 'LH-201' },
-      { id: `gen-f2-${Date.now()}`, day: 'Friday', startPeriod: 2, duration: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', facultyName: 'Dr. Ananya Rao', room: 'LH-201' },
-      { id: `gen-f3-${Date.now()}`, day: 'Friday', startPeriod: 3, duration: 1, subjectCode: '21AI34', subjectTitle: 'Object Oriented Programming with Java', facultyName: 'Prof. Sneha Kamath', room: 'LH-201' },
-    ];
-
-    setPlacements(generated);
-    setClashes([]);
-    setHasRunClashCheck(false);
-    setToastMsg({
-      type: 'success',
-      text: 'Timetable automatically generated! Prioritized faculty preferences, respected Dean & Basic Science locks, and balanced weekly workload.',
-    });
-    setTimeout(() => setToastMsg(null), 5000);
+        isDirtyRef.current = true;
+        setPlacements(mappedPlacements);
+        setClashes([]);
+        setHasRunClashCheck(false);
+        setToastMsg({
+          type: 'success',
+          text: `Timetable automatically generated via Google OR-Tools CP-SAT! (${res.slots_generated} slots scheduled with lab batch optimization).`,
+        });
+        setTimeout(() => setToastMsg(null), 5000);
+        return;
+      }
+      setToastMsg({
+        type: 'error',
+        text: 'Automatic timetable generation did not return any slots. Please ensure subject allotments and classrooms are configured.',
+      });
+      setTimeout(() => setToastMsg(null), 5000);
+    } catch (err: any) {
+      console.warn('Backend solver call failed:', err);
+      setToastMsg({
+        type: 'error',
+        text: `Timetable generation failed: ${err?.message || 'Server solver offline'}. Please verify backend connection.`,
+      });
+      setTimeout(() => setToastMsg(null), 6000);
+    }
   };
 
   // Save Draft
-  const handleSaveDraft = () => {
+  const canPersistToBackend = isBackendConnected === true && syncStatus !== 'loading' && syncStatus !== 'error';
+
+  const handleSaveDraft = async () => {
+    if (!canPersistToBackend) {
+      setToastMsg({
+        type: 'error',
+        text: 'Cannot save draft: backend synchronization is pending or failed. Please retry sync first.',
+      });
+      return;
+    }
+    const initiatedKey = timetableKey;
+    const initiatedSection = selectedSection;
+
+    setIsSaving(true);
     const data: DeptSectionTimetable = {
       academicYear: selectedAcademicYear,
       studentYear: selectedStudentYear,
       semester: selectedSemester,
-      department: 'AIDS',
+      department: activeDepartmentCode || '',
       section: selectedSection,
       placements,
       isDraft: true,
@@ -445,24 +563,54 @@ export const DeptTimetableEditor: React.FC = () => {
         minute: '2-digit',
       }),
     };
-    saveDeptSectionTimetable(timetableKey, data);
-    setIsDraft(true);
-    setIsPublished(false);
-    setToastMsg({ type: 'success', text: `Draft saved successfully for ${selectedSection}.` });
-    setTimeout(() => setToastMsg(null), 3000);
+    try {
+      await saveDeptSectionTimetable(initiatedKey, data);
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedKey) {
+        return;
+      }
+      isDirtyRef.current = false;
+      setIsDraft(true);
+      setIsPublished(false);
+      setToastMsg({ type: 'success', text: `Draft saved successfully for ${initiatedSection}.` });
+      setTimeout(() => setToastMsg(null), 3000);
+    } catch (err: any) {
+      console.error('Failed to save Dept draft:', err);
+      if (isMountedRef.current && activeScopeRef.current === initiatedKey) {
+        setToastMsg({
+          type: 'error',
+          text: `Failed to save draft to Firestore: ${err?.message || 'Network/Server Error'}. Your local changes have been preserved.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   // Publish Timetable
-  const handlePublishTimetable = () => {
+  const handlePublishTimetable = async () => {
+    if (!canPersistToBackend) {
+      setToastMsg({
+        type: 'error',
+        text: 'Cannot publish timetable: backend synchronization is pending or failed. Please retry sync first.',
+      });
+      return;
+    }
     if (clashes.length > 0) {
       alert('Cannot publish timetable with active clashes. Please resolve all conflicts first.');
       return;
     }
+    const initiatedKey = timetableKey;
+    const initiatedYear = selectedStudentYear;
+    const initiatedSection = selectedSection;
+
+    setIsSaving(true);
     const data: DeptSectionTimetable = {
       academicYear: selectedAcademicYear,
       studentYear: selectedStudentYear,
       semester: selectedSemester,
-      department: 'AIDS',
+      department: activeDepartmentCode || '',
       section: selectedSection,
       placements,
       isDraft: false,
@@ -482,18 +630,37 @@ export const DeptTimetableEditor: React.FC = () => {
         minute: '2-digit',
       }),
     };
-    saveDeptSectionTimetable(timetableKey, data);
-    publishDeptSectionTimetable(timetableKey);
-    setIsPublished(true);
-    setIsDraft(false);
-    setToastMsg({
-      type: 'success',
-      text: `Timetable published officially for ${selectedStudentYear} (${selectedSection})! Verified 0 clashes.`,
-    });
-    setTimeout(() => setToastMsg(null), 5000);
+    try {
+      await saveDeptSectionTimetable(initiatedKey, data);
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedKey) {
+        return;
+      }
+      isDirtyRef.current = false;
+      publishDeptSectionTimetable(initiatedKey);
+      setIsPublished(true);
+      setIsDraft(false);
+      setToastMsg({
+        type: 'success',
+        text: `Timetable published officially for ${initiatedYear} (${initiatedSection})! Verified 0 clashes.`,
+      });
+      setTimeout(() => setToastMsg(null), 5000);
+    } catch (err: any) {
+      console.error('Failed to publish Dept timetable:', err);
+      if (isMountedRef.current && activeScopeRef.current === initiatedKey) {
+        setToastMsg({
+          type: 'error',
+          text: `Failed to publish timetable: ${err?.message || 'Network/Server Error'}.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   const handleUnpublish = () => {
+    isDirtyRef.current = true;
     unpublishDeptSectionTimetable(timetableKey);
     setIsPublished(false);
     setIsDraft(true);
@@ -510,6 +677,31 @@ export const DeptTimetableEditor: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-in text-ink">
+      {/* Backend Synchronization Status Banner */}
+      {syncStatus === 'loading' && (
+        <div className="px-4 py-2.5 rounded-card border border-border-beige bg-canvas-paper text-xs text-ink-muted flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary flex-shrink-0" />
+          <span>Synchronizing timetable data with Firestore... Draft saving is paused until sync completes.</span>
+        </div>
+      )}
+      {syncStatus === 'error' && (
+        <div className="px-4 py-2.5 rounded-card border border-rose-300 bg-rose-50 text-xs text-rose-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+            <span>
+              <strong>Backend sync failed:</strong> {backendSyncError || 'Unable to reach FastAPI server.'} Draft saving is disabled to protect existing Firestore records.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshBackendData()}
+            className="px-2.5 py-1 rounded bg-white border border-rose-300 text-rose-900 font-semibold hover:bg-rose-100 flex-shrink-0"
+          >
+            Retry Sync
+          </button>
+        </div>
+      )}
+
       {/* Selector Card (Exact Dean layout & sizing) */}
       <div className="p-3.5 sm:p-4 bg-surface rounded-card border border-border-beige shadow-crisp space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-border-beige">
@@ -519,7 +711,7 @@ export const DeptTimetableEditor: React.FC = () => {
                 Class Timetable Editor
               </span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider bg-primary-subtle text-primary border border-primary/20">
-                AIDS Department
+                {activeDepartmentCode ? `${activeDepartmentCode} Department` : 'Department Unresolved'}
               </span>
               {isPublished ? (
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -567,15 +759,19 @@ export const DeptTimetableEditor: React.FC = () => {
             <button
               type="button"
               onClick={handleSaveDraft}
-              disabled={isPublished}
+              disabled={isPublished || isSaving || !canPersistToBackend}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition-colors shadow-crisp-sm ${
-                isPublished
+                isPublished || isSaving || !canPersistToBackend
                   ? 'bg-canvas-muted text-ink-light cursor-not-allowed'
                   : 'bg-canvas-paper hover:bg-canvas text-ink border border-border-beige'
               }`}
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Draft</span>
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              <span>{isSaving ? 'Saving Draft...' : 'Save Draft'}</span>
             </button>
 
             {isPublished ? (
@@ -591,9 +787,9 @@ export const DeptTimetableEditor: React.FC = () => {
               <button
                 type="button"
                 onClick={handlePublishTimetable}
-                disabled={clashes.length > 0}
+                disabled={clashes.length > 0 || isSaving || !canPersistToBackend}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition-colors shadow-crisp-sm ${
-                  clashes.length > 0
+                  clashes.length > 0 || isSaving || !canPersistToBackend
                     ? 'bg-canvas-muted text-ink-light cursor-not-allowed'
                     : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-crisp'
                 }`}
@@ -804,7 +1000,7 @@ export const DeptTimetableEditor: React.FC = () => {
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />
             <h3 className="font-headline text-sm sm:text-base font-semibold text-primary">
-              AIDS Weekly Class Schedule — {selectedStudentYear} ({selectedSection})
+              {activeDepartmentCode ? `${activeDepartmentCode} Weekly Class Schedule` : 'Weekly Class Schedule'} — {selectedStudentYear} ({selectedSection})
             </h3>
           </div>
           <span className="text-xs font-mono text-ink-muted">
@@ -915,6 +1111,7 @@ export const DeptTimetableEditor: React.FC = () => {
         courses={generatorCourses}
         title={`Course & Faculty Allocation Registry — ${selectedStudentYear} (${selectedSection})`}
         subtitle="Table 1 (VTU Format)"
+        emptyMessage="No eligible subjects added to this class timetable yet."
       />
 
       {/* Drop Placement Modal */}
@@ -973,6 +1170,7 @@ export const DeptTimetableEditor: React.FC = () => {
                   type="text"
                   value={modalRoom}
                   onChange={(e) => setModalRoom(e.target.value)}
+                  placeholder="Optional: leave blank if unassigned"
                   className="w-full px-2 py-1 text-xs bg-canvas rounded border border-border-beige font-mono"
                 />
               </div>
@@ -1051,7 +1249,7 @@ export const DeptTimetableEditor: React.FC = () => {
               {placement.subjectTitle}
             </span>
             <span className="text-[8px] text-ink-muted font-mono truncate max-w-[120px] block leading-tight">
-              {placement.facultyName} • {placement.room}
+              {placement.facultyName}{placement.room && placement.room.trim() && placement.room !== 'LH-201' && !placement.room.toLowerCase().includes('provisional') ? ` • ${placement.room}` : ''}
             </span>
           </div>
         </td>
