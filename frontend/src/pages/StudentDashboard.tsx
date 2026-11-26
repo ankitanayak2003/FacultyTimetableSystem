@@ -4,17 +4,38 @@ import { StudentHeader } from '../components/student/StudentHeader';
 import { StudentWelcome } from '../components/student/StudentWelcome';
 import { StudentTimetable } from '../components/student/StudentTimetable';
 import { StudentProfile } from '../components/student/StudentProfile';
-import { STUDENT_PROFILE } from '../data/studentDemoData';
+import { StudentProfileData } from '../types/student';
+import { useAuth } from '../context/AuthContext';
 
 interface StudentDashboardProps {
   onLogout: () => void;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) => {
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<StudentTab>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isPublished, setIsPublished] = useState(true);
+
+  const studentProfile: StudentProfileData = {
+    fullName: currentUser?.displayName || 'Student Schedule Viewer',
+    usn: '',
+    email: currentUser?.email || '',
+    department: currentUser?.departmentName || '',
+    departmentCode: currentUser?.departmentCode || '',
+    semester: '',
+    section: '',
+    academicYear: '2026–2027',
+    degree: 'B.E.',
+    admissionBatch: '',
+    proctorName: '',
+    proctorEmail: '',
+    proctorDepartment: '',
+    collegeName: 'SMVITM',
+    status: 'Active',
+    cgpa: '',
+  };
 
   const togglePublished = () => {
     setIsPublished((prev) => !prev);
@@ -27,7 +48,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onLogout={onLogout}
-        student={STUDENT_PROFILE}
+        student={studentProfile}
         isOpenMobile={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         isCollapsed={isSidebarCollapsed}
@@ -38,7 +59,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
       <div className="flex-1 flex flex-col min-w-0 relative transition-all duration-300">
         {/* Top Header */}
         <StudentHeader
-          student={STUDENT_PROFILE}
+          student={studentProfile}
           activeTab={activeTab}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           isPublished={isPublished}
@@ -49,7 +70,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto academic-grid-pattern">
           {activeTab === 'dashboard' && (
             <StudentWelcome
-              student={STUDENT_PROFILE}
+              student={studentProfile}
               onNavigateToTab={setActiveTab}
               isPublished={isPublished}
             />
@@ -63,7 +84,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
           )}
 
           {activeTab === 'profile' && (
-            <StudentProfile student={STUDENT_PROFILE} />
+            <StudentProfile student={studentProfile} />
           )}
 
           {/* Academic Portal Footer */}

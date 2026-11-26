@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   User,
   Mail,
@@ -9,16 +9,26 @@ import {
   MapPin,
   Lock,
 } from 'lucide-react';
-import {
-  StudentProfileData,
-  ENROLLED_COURSES,
-} from '../../data/studentDemoData';
+import { StudentProfileData } from '../../data/studentDemoData';
+import { useWorkflow } from '../../context/WorkflowContext';
 
 interface StudentProfileProps {
   student: StudentProfileData;
 }
 
 export const StudentProfile: React.FC<StudentProfileProps> = ({ student }) => {
+  const { deptSubjects } = useWorkflow();
+
+  const courses = useMemo(() => {
+    return deptSubjects.map((s) => ({
+      code: s.courseCode,
+      title: s.courseTitle,
+      type: s.type,
+      faculty: s.assignedFaculty,
+      credits: s.credits ? `${s.credits} (${s.ltp})` : '3 (3:0:0)',
+      venue: s.venue,
+    }));
+  }, [deptSubjects]);
   return (
     <div className="w-full space-y-6 animate-fade-in">
       {/* Profile Header Card */}
@@ -160,7 +170,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ student }) => {
             </p>
           </div>
           <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-canvas-muted text-ink border border-border-subtle">
-            7 VTU Subjects
+            {courses.length} VTU Subjects
           </span>
         </div>
 
@@ -177,43 +187,50 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ student }) => {
               </tr>
             </thead>
             <tbody className="divide-y border-border-subtle">
-              {ENROLLED_COURSES.map((course) => {
-                const isLab = course.type === 'Laboratory';
-                return (
-                  <tr key={course.code} className="hover:bg-canvas-muted/20 transition-colors">
-                    <td className="p-3 font-mono font-bold text-primary">
-                      {course.code}
-                    </td>
-                    <td className="p-3 font-medium text-ink">
-                      {course.title}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold ${
-                          isLab
-                            ? 'bg-accent-teal/15 text-accent-teal'
-                            : 'bg-primary-subtle text-primary'
-                        }`}
-                      >
-                        {course.type}
-                      </span>
-                    </td>
-                    <td className="p-3 text-ink-muted">
-                      <div>{course.faculty}</div>
-                      <div className="text-[10px] text-ink-light">{course.facultyDesignation}</div>
-                    </td>
-                    <td className="p-3 font-mono text-ink-muted">
-                      {course.credits}
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="inline-flex items-center gap-1 font-mono font-semibold px-2 py-0.5 rounded bg-canvas-paper border border-border-subtle text-ink">
-                        <MapPin className="w-3 h-3 text-primary" />
-                        {course.room}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {courses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-ink-muted">
+                    No registered courses available for this semester.
+                  </td>
+                </tr>
+              ) : (
+                courses.map((course) => {
+                  const isLab = course.type === 'Laboratory';
+                  return (
+                    <tr key={course.code} className="hover:bg-canvas-muted/20 transition-colors">
+                      <td className="p-3 font-mono font-bold text-primary">
+                        {course.code}
+                      </td>
+                      <td className="p-3 font-medium text-ink">
+                        {course.title}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold ${
+                            isLab
+                              ? 'bg-accent-teal/15 text-accent-teal'
+                              : 'bg-primary-subtle text-primary'
+                          }`}
+                        >
+                          {course.type}
+                        </span>
+                      </td>
+                      <td className="p-3 text-ink-muted">
+                        <div>{course.faculty}</div>
+                      </td>
+                      <td className="p-3 font-mono text-ink-muted">
+                        {course.credits}
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="inline-flex items-center gap-1 font-mono font-semibold px-2 py-0.5 rounded bg-canvas-paper border border-border-subtle text-ink">
+                          <MapPin className="w-3 h-3 text-primary" />
+                          {course.venue}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Calendar,
   Clock,
@@ -12,10 +12,10 @@ import {
 } from 'lucide-react';
 import {
   StudentProfileData,
-  WEEKLY_TIMETABLE_SLOTS,
   ENROLLED_COURSES,
   TIMETABLE_METADATA,
 } from '../../data/studentDemoData';
+import { useWorkflow } from '../../context/WorkflowContext';
 import { StudentTab } from './StudentSidebar';
 
 interface StudentWelcomeProps {
@@ -29,10 +29,48 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({
   onNavigateToTab,
   isPublished,
 }) => {
-  // Get Monday's schedule as representative "Today's Schedule"
-  const todaysSchedule = WEEKLY_TIMETABLE_SLOTS.filter(
-    (s) => s.day === 'Monday'
-  ).sort((a, b) => a.period - b.period);
+  const { timetableEntries } = useWorkflow();
+
+  const primaryVenue = useMemo(() => {
+    const entryWithRoom = timetableEntries.find(
+      (e) => e.room && e.room.trim() && e.room !== 'LH-201' && !e.room.toLowerCase().includes('provisional')
+    );
+    return entryWithRoom?.room || null;
+  }, [timetableEntries]);
+
+  // Get Monday's schedule from live timetable entries
+  const todaysSchedule = useMemo(() => {
+    return timetableEntries
+      .filter((s) => s.day === 'Monday')
+      .sort((a, b) => a.period - b.period)
+      .map((s, idx) => ({
+        id: `today-${idx}`,
+        period: s.period,
+        time:
+          s.period === 1
+            ? '09:00 - 10:00'
+            : s.period === 2
+            ? '10:00 - 11:00'
+            : s.period === 3
+            ? '11:15 - 12:15'
+            : s.period === 4
+            ? '12:15 - 01:15'
+            : s.period === 5
+            ? '02:00 - 03:00'
+            : s.period === 6
+            ? '03:00 - 04:00'
+            : '04:00 - 05:00',
+        courseCode: s.courseCode,
+        courseTitle: s.courseTitle,
+        faculty: s.facultyName,
+        type:
+          s.courseTitle?.toLowerCase().includes('lab') ||
+          s.courseCode?.toLowerCase().includes('l')
+            ? 'Laboratory'
+            : 'Theory',
+        room: s.room,
+      }));
+  }, [timetableEntries]);
 
   return (
     <div className="w-full space-y-6 animate-fade-in">
@@ -55,10 +93,10 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({
               <strong className="text-ink font-semibold">{student.department}</strong> ({student.section}).
             </p>
 
-            {/* Demo Notice */}
+            {/* Portal Notice */}
             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded bg-canvas-muted text-ink-light text-xs font-mono border border-border-subtle">
               <Info className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-              <span>Frontend Demonstration View • Sample Student Data (Read-Only Portal)</span>
+              <span>Student Academic Portal • Shri Madhwa Vadiraja Institute of Technology & Management</span>
             </div>
           </div>
 
@@ -127,11 +165,10 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({
             </div>
           </div>
           <div className="font-headline text-2xl font-bold text-ink">
-            LH-201
+            {primaryVenue || 'Not Assigned'}
           </div>
           <div className="text-xs text-ink-muted mt-1 flex items-center justify-between">
-            <span>Lecture Hall (2nd Floor)</span>
-            <span className="font-mono text-accent-violet font-semibold">AI-Lab 01</span>
+            <span>{primaryVenue ? 'Lecture Hall' : 'Pending Allocation'}</span>
           </div>
         </div>
 
@@ -193,6 +230,10 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({
           {!isPublished ? (
             <div className="p-8 text-center bg-canvas-paper rounded-card border border-border-subtle text-ink-muted text-xs">
               Timetable is currently unpublished. Class schedules will display here once ratified.
+            </div>
+          ) : todaysSchedule.length === 0 ? (
+            <div className="p-8 text-center bg-canvas-paper rounded-card border border-border-subtle text-ink-muted text-xs">
+              No scheduled classes for today.
             </div>
           ) : (
             <div className="space-y-2.5">

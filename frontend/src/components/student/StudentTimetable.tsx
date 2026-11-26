@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Filter,
-  Printer,
   Clock,
   User,
   MapPin,
   Calendar,
 } from 'lucide-react';
 import {
-  WEEKLY_TIMETABLE_SLOTS,
+  TimetableSlot,
+  DayOfWeek,
   DAYS_OF_WEEK,
 } from '../../data/studentDemoData';
+import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import { getTimetablePdfFilename } from '../../utils/timetablePdfExport';
 import { TimetableGrid } from './TimetableGrid';
 import { TimetableStatus } from './TimetableStatus';
 
@@ -23,16 +26,45 @@ export const StudentTimetable: React.FC<StudentTimetableProps> = ({
   isPublished,
   onTogglePublished,
 }) => {
+  const { timetableEntries } = useWorkflow();
   const [selectedDay, setSelectedDay] = useState<string>('All');
   const [typeFilter, setTypeFilter] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'grid' | 'agenda'>('grid');
+  const timetableRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const liveSlots: TimetableSlot[] = useMemo(() => {
+    return timetableEntries.map((s, idx) => ({
+      id: `slot-${idx}`,
+      day: s.day as DayOfWeek,
+      period: s.period,
+      time:
+        s.period === 1
+          ? '09:00 - 10:00'
+          : s.period === 2
+          ? '10:00 - 11:00'
+          : s.period === 3
+          ? '11:15 - 12:15'
+          : s.period === 4
+          ? '12:15 - 01:15'
+          : s.period === 5
+          ? '02:00 - 03:00'
+          : s.period === 6
+          ? '03:00 - 04:00'
+          : '04:00 - 05:00',
+      courseCode: s.courseCode,
+      courseTitle: s.courseTitle,
+      faculty: s.facultyName,
+      type:
+        s.courseTitle?.toLowerCase().includes('lab') ||
+        s.courseCode?.toLowerCase().includes('l')
+          ? 'Laboratory'
+          : 'Theory',
+      room: s.room,
+    }));
+  }, [timetableEntries]);
 
   // Agenda view items for the selected day or today
-  const agendaSlots = WEEKLY_TIMETABLE_SLOTS.filter((s) => {
+  const agendaSlots = liveSlots.filter((s) => {
     const dayMatches = selectedDay === 'All' ? s.day === 'Monday' : s.day === selectedDay;
     const typeMatches =
       typeFilter === 'All' ||
@@ -129,30 +161,32 @@ export const StudentTimetable: React.FC<StudentTimetableProps> = ({
             </button>
           </div>
 
-          {/* Print Button */}
-          <button
-            type="button"
-            onClick={handlePrint}
-            aria-label="Print timetable"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-card bg-surface hover:bg-canvas-muted text-ink text-xs font-semibold border border-border-beige transition-colors shadow-crisp-sm"
-          >
-            <Printer className="w-3.5 h-3.5 text-primary" />
-            <span className="hidden sm:inline">Print Schedule</span>
-          </button>
+          {/* Download PDF Button */}
+          <DownloadPdfButton
+            targetRef={timetableRef}
+            filename={getTimetablePdfFilename({
+              department: 'AIDS',
+              studentYear: 'Second Year',
+              semester: '3rd sem',
+              section: 'A',
+            })}
+            label="Download PDF"
+          />
         </div>
       </div>
 
       {/* View Content */}
-      {viewMode === 'grid' ? (
-        <TimetableGrid
-          slots={WEEKLY_TIMETABLE_SLOTS}
-          selectedDayFilter={selectedDay}
-          typeFilter={typeFilter}
-          isPublished={isPublished}
-        />
-      ) : (
-        /* Agenda Card View */
-        <div className="space-y-3">
+      <div ref={timetableRef} className="space-y-4 bg-white p-3 rounded-card">
+        {viewMode === 'grid' ? (
+          <TimetableGrid
+            slots={liveSlots}
+            selectedDayFilter={selectedDay}
+            typeFilter={typeFilter}
+            isPublished={isPublished}
+          />
+        ) : (
+          /* Agenda Card View */
+          <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
@@ -229,6 +263,7 @@ export const StudentTimetable: React.FC<StudentTimetableProps> = ({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };
