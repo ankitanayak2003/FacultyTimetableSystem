@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Mail, LogIn, Loader2, CheckCircle2, UserPlus } from 'lucide-react';
+import { Mail, LogIn, Loader2, CheckCircle2, UserPlus, AlertCircle } from 'lucide-react';
 import { RoleSelector } from './RoleSelector';
 import { PasswordInput } from './PasswordInput';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { UserRole, LoginFormData, FormErrors } from '../../types/auth';
+import { useAuth } from '../../context/AuthContext';
 
 interface LoginFormProps {
   onNavigateToStudentRegistration: () => void;
@@ -25,14 +26,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     rememberMe: false,
   });
 
+  const { loginWithEmailPassword, loginWithGoogle, authError, clearAuthError } = useAuth();
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [authFeedback, setAuthFeedback] = useState<{
-    type: 'success' | 'info';
+    type: 'success' | 'error';
     message: string;
     details: string;
   } | null>(null);
+
+  const isAuthBusy = isLoading || isGoogleLoading;
 
   const getEmailPlaceholder = (role: UserRole) => {
     switch (role) {
@@ -56,15 +61,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.role) {
-      newErrors.role = 'Please designate your institutional role.';
-    }
-
-    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = 'Please enter a valid academic email address.';
     }
 
-    if (formData.password && formData.password.length < 6) {
+    if (!formData.password || formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters.';
     }
 
@@ -85,6 +86,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     if (authFeedback) {
       setAuthFeedback(null);
     }
+    if (authError) {
+      clearAuthError();
+    }
   };
 
   const handleRoleSelect = (role: UserRole) => {
@@ -95,29 +99,73 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     if (authFeedback) {
       setAuthFeedback(null);
     }
+    if (authError) {
+      clearAuthError();
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAuthBusy) return;
 
     if (!validate()) {
       return;
     }
 
     setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
+    setAuthFeedback(null);
+    try {
+      const verifiedUser = await loginWithEmailPassword(
+        formData.email,
+        formData.password,
+        formData.rememberMe,
+        formData.role
+      );
       setAuthFeedback({
         type: 'success',
         message: 'Authentication Verified',
-        details: `Signed in as ${formData.role}. Redirecting to designated dashboard workspace...`,
+        details: `Signed in as ${verifiedUser.displayName} (${verifiedUser.role}). Redirecting to designated dashboard workspace...`,
       });
-
       if (onLoginSuccess) {
-        onLoginSuccess(formData.role);
+        onLoginSuccess(verifiedUser.role);
       }
-    }, 600);
+    } catch (err: any) {
+      setAuthFeedback({
+        type: 'error',
+        message: 'Sign In Failed',
+        details: err?.message || 'Unable to verify credentials. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (isAuthBusy) return;
+    setIsGoogleLoading(true);
+    setAuthFeedback(null);
+    clearAuthError();
+    try {
+      const verifiedUser = await loginWithGoogle(formData.role);
+      if (verifiedUser) {
+        setAuthFeedback({
+          type: 'success',
+          message: 'Google Identity Verified',
+          details: `Signed in as ${verifiedUser.displayName} (${verifiedUser.role}). Redirecting to designated dashboard workspace...`,
+        });
+        if (onLoginSuccess) {
+          onLoginSuccess(verifiedUser.role);
+        }
+      }
+    } catch (err: any) {
+      setAuthFeedback({
+        type: 'error',
+        message: 'Google Sign-In Denied',
+        details: err?.message || 'Your Google account is not authorized for AQS access.',
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
@@ -132,27 +180,33 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </p>
       </div>
 
-      {/* Auth Feedback Banner */}
-      {authFeedback && (
+      {/* Auth Feedback / Error Banner */}
+      {(authFeedback || authError) && (
         <div
-          role="status"
-          className="mb-4 p-3 rounded-card border bg-surface border-border-beige shadow-crisp animate-fade-in flex items-start gap-2.5"
+          role={authFeedback?.type === 'success' ? 'status' : 'alert'}
+          className={`mb-4 p-3 rounded-card border bg-surface shadow-crisp animate-fade-in flex items-start gap-2.5 ${
+            authFeedback?.type === 'success' ? 'border-border-beige' : 'border-error/40'
+          }`}
         >
-          <div className="p-1 rounded-full bg-success-container/70 text-success flex-shrink-0 mt-0.5">
-            <CheckCircle2 className="w-4 h-4" />
+          <div
+            className={`p-1 rounded-full flex-shrink-0 mt-0.5 ${
+              authFeedback?.type === 'success'
+                ? 'bg-success-container/70 text-success'
+                : 'bg-error/10 text-error'
+            }`}
+          >
+            {authFeedback?.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
           </div>
           <div className="text-xs">
-            <div className="font-semibold text-ink">{authFeedback.message}</div>
-            <div className="text-ink-muted mt-0.5 leading-snug">
-              {authFeedback.details}
+            <div className="font-semibold text-ink">
+              {authFeedback ? authFeedback.message : 'Authentication Notice'}
             </div>
-            <div className="mt-1.5 flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
-                Role: {formData.role}
-              </span>
-              <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-canvas-muted text-ink-muted border border-border-subtle">
-                Remember: {formData.rememberMe ? 'Enabled' : 'Disabled'}
-              </span>
+            <div className="text-ink-muted mt-0.5 leading-snug">
+              {authFeedback ? authFeedback.details : authError}
             </div>
           </div>
         </div>
@@ -239,10 +293,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </div>
 
         {/* Submit Button */}
-        <div className="pt-1.5">
+        <div className="pt-1.5 space-y-2.5">
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isAuthBusy}
             className="w-full py-2.5 px-4 bg-primary text-white text-sm font-semibold rounded-card hover:bg-primary-hover transition-colors shadow-crisp flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-wait"
           >
             {isLoading ? (
@@ -253,7 +307,51 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             ) : (
               <>
                 <LogIn className="w-4 h-4" />
-                <span>Sign In as {formData.role}</span>
+                <span>Sign In</span>
+              </>
+            )}
+          </button>
+
+          <div className="relative flex items-center py-0.5">
+            <div className="flex-grow border-t border-border-subtle" />
+            <span className="flex-shrink mx-3 text-[11px] font-mono uppercase tracking-wider text-ink-light">
+              or
+            </span>
+            <div className="flex-grow border-t border-border-subtle" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isAuthBusy}
+            className="w-full py-2.5 px-4 bg-surface text-ink text-sm font-semibold rounded-card border border-border-beige hover:bg-canvas-muted transition-colors shadow-crisp-sm flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait"
+          >
+            {isGoogleLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span>Signing in with Google...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
               </>
             )}
           </button>

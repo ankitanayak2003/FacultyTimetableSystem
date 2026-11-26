@@ -33,8 +33,11 @@ export const GeneratorCourseTable: React.FC<GeneratorCourseTableProps> = ({
   courses,
   title = 'Course & Faculty Allocation Registry (Automatic Timetable Generator)',
   subtitle,
-  emptyMessage = 'No subjects defined yet for this timetable. Add subjects in Subject & Faculty Allocation.',
+  emptyMessage = 'No eligible subjects added to this class timetable yet.',
 }) => {
+  // Enforce eligibility rule: A subject without a course code must be strictly excluded
+  const eligibleCourses = courses.filter((c) => c.courseCode && c.courseCode.trim().length > 0);
+
   return (
     <div className="p-3.5 bg-surface rounded-card border border-border-beige shadow-crisp space-y-2.5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-border-beige">
@@ -42,11 +45,11 @@ export const GeneratorCourseTable: React.FC<GeneratorCourseTableProps> = ({
           {title}
         </h3>
         <span className="text-xs font-mono text-ink-muted">
-          {subtitle || `${courses.length} courses registered`}
+          {subtitle || `${eligibleCourses.length} courses registered`}
         </span>
       </div>
 
-      {courses.length === 0 ? (
+      {eligibleCourses.length === 0 ? (
         <div className="p-3.5 bg-canvas-muted rounded text-xs text-ink-muted text-center border border-dashed border-border-beige">
           {emptyMessage}
         </div>
@@ -79,7 +82,7 @@ export const GeneratorCourseTable: React.FC<GeneratorCourseTableProps> = ({
               </tr>
             </thead>
             <tbody>
-              {courses.map((c, idx) => (
+              {eligibleCourses.map((c, idx) => (
                 <tr
                   key={c.id || `${c.courseCode || 'nocode'}-${c.courseName}-${idx}`}
                   className="border border-black bg-white hover:bg-neutral-50 transition-colors"

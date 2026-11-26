@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LoginPage } from './pages/LoginPage';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { FacultyDashboard } from './pages/FacultyDashboard';
@@ -8,56 +8,60 @@ import { HODDashboard } from './pages/HODDashboard';
 import { BasicScienceDashboard } from './pages/BasicScienceDashboard';
 import { DepartmentCoordinatorDashboard } from './pages/DepartmentCoordinatorDashboard';
 import { WorkflowProvider } from './context/WorkflowContext';
-import { UserRole } from './types/auth';
-
-export type AppView =
-  | 'login'
-  | 'student-dashboard'
-  | 'faculty-dashboard'
-  | 'principal-dashboard'
-  | 'dean-dashboard'
-  | 'hod-dashboard'
-  | 'basic-science-dashboard'
-  | 'dept-coordinator-dashboard';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { resolveAuthorizedView } from './utils/authMapping';
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState<AppView>('login');
-  const [, setActiveRole] = useState<UserRole>('Student');
+  const { currentUser, isAuthenticated, isAuthLoading, logout } = useAuth();
+  const [allowPublicStudentSchedule, setAllowPublicStudentSchedule] = useState(false);
+  const [pathname, setPathname] = useState(() =>
+    typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
 
-  const handleLoginSuccess = (role: UserRole) => {
-    setActiveRole(role);
-    switch (role) {
-      case 'Principal':
-        setCurrentView('principal-dashboard');
-        break;
-      case 'Dean':
-        setCurrentView('dean-dashboard');
-        break;
-      case 'HOD':
-        setCurrentView('hod-dashboard');
-        break;
-      case 'Basic Science Coordinator':
-        setCurrentView('basic-science-dashboard');
-        break;
-      case 'Department Coordinator':
-        setCurrentView('dept-coordinator-dashboard');
-        break;
-      case 'Faculty':
-        setCurrentView('faculty-dashboard');
-        break;
-      case 'Student':
-      default:
-        setCurrentView('student-dashboard');
-        break;
+  useEffect(() => {
+    const onPopState = () => {
+      setPathname(window.location.pathname);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const currentView = resolveAuthorizedView(pathname, currentUser, allowPublicStudentSchedule);
+
+  const handleLoginSuccess = () => {
+    setAllowPublicStudentSchedule(false);
+  };
+
+  const handleLogout = async () => {
+    setAllowPublicStudentSchedule(false);
+    await logout();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.replaceState(null, '', '/');
+      setPathname('/');
     }
   };
 
-  const handleLogout = () => {
-    setCurrentView('login');
-  };
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-canvas text-ink">
+        <div className="text-sm font-medium text-ink-muted">
+          Verifying AQS session...
+        </div>
+      </div>
+    );
+  }
 
   if (currentView === 'student-dashboard') {
     return <StudentDashboard onLogout={handleLogout} />;
+  }
+
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateToClassSchedule={() => setAllowPublicStudentSchedule(true)}
+      />
+    );
   }
 
   if (currentView === 'faculty-dashboard') {
@@ -87,15 +91,17 @@ function AppContent() {
   return (
     <LoginPage
       onLoginSuccess={handleLoginSuccess}
-      onNavigateToClassSchedule={() => setCurrentView('student-dashboard')}
+      onNavigateToClassSchedule={() => setAllowPublicStudentSchedule(true)}
     />
   );
 }
 
 export default function App() {
   return (
-    <WorkflowProvider>
-      <AppContent />
-    </WorkflowProvider>
+    <AuthProvider>
+      <WorkflowProvider>
+        <AppContent />
+      </WorkflowProvider>
+    </AuthProvider>
   );
 }

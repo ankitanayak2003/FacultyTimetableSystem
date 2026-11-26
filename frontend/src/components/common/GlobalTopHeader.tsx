@@ -1,6 +1,7 @@
 import React from 'react';
 import { AqsBrandLogo } from './AqsBrandLogo';
 import { ScrambledText } from './ScrambledText';
+import { useAuth } from '../../context/AuthContext';
 
 export interface GlobalTopHeaderProps {
   userName: string;
@@ -30,6 +31,8 @@ export interface GlobalTopHeaderProps {
 export const GlobalTopHeader: React.FC<GlobalTopHeaderProps> = ({
   userName,
 }) => {
+  const { currentUser } = useAuth();
+  const displayUserName = currentUser?.displayName || userName;
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-surface border-b border-border-beige h-14 px-4 sm:px-6 shadow-crisp-sm transition-none">
       <div className="h-full flex items-center justify-between gap-4 max-w-7xl mx-auto">
@@ -68,7 +71,7 @@ export const GlobalTopHeader: React.FC<GlobalTopHeaderProps> = ({
         {/* RIGHT SIDE: Logged-in User Name */}
         <div className="flex items-center select-none flex-shrink-0">
           <span className="font-semibold text-ink text-sm sm:text-base tracking-tight">
-            {userName}
+            {displayUserName}
           </span>
         </div>
       </div>
