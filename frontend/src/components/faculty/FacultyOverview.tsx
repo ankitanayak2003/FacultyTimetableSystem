@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Clock,
   BookOpen,
@@ -13,12 +13,8 @@ import {
   FileCheck,
   GraduationCap,
 } from 'lucide-react';
-import {
-  FacultyProfileData,
-  FACULTY_ODD_TIMETABLE,
-  FACULTY_WORKLOAD_BREAKDOWN,
-  INITIAL_LEAVE_REQUESTS,
-} from '../../data/facultyDemoData';
+import { FacultyProfileData } from '../../data/facultyDemoData';
+import { useWorkflow } from '../../context/WorkflowContext';
 import { FacultyTab } from './FacultySidebar';
 
 interface FacultyOverviewProps {
@@ -32,14 +28,71 @@ export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
   onNavigateToTab,
   preferenceStatus,
 }) => {
-  // Monday's teaching slots
-  const todaysSchedule = FACULTY_ODD_TIMETABLE.filter(
-    (s) => s.day === 'Monday'
-  ).sort((a, b) => a.period - b.period);
+  const { timetableEntries, facultyLeaves, facultyWorkload, departmentFaculty } = useWorkflow();
+
+  const currentFacultyRecord = useMemo(() => {
+    return departmentFaculty.find(
+      (f) => f.name === faculty.fullName || f.id === faculty.facultyId
+    );
+  }, [departmentFaculty, faculty.fullName, faculty.facultyId]);
+
+  const currentWorkload = useMemo(() => {
+    return facultyWorkload.find(
+      (w) => w.name === faculty.fullName || w.empId === faculty.facultyId
+    );
+  }, [facultyWorkload, faculty.fullName, faculty.facultyId]);
+
+  const assignedHours =
+    currentWorkload?.assignedHours ||
+    (currentFacultyRecord
+      ? currentFacultyRecord.theoryHours + currentFacultyRecord.labHours
+      : 0);
+  const maxHours = currentFacultyRecord?.maxHours || currentWorkload?.maxHours || 16;
+
+  // Monday's teaching slots from live timetable entries
+  const todaysSchedule = useMemo(() => {
+    return timetableEntries
+      .filter(
+        (s) =>
+          s.day === 'Monday' &&
+          (!faculty.fullName ||
+            s.facultyName.includes(faculty.fullName) ||
+            faculty.fullName.includes(s.facultyName))
+      )
+      .sort((a, b) => a.period - b.period)
+      .map((s, idx) => ({
+        id: `slot-${idx}`,
+        day: s.day,
+        period: s.period,
+        time:
+          s.period === 1
+            ? '09:00 - 10:00'
+            : s.period === 2
+            ? '10:00 - 11:00'
+            : s.period === 3
+            ? '11:15 - 12:15'
+            : s.period === 4
+            ? '12:15 - 01:15'
+            : s.period === 5
+            ? '02:00 - 03:00'
+            : s.period === 6
+            ? '03:00 - 04:00'
+            : '04:00 - 05:00',
+        courseCode: s.courseCode,
+        courseTitle: s.courseTitle,
+        classSection: s.section,
+        type:
+          s.courseTitle?.toLowerCase().includes('lab') ||
+          s.courseCode?.toLowerCase().includes('l')
+            ? 'Laboratory'
+            : 'Theory',
+        room: s.room,
+      }));
+  }, [timetableEntries, faculty.fullName]);
 
   // Active leaves summary
-  const pendingLeaves = INITIAL_LEAVE_REQUESTS.filter((l) => l.status === 'Pending').length;
-  const approvedLeaves = INITIAL_LEAVE_REQUESTS.filter((l) => l.status === 'Approved').length;
+  const pendingLeaves = facultyLeaves.filter((l) => l.status === 'Pending').length;
+  const approvedLeaves = facultyLeaves.filter((l) => l.status === 'Approved').length;
 
   return (
     <div className="w-full space-y-6 animate-fade-in">
@@ -63,7 +116,7 @@ export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
 
             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded bg-canvas-muted text-ink-light text-xs font-mono border border-border-subtle">
               <Info className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-              <span>Faculty Portal • Frontend Demonstration Mode</span>
+              <span>Faculty Portal • Shri Madhwa Vadiraja Institute of Technology & Management</span>
             </div>
           </div>
 
@@ -211,56 +264,62 @@ export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
           </div>
 
           <div className="space-y-3">
-            {todaysSchedule.map((slot) => {
-              const isLab = slot.type === 'Laboratory';
-              return (
-                <div
-                  key={slot.id}
-                  className="p-3.5 bg-canvas-paper/70 hover:bg-canvas-muted rounded-card border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-16 flex-shrink-0 text-center py-1.5 px-2 rounded bg-surface border border-border-subtle font-mono text-xs">
-                      <span className="font-bold text-primary block">
-                        Period {slot.period}
-                      </span>
-                      <span className="text-[10px] text-ink-light">
-                        {slot.time.split(' - ')[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className={`text-xs font-mono font-bold ${
-                            isLab ? 'text-accent-teal' : 'text-primary'
-                          }`}
-                        >
-                          {slot.courseCode}
+            {todaysSchedule.length === 0 ? (
+              <div className="p-8 text-center bg-canvas-paper rounded-card border border-border-subtle text-ink-muted text-xs">
+                No teaching commitments scheduled for today.
+              </div>
+            ) : (
+              todaysSchedule.map((slot) => {
+                const isLab = slot.type === 'Laboratory';
+                return (
+                  <div
+                    key={slot.id}
+                    className="p-3.5 bg-canvas-paper/70 hover:bg-canvas-muted rounded-card border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-16 flex-shrink-0 text-center py-1.5 px-2 rounded bg-surface border border-border-subtle font-mono text-xs">
+                        <span className="font-bold text-primary block">
+                          Period {slot.period}
                         </span>
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.2 rounded bg-surface border border-border-subtle text-ink-light">
-                          {slot.classSection}
-                        </span>
-                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-primary-subtle text-primary">
-                          {slot.type}
+                        <span className="text-[10px] text-ink-light">
+                          {slot.time.split(' - ')[0]}
                         </span>
                       </div>
-                      <h4 className="text-xs font-headline font-semibold text-ink leading-tight">
-                        {slot.courseTitle}
-                      </h4>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={`text-xs font-mono font-bold ${
+                              isLab ? 'text-accent-teal' : 'text-primary'
+                            }`}
+                          >
+                            {slot.courseCode}
+                          </span>
+                          <span className="text-[10px] font-mono uppercase px-2 py-0.2 rounded bg-surface border border-border-subtle text-ink-light">
+                            {slot.classSection}
+                          </span>
+                          <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-primary-subtle text-primary">
+                            {slot.type}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-headline font-semibold text-ink leading-tight">
+                          {slot.courseTitle}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 text-xs pt-2 sm:pt-0 border-t sm:border-t-0 border-border-subtle">
+                      <span className="font-mono text-[11px] text-ink-muted">
+                        {slot.time}
+                      </span>
+                      <span className="font-mono text-xs px-2.5 py-1 rounded bg-surface border border-border-subtle font-semibold text-ink flex items-center gap-1 flex-shrink-0">
+                        <MapPin className="w-3 h-3 text-primary" />
+                        {slot.room}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-3 text-xs pt-2 sm:pt-0 border-t sm:border-t-0 border-border-subtle">
-                    <span className="font-mono text-[11px] text-ink-muted">
-                      {slot.time}
-                    </span>
-                    <span className="font-mono text-xs px-2.5 py-1 rounded bg-surface border border-border-subtle font-semibold text-ink flex items-center gap-1 flex-shrink-0">
-                      <MapPin className="w-3 h-3 text-primary" />
-                      {slot.room}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* Quick Workload Equilibrium snippet */}
@@ -268,7 +327,7 @@ export const FacultyOverview: React.FC<FacultyOverviewProps> = ({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-success" />
               <span className="text-ink font-medium">
-                Workload Balance: {FACULTY_WORKLOAD_BREAKDOWN.assignedHours} of {FACULTY_WORKLOAD_BREAKDOWN.maxHours} Hours Assigned
+                Workload Balance: {assignedHours} of {maxHours} Hours Assigned
               </span>
             </div>
             <button

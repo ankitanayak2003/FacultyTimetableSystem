@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
-  Printer,
   Calendar,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import smvitmLogo from '../../assets/smvitm_logo.webp';
+import sodeLogo from '../../assets/sode_group_logo.png';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 
@@ -24,6 +26,7 @@ interface UnifiedFacultyScheduleItem {
 }
 
 export const MyTimetablePage: React.FC = () => {
+  const scheduleRef = useRef<HTMLDivElement>(null);
   const {
     deptTimetables,
     cycleTimetables,
@@ -59,7 +62,7 @@ export const MyTimetablePage: React.FC = () => {
               subjectCode: p.subjectCode,
               subjectTitle: p.subjectTitle,
               section: `${tt.department} - ${tt.section}`,
-              room: p.room,
+              room: (p.room && p.room.trim() && p.room !== 'LH-201' && !p.room.toLowerCase().includes('provisional')) ? p.room : '',
               department: tt.department,
               category: 'Department',
               academicYear: tt.academicYear,
@@ -84,7 +87,7 @@ export const MyTimetablePage: React.FC = () => {
               subjectCode: p.subjectCode,
               subjectTitle: p.subjectName,
               section: `1st Yr (${ct.cycle} Cycle - ${ct.section})`,
-              room: p.room || 'AB-101',
+              room: (p.room && p.room !== 'AB-101' && p.room !== 'AB-103' && !p.room.toLowerCase().includes('provisional')) ? p.room : '',
               department: `${ct.cycle} (Basic Science)`,
               category: 'Basic Science',
               academicYear: ct.academicYear,
@@ -108,9 +111,9 @@ export const MyTimetablePage: React.FC = () => {
               duration: p.duration,
               subjectCode: p.subjectCode,
               subjectTitle: p.subjectName,
-              section: `${dt.department} - ${dt.section}`,
-              room: p.room || 'Seminar Hall',
-              department: dt.department,
+              section: `${dt.department || 'First Year'} - ${dt.section}`,
+              room: (p.room && p.room !== 'Seminar Hall' && !p.room.toLowerCase().includes('provisional')) ? p.room : '',
+              department: dt.department || 'Institutional',
               category: 'Institutional',
               academicYear: dt.academicYear,
               semester: dt.semester,
@@ -141,9 +144,6 @@ export const MyTimetablePage: React.FC = () => {
       .reduce((acc, curr) => acc + curr.duration, 0);
   }, [publishedAssignments]);
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   // Grid cell helper
   const getSlotAt = (day: (typeof DAYS)[number], period: number) => {
@@ -174,14 +174,11 @@ export const MyTimetablePage: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded bg-canvas-paper hover:bg-canvas text-primary border border-primary transition-colors shadow-crisp-sm flex-shrink-0"
-          >
-            <Printer className="w-3.5 h-3.5 text-primary" />
-            <span>Print / Save PDF</span>
-          </button>
+          <DownloadPdfButton
+            targetRef={scheduleRef}
+            filename={`Class Timetable AIDS - Teaching Schedule (${currentFaculty?.name || 'Faculty'}).pdf`}
+            label="Download PDF"
+          />
         </div>
 
         {/* 4 Summary Metrics */}
@@ -225,22 +222,50 @@ export const MyTimetablePage: React.FC = () => {
       </div>
 
       {/* Timetable Grid Container (Class Timetable DS-3rd sem.docx format) */}
-      <div className="bg-white p-4 sm:p-5 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3">
-        {/* Institutional Print Header */}
-        <div className="hidden print:block text-center pb-3 border-b-2 border-black space-y-0.5">
-          <h2 className="font-headline font-bold text-base text-[#530e21] tracking-wide uppercase">
-            Shri Madhwa Vadiraja Institute of Technology &amp; Management
-          </h2>
-          <p className="text-[11px] font-medium text-ink">
-            Vishwothama Nagar, Bantakal, Udupi – 574 115
-          </p>
-          <p className="text-[11px] font-bold text-primary uppercase">
-            Faculty Teaching Schedule — {currentFaculty?.name} ({currentFaculty?.empId})
-          </p>
-          <div className="pt-1 flex items-center justify-between text-xs font-mono font-semibold px-2">
-            <span>Department: {currentFaculty?.department}</span>
-            <span>Designation: {currentFaculty?.designation}</span>
-            <span>Total Contact: {totalWeeklyTeachingHours} Hrs/Wk</span>
+      <div
+        ref={scheduleRef}
+        className="bg-white p-4 sm:p-5 rounded-card border border-border-beige shadow-crisp overflow-hidden print:p-0 print:border-none print:shadow-none space-y-3"
+      >
+        {/* Institutional Header with Logos */}
+        <div className="pb-3 border-b-2 border-primary space-y-1">
+          <div className="flex items-center justify-between gap-4">
+            <img
+              src={smvitmLogo}
+              alt="SMVITM Logo"
+              className="h-14 sm:h-16 w-auto object-contain flex-shrink-0"
+            />
+            <div className="text-center flex-1 min-w-0">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light font-semibold">
+                SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
+              </div>
+              <h2 className="font-headline font-bold text-base sm:text-lg text-[#530e21] tracking-wide uppercase leading-tight">
+                Shri Madhwa Vadiraja Institute of Technology &amp; Management
+              </h2>
+              <p className="text-[10px] text-ink-muted">
+                Vishwothama Nagar, Bantakal, Udupi – 574 115, Karnataka
+              </p>
+              <div className="pt-0.5">
+                <p className="text-xs sm:text-sm font-bold text-primary uppercase">
+                  Faculty Teaching Schedule — {currentFaculty?.name} ({currentFaculty?.empId})
+                </p>
+                <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[10px] sm:text-[11px] font-mono font-semibold text-primary border border-border-subtle">
+                  ACADEMIC YEAR 2026–2027 (ODD SEMESTER)
+                </div>
+              </div>
+            </div>
+            <img
+              src={sodeLogo}
+              alt="Sode Group Logo"
+              className="h-12 sm:h-14 w-auto object-contain flex-shrink-0"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1 border-t border-border-subtle/50">
+            <span>Department: <strong>{currentFaculty?.department}</strong></span>
+            <span>•</span>
+            <span>Designation: <strong>{currentFaculty?.designation}</strong></span>
+            <span>•</span>
+            <span>Contact Hours: <strong>{totalWeeklyTeachingHours} Hrs/Wk</strong></span>
           </div>
         </div>
 
@@ -413,7 +438,7 @@ export const MyTimetablePage: React.FC = () => {
               {slot.subjectTitle}
             </span>
             <span className="text-[8px] text-ink-muted font-mono truncate max-w-[130px] block leading-tight">
-              {slot.section} • {slot.room}
+              {slot.section}{slot.room && slot.room.trim() ? ` • ${slot.room}` : ''}
             </span>
           </div>
         </td>

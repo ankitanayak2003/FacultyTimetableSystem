@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Mail,
   Hash,
@@ -8,16 +8,49 @@ import {
   Award,
   Lock,
 } from 'lucide-react';
-import {
-  FacultyProfileData,
-  FACULTY_WORKLOAD_BREAKDOWN,
-} from '../../data/facultyDemoData';
+import { FacultyProfileData } from '../../data/facultyDemoData';
+import { useWorkflow } from '../../context/WorkflowContext';
 
 interface FacultyProfileProps {
   faculty: FacultyProfileData;
 }
 
 export const FacultyProfile: React.FC<FacultyProfileProps> = ({ faculty }) => {
+  const { departmentFaculty, deptSubjects, facultyWorkload } = useWorkflow();
+
+  const currentFacultyRecord = useMemo(() => {
+    return departmentFaculty.find(
+      (f) => f.name === faculty.fullName || f.id === faculty.facultyId
+    );
+  }, [departmentFaculty, faculty.fullName, faculty.facultyId]);
+
+  const currentWorkload = useMemo(() => {
+    return facultyWorkload.find(
+      (w) => w.name === faculty.fullName || w.empId === faculty.facultyId
+    );
+  }, [facultyWorkload, faculty.fullName, faculty.facultyId]);
+
+  const assignedHours =
+    currentWorkload?.assignedHours ||
+    (currentFacultyRecord
+      ? currentFacultyRecord.theoryHours + currentFacultyRecord.labHours
+      : 0);
+
+  const courses = useMemo(() => {
+    if (!currentFacultyRecord?.assignedCourses) return [];
+    return currentFacultyRecord.assignedCourses.map((cCode) => {
+      const match = deptSubjects.find(
+        (s) => s.courseCode === cCode || s.courseTitle === cCode
+      );
+      return {
+        code: match?.courseCode || cCode,
+        title: match?.courseTitle || cCode,
+        classSection: 'Section A',
+        credits: match?.credits ? `${match.credits} Credits (${match.ltp})` : '3 Credits',
+        hoursPerWeek: match?.hoursPerWeek || 3,
+      };
+    });
+  }, [currentFacultyRecord, deptSubjects]);
   return (
     <div className="w-full space-y-6 animate-fade-in">
       {/* Top Profile Header Card */}
@@ -159,36 +192,42 @@ export const FacultyProfile: React.FC<FacultyProfileProps> = ({ faculty }) => {
             </p>
           </div>
           <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-canvas-muted text-ink border border-border-subtle">
-            {FACULTY_WORKLOAD_BREAKDOWN.assignedHours} Hours / Week
+            {assignedHours} Hours / Week
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          {FACULTY_WORKLOAD_BREAKDOWN.courses.map((c, i) => (
-            <div
-              key={i}
-              className="p-3.5 bg-canvas-paper rounded-card border border-border-subtle flex items-start justify-between gap-3"
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-xs font-bold text-primary">
-                    {c.code}
-                  </span>
-                  <span className="font-mono text-[10px] uppercase px-1.5 py-0.2 rounded bg-surface border border-border-subtle text-ink-light">
-                    {c.classSection}
-                  </span>
-                </div>
-                <h4 className="font-headline text-xs font-semibold text-ink leading-tight">
-                  {c.title}
-                </h4>
-              </div>
-
-              <div className="text-right flex-shrink-0 font-mono text-xs">
-                <span className="font-bold text-primary block">{c.hoursPerWeek} Hrs/Wk</span>
-                <span className="text-[10px] text-ink-light font-normal">{c.credits}</span>
-              </div>
+          {courses.length === 0 ? (
+            <div className="col-span-full p-8 text-center bg-canvas-paper rounded-card border border-border-subtle text-ink-muted text-xs">
+              No instructional assignments allocated yet.
             </div>
-          ))}
+          ) : (
+            courses.map((c, i) => (
+              <div
+                key={i}
+                className="p-3.5 bg-canvas-paper rounded-card border border-border-subtle flex items-start justify-between gap-3"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-xs font-bold text-primary">
+                      {c.code}
+                    </span>
+                    <span className="font-mono text-[10px] uppercase px-1.5 py-0.2 rounded bg-surface border border-border-subtle text-ink-light">
+                      {c.classSection}
+                    </span>
+                  </div>
+                  <h4 className="font-headline text-xs font-semibold text-ink leading-tight">
+                    {c.title}
+                  </h4>
+                </div>
+
+                <div className="text-right flex-shrink-0 font-mono text-xs">
+                  <span className="font-bold text-primary block">{c.hoursPerWeek} Hrs/Wk</span>
+                  <span className="text-[10px] text-ink-light font-normal">{c.credits}</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -37,12 +37,15 @@ export const SubjectPreferencesAndWorkloadPage: React.FC = () => {
     if (currentFaculty?.preferences && currentFaculty.preferences.length > 0) {
       return [...currentFaculty.preferences];
     }
-    return [
-      { id: 'pref-1', priority: 1, subjectCode: '21AI32', subjectTitle: 'Data Structures & Applications', justification: '3 years experience teaching core algorithmic data structures.' },
-      { id: 'pref-2', priority: 2, subjectCode: '21AI52', subjectTitle: 'Computer Networks', justification: 'Research publications in distributed systems and network protocols.' },
-      { id: 'pref-3', priority: 3, subjectCode: '21AI72', subjectTitle: 'Reinforcement Learning', justification: 'PhD thesis specialized in probabilistic learning algorithms.' },
-    ];
+    return [];
   });
+
+  // Keep draft preferences in sync when live backend preferences are loaded
+  React.useEffect(() => {
+    if (currentFaculty?.preferences && currentFaculty.preferences.length > 0) {
+      setDraftPreferences([...currentFaculty.preferences]);
+    }
+  }, [currentFaculty?.preferences]);
 
   const [notification, setNotification] = useState<{ type: 'success' | 'info'; text: string } | null>(null);
 
@@ -340,6 +343,7 @@ export const SubjectPreferencesAndWorkloadPage: React.FC = () => {
                           }
                           className="w-full px-2.5 py-1.5 text-xs bg-canvas rounded border border-border-beige text-ink font-semibold focus:outline-none focus:border-primary"
                         >
+                          <option value="">-- Select Course --</option>
                           {uniqueEligibleCourses.map((c) => (
                             <option key={c.code} value={c.code}>
                               {c.code} — {c.title} ({c.year.replace(' Year', ' Yr')})

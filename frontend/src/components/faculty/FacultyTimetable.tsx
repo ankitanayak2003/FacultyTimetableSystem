@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
-  Printer,
   MapPin,
   CheckCircle2,
   Calendar,
@@ -9,19 +8,52 @@ import {
   Layers,
   FileSpreadsheet,
 } from 'lucide-react';
-import {
-  FACULTY_ODD_TIMETABLE,
-  FACULTY_EVEN_TIMETABLE,
-  FacultyScheduleSlot,
-} from '../../data/facultyDemoData';
+import { FacultyScheduleSlot } from '../../data/facultyDemoData';
+import { useWorkflow } from '../../context/WorkflowContext';
 import { ClassTimetableView } from './ClassTimetableView';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
 
 export const FacultyTimetable: React.FC = () => {
+  const printableContainerRef = useRef<HTMLDivElement>(null);
+  const { timetableEntries } = useWorkflow();
   const [semesterTerm, setSemesterTerm] = useState<'Odd' | 'Even'>('Odd');
   const [timetableMode, setTimetableMode] = useState<'personal' | 'classwise'>('personal');
 
+  const liveSlots: FacultyScheduleSlot[] = useMemo(() => {
+    return timetableEntries.map((s, idx) => ({
+      id: `fac-slot-${idx}`,
+      day: s.day as any,
+      period: s.period,
+      time:
+        s.period === 1
+          ? '09:00 - 10:00'
+          : s.period === 2
+          ? '10:00 - 11:00'
+          : s.period === 3
+          ? '11:15 - 12:15'
+          : s.period === 4
+          ? '12:15 - 01:15'
+          : s.period === 5
+          ? '02:00 - 03:00'
+          : s.period === 6
+          ? '03:00 - 04:00'
+          : '04:00 - 05:00',
+      courseCode: s.courseCode,
+      courseTitle: s.courseTitle,
+      classSection: s.section,
+      type:
+        s.courseTitle?.toLowerCase().includes('lab') ||
+        s.courseCode?.toLowerCase().includes('l')
+          ? 'Laboratory'
+          : 'Theory',
+      room: s.room,
+      semester: 'Odd Semester',
+      duration: 1,
+    }));
+  }, [timetableEntries]);
+
   const slots: FacultyScheduleSlot[] =
-    semesterTerm === 'Odd' ? FACULTY_ODD_TIMETABLE : FACULTY_EVEN_TIMETABLE;
+    semesterTerm === 'Odd' ? liveSlots : [];
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 
@@ -29,9 +61,6 @@ export const FacultyTimetable: React.FC = () => {
     return slots.find((s) => s.day === day && s.period === period);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <div className="w-full space-y-6 animate-fade-in">
@@ -106,24 +135,21 @@ export const FacultyTimetable: React.FC = () => {
             </button>
           </div>
 
-          {/* Print Button */}
-          <button
-            type="button"
-            onClick={handlePrint}
-            aria-label="Print timetable"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-card bg-surface hover:bg-canvas-muted text-ink text-xs font-semibold border border-border-beige transition-colors shadow-crisp-sm"
-          >
-            <Printer className="w-3.5 h-3.5 text-primary" />
-            <span className="hidden sm:inline">Print Schedule</span>
-          </button>
+          {/* Download PDF Button */}
+          <DownloadPdfButton
+            targetRef={printableContainerRef}
+            filename={`Class Timetable AIDS - Faculty Schedule (${semesterTerm} Sem).pdf`}
+            label="Download PDF"
+          />
         </div>
       </div>
 
       {/* Main View: Personal vs Class-Wise */}
-      {timetableMode === 'classwise' ? (
-        <ClassTimetableView />
-      ) : (
-        <div className="space-y-6">
+      <div ref={printableContainerRef} className="space-y-6 bg-white p-3 sm:p-4 rounded-card">
+        {timetableMode === 'classwise' ? (
+          <ClassTimetableView />
+        ) : (
+          <div className="space-y-6">
           {/* Institutional Status & Compliance Strip */}
           <div className="p-4 bg-surface rounded-card border border-border-beige shadow-crisp">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -628,6 +654,7 @@ export const FacultyTimetable: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

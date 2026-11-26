@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Lock,
   Unlock,
   ShieldCheck,
   Calendar,
-  Printer,
   CheckCircle2,
   Plus,
   Trash2,
@@ -13,10 +12,12 @@ import {
 import { useWorkflow } from '../../context/WorkflowContext';
 import { useDragAutoScroll } from '../../hooks/useDragAutoScroll';
 import { InstitutionalSlot } from '../../data/workflowDemoData';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 
 export const InstitutionalTimetableView: React.FC = () => {
+  const timetableRef = useRef<HTMLDivElement>(null);
   const {
     institutionalSlots,
     deanStatus,
@@ -156,14 +157,11 @@ export const InstitutionalTimetableView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-3 py-1.5 bg-surface text-ink hover:bg-canvas-muted text-xs font-semibold rounded-card border border-border-beige transition-colors shadow-crisp-sm flex items-center gap-1.5"
-            >
-              <Printer className="w-3.5 h-3.5 text-primary" />
-              <span>Print Schedule</span>
-            </button>
+            <DownloadPdfButton
+              targetRef={timetableRef}
+              filename="Class Timetable Institutional Master Grid.pdf"
+              label="Download PDF"
+            />
 
             {isLocked ? (
               <button
@@ -257,7 +255,7 @@ export const InstitutionalTimetableView: React.FC = () => {
       </div>
 
       {/* MASTER INSTITUTIONAL TIMETABLE GRID (VTU Table 0 format) */}
-      <div className="bg-white p-3 sm:p-4 rounded-card border border-border-beige shadow-crisp space-y-3">
+      <div ref={timetableRef} className="bg-white p-3 sm:p-5 rounded-card border border-border-beige shadow-crisp space-y-3">
         <div className="flex items-center justify-between pb-1">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />

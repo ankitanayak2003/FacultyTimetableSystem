@@ -330,9 +330,9 @@ export const SubjectPreferences: React.FC<SubjectPreferencesProps> = ({
                       ))}
 
                     {item.category === 'Additional Responsibility' &&
-                      AVAILABLE_RESPONSIBILITIES.map((r) => (
-                        <option key={r.code} value={r.title}>
-                          {r.title}
+                      AVAILABLE_RESPONSIBILITIES.map((r: any) => (
+                        <option key={r.code || r} value={r.title || r}>
+                          {r.title || r}
                         </option>
                       ))}
                   </select>

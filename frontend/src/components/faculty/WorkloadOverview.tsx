@@ -1,30 +1,57 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   CheckCircle2,
   ShieldAlert,
   Sparkles,
 } from 'lucide-react';
-import {
-  FACULTY_WORKLOAD_BREAKDOWN,
-  FacultyProfileData,
-} from '../../data/facultyDemoData';
+import { FacultyProfileData } from '../../data/facultyDemoData';
+import { useWorkflow } from '../../context/WorkflowContext';
 
 interface WorkloadOverviewProps {
   faculty: FacultyProfileData;
 }
 
 export const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({ faculty }) => {
-  const {
-    maxHours,
-    assignedHours,
-    availableHours,
-    theoryHours,
-    labHours,
-    otherResponsibilitiesHours,
-    courses,
-  } = FACULTY_WORKLOAD_BREAKDOWN;
+  const { facultyWorkload, departmentFaculty, deptSubjects } = useWorkflow();
 
-  const percentage = Math.round((assignedHours / maxHours) * 100);
+  const currentFacultyRecord = useMemo(() => {
+    return departmentFaculty.find(
+      (f) => f.name === faculty.fullName || f.id === faculty.facultyId
+    );
+  }, [departmentFaculty, faculty.fullName, faculty.facultyId]);
+
+  const currentWorkload = useMemo(() => {
+    return facultyWorkload.find(
+      (w) => w.name === faculty.fullName || w.empId === faculty.facultyId
+    );
+  }, [facultyWorkload, faculty.fullName, faculty.facultyId]);
+
+  const maxHours = currentFacultyRecord?.maxHours || currentWorkload?.maxHours || 16;
+  const theoryHours = currentFacultyRecord?.theoryHours || currentWorkload?.theoryHours || 0;
+  const labHours = currentFacultyRecord?.labHours || currentWorkload?.labHours || 0;
+  const otherResponsibilitiesHours = 0;
+  const assignedHours =
+    currentWorkload?.assignedHours || theoryHours + labHours;
+  const availableHours = Math.max(0, maxHours - assignedHours);
+
+  const percentage = maxHours > 0 ? Math.round((assignedHours / maxHours) * 100) : 0;
+
+  const courses = useMemo(() => {
+    if (!currentFacultyRecord?.assignedCourses) return [];
+    return currentFacultyRecord.assignedCourses.map((cCode) => {
+      const match = deptSubjects.find(
+        (s) => s.courseCode === cCode || s.courseTitle === cCode
+      );
+      return {
+        code: match?.courseCode || cCode,
+        title: match?.courseTitle || cCode,
+        classSection: 'Section A',
+        type: match?.type || 'Theory',
+        credits: match?.credits ? `${match.credits} Credits (${match.ltp})` : '3 Credits',
+        hoursPerWeek: match?.hoursPerWeek || 3,
+      };
+    });
+  }, [currentFacultyRecord, deptSubjects]);
 
   return (
     <div className="w-full space-y-6 animate-fade-in">
@@ -167,7 +194,14 @@ export const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({ faculty }) =
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
-              {courses.map((course, idx) => {
+              {courses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-ink-muted">
+                    No course assignments allocated yet.
+                  </td>
+                </tr>
+              ) : (
+                courses.map((course, idx) => {
                 const isLab = course.type === 'Laboratory';
                 const isMentorship = course.type === 'Mentorship';
                 return (
@@ -202,8 +236,9 @@ export const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({ faculty }) =
                     </td>
                   </tr>
                 );
-              })}
-            </tbody>
+              })
+            )}
+          </tbody>
             <tfoot>
               <tr className="bg-canvas-paper/70 font-semibold text-xs border-t-2 border-border-beige text-ink">
                 <td colSpan={5} className="p-3 text-right font-headline text-sm text-primary">
