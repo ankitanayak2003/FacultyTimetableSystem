@@ -36,6 +36,12 @@ credentials.json
 backend/secrets/
 secrets/
 
+# Database Backups & Temporary Audit Reports (CRITICAL: Never commit database backups)
+backend/backups/
+backups/
+*.backup.json
+frontend/scripts/output/
+
 # IDE & OS Files
 .vscode/
 .idea/
