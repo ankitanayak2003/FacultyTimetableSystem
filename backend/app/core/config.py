@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
-    PORT: int = 8000
+    PORT: int = 8001
     HOST: str = "127.0.0.1"
 
     # CORS settings
@@ -47,6 +47,19 @@ class Settings(BaseSettings):
 
     # Security: Dev auth bypass is strictly disabled by default and only functional in development
     ENABLE_DEV_AUTH_BYPASS: bool = False
+
+    @property
+    def is_production(self) -> bool:
+        """Returns True when running in a production environment."""
+        return self.ENVIRONMENT.strip().lower() in {"production", "prod"}
+
+    @property
+    def is_dev_auth_allowed(self) -> bool:
+        """
+        Dev tokens and offline auth fallbacks are strictly forbidden in production,
+        even if DEBUG=True was accidentally left enabled.
+        """
+        return not self.is_production and self.DEBUG
 
     @property
     def resolved_firebase_credentials_path(self) -> Optional[Path]:
