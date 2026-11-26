@@ -214,9 +214,11 @@ export const BasicScienceOverview: React.FC<BasicScienceOverviewProps> = ({
                     >
                       {sec.cycle} Cycle
                     </span>
-                    <span className="font-mono text-ink-light text-[11px]">
-                      Room: {sec.room}
-                    </span>
+                    {sec.room && sec.room.trim() && sec.room !== 'AB-101' && sec.room !== 'AB-103' && !sec.room.toLowerCase().includes('provisional') && (
+                      <span className="font-mono text-ink-light text-[11px]">
+                        Room: {sec.room}
+                      </span>
+                    )}
                   </div>
 
                   <h4 className="font-semibold text-ink text-sm mt-2">

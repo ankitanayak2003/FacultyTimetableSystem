@@ -114,7 +114,7 @@ export const CycleAllocationManager: React.FC = () => {
                   {selectedSection.sectionName}
                 </h3>
                 <span className="text-xs text-ink-muted">
-                  Room: {selectedSection.room} • {selectedSection.studentCount} Students
+                  {selectedSection.room && selectedSection.room.trim() && selectedSection.room !== 'AB-101' && selectedSection.room !== 'AB-103' && !selectedSection.room.toLowerCase().includes('provisional') ? `Room: ${selectedSection.room} • ` : ''}{selectedSection.studentCount} Students
                 </span>
               </div>
               <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-primary-subtle text-primary">

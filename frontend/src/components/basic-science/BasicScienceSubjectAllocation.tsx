@@ -11,10 +11,8 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
-import {
-  BasicScienceSubject,
-  REGISTERED_FACULTY_NAMES,
-} from '../../data/workflowDemoData';
+import { BasicScienceSubject } from '../../data/workflowDemoData';
+import { categorizeBasicScienceFaculty } from '../../utils/syncIntegrity';
 
 const SUBJECT_TYPES: BasicScienceSubject['type'][] = ['Theory', 'Practical', 'Integrated'];
 
@@ -37,6 +35,31 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
   onUpdateSubject,
   onDeleteSubject,
 }) => {
+  const { basicScienceFaculty, departmentFaculty, departments } = useWorkflow();
+
+  const allAvailableFaculty = React.useMemo(() => {
+    const combined = [...departmentFaculty, ...basicScienceFaculty];
+    const uniqueMap = new Map<string, any>();
+    for (const f of combined) {
+      const trimmed = f.name?.trim();
+      if (trimmed && !uniqueMap.has(trimmed)) {
+        uniqueMap.set(trimmed, f);
+      }
+    }
+    return Array.from(uniqueMap.values());
+  }, [departmentFaculty, basicScienceFaculty]);
+
+  const { basicScienceNames, otherDepartmentNames } = React.useMemo(() => {
+    return categorizeBasicScienceFaculty({
+      faculty: allAvailableFaculty,
+      departments,
+    });
+  }, [allAvailableFaculty, departments]);
+
+  const availableFaculty = React.useMemo(() => {
+    return [...basicScienceNames, ...otherDepartmentNames];
+  }, [basicScienceNames, otherDepartmentNames]);
+
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [subjectName, setSubjectName] = useState('');
@@ -45,11 +68,15 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
   const [ltp, setLtp] = useState('3:0:0');
   const [credits, setCredits] = useState<string | number>('3');
   const [numFaculty, setNumFaculty] = useState<number>(1);
-  const [facultySelections, setFacultySelections] = useState<string[]>([
-    REGISTERED_FACULTY_NAMES[0],
-  ]);
+  const [facultySelections, setFacultySelections] = useState<string[]>(['']);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  React.useEffect(() => {
+    if (facultySelections.length === 1 && (!facultySelections[0] || facultySelections[0] === '') && availableFaculty.length > 0) {
+      setFacultySelections([availableFaculty[0]]);
+    }
+  }, [availableFaculty]);
 
   const handleTypeChange = (newType: BasicScienceSubject['type']) => {
     setSubjectType(newType);
@@ -80,7 +107,7 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
       const next = [...prev];
       if (count > next.length) {
         for (let i = next.length; i < count; i++) {
-          next.push(REGISTERED_FACULTY_NAMES[i % REGISTERED_FACULTY_NAMES.length] || '');
+          next.push(availableFaculty[i % availableFaculty.length] || '');
         }
       } else {
         next.splice(count);
@@ -106,7 +133,7 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
     setCredits(subject.credits !== undefined && subject.credits !== null ? subject.credits : (subject.type === 'Practical' ? 1.5 : subject.type === 'Integrated' ? 4 : 3));
     setNumFaculty(subject.numFaculty || subject.facultyNames.length || 1);
     setFacultySelections(
-      subject.facultyNames.length > 0 ? subject.facultyNames : [REGISTERED_FACULTY_NAMES[0]]
+      subject.facultyNames.length > 0 ? subject.facultyNames : [availableFaculty[0] || '']
     );
     setErrorMsg('');
     setSuccessMsg('');
@@ -120,7 +147,7 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
     setLtp('3:0:0');
     setCredits('3');
     setNumFaculty(1);
-    setFacultySelections([REGISTERED_FACULTY_NAMES[0]]);
+    setFacultySelections([availableFaculty[0] || '']);
     setErrorMsg('');
   };
 
@@ -373,11 +400,25 @@ const CycleAllocationSection: React.FC<CycleSectionProps> = ({
                   onChange={(e) => handleFacultySelectChange(idx, e.target.value)}
                   className="w-full px-2.5 py-1.5 text-xs bg-surface rounded border border-border-beige text-ink font-medium focus:outline-none focus:border-primary"
                 >
-                  {REGISTERED_FACULTY_NAMES.map((fn) => (
-                    <option key={fn} value={fn}>
-                      {fn}
-                    </option>
-                  ))}
+                  <option value="">Select Faculty...</option>
+                  {basicScienceNames.length > 0 && (
+                    <optgroup label="Basic Science Faculty">
+                      {basicScienceNames.map((fn) => (
+                        <option key={fn} value={fn}>
+                          {fn}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {otherDepartmentNames.length > 0 && (
+                    <optgroup label="Faculty from Other Departments">
+                      {otherDepartmentNames.map((fn) => (
+                        <option key={fn} value={fn}>
+                          {fn}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             ))}

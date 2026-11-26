@@ -1,6 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { Printer, ShieldCheck, Lock, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { ShieldCheck, Lock, AlertCircle } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import { getTimetablePdfFilename } from '../../utils/timetablePdfExport';
+import smvitmLogo from '../../assets/smvitm_logo.webp';
+import sodeLogo from '../../assets/sode_group_logo.png';
 
 const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
 const STUDENT_YEARS = ['First Year'];
@@ -47,10 +51,12 @@ export const BasicScienceFinalTimetables: React.FC = () => {
     >();
 
     placements.forEach((p) => {
-      const code = p.subjectCode.trim();
-      const existing = map.get(code);
+      const code = (p.subjectCode || '').trim();
+      if (!code) return;
+      const codeKey = code.toUpperCase();
+      const existing = map.get(codeKey);
 
-      const orig = subjects.find((s) => s.code && s.code.toLowerCase() === code.toLowerCase());
+      const orig = subjects.find((s) => s.code && s.code.trim().toUpperCase() === codeKey);
       const type = orig?.type || (p.isDeanLocked ? 'Institutional Slot' : 'Theory');
 
       if (!existing) {
@@ -58,18 +64,18 @@ export const BasicScienceFinalTimetables: React.FC = () => {
         if (p.facultyName) {
           p.facultyName.split(/[,/&]/).forEach((f) => set.add(f.trim()));
         }
-        map.set(code, {
+        map.set(codeKey, {
           code,
-          name: p.subjectName || code,
+          name: p.subjectName || orig?.name || code,
           facultySet: set,
           type,
-          hours: p.duration,
+          hours: p.duration || 1,
         });
       } else {
         if (p.facultyName) {
           p.facultyName.split(/[,/&]/).forEach((f) => existing.facultySet.add(f.trim()));
         }
-        existing.hours += p.duration;
+        existing.hours += (p.duration || 1);
       }
     });
 
@@ -82,9 +88,7 @@ export const BasicScienceFinalTimetables: React.FC = () => {
     }));
   }, [placements, subjects]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const timetableDocRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="space-y-4 animate-fade-in text-ink">
@@ -108,14 +112,18 @@ export const BasicScienceFinalTimetables: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-canvas-paper hover:bg-canvas text-primary border border-primary hover:border-primary-hover transition-colors shadow-crisp-sm"
-          >
-            <Printer className="w-3.5 h-3.5 text-primary" />
-            <span>Download PDF</span>
-          </button>
+          <DownloadPdfButton
+            targetRef={timetableDocRef}
+            filename={() =>
+              getTimetablePdfFilename({
+                cycle: selectedCycle,
+                studentYear: 'First Year',
+                semester: selectedSemester,
+                section: selectedSection,
+              })
+            }
+            label="Download PDF"
+          />
         </div>
 
         {/* 5 Selectors Row */}
@@ -226,34 +234,59 @@ export const BasicScienceFinalTimetables: React.FC = () => {
       )}
 
       {/* Official Timetable Document Container (Styled for Screen and Clean Print) */}
-      <div className="bg-surface rounded-card border border-border-beige shadow-crisp p-4 sm:p-5 space-y-4 print:border-none print:shadow-none print:p-0">
+      <div
+        ref={timetableDocRef}
+        className="bg-surface rounded-card border border-border-beige shadow-crisp p-4 sm:p-5 space-y-4 print:border-none print:shadow-none print:p-0"
+      >
         {/* Document Institutional Header (Reproducing Class Timetable DS-3rd sem.docx) */}
-        <div className="text-center pb-3 border-b-2 border-primary space-y-0.5">
-          <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light">
-            SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
-          </div>
-          <h1 className="font-headline text-lg sm:text-xl font-bold text-primary uppercase tracking-tight">
-            SHRI MADHWA VADIRAJA INSTITUTE OF TECHNOLOGY &amp; MANAGEMENT
-          </h1>
-          <div className="text-[11px] text-ink-muted">
-            Vishwothama Nagar, Bantakal, Udupi - 574 115, Karnataka
-          </div>
-          <div className="pt-1.5">
-            <h2 className="font-headline text-xs sm:text-sm font-semibold text-ink uppercase tracking-wider">
-              DEPARTMENT OF BASIC SCIENCE &amp; FOUNDATIONAL ENGINEERING
-            </h2>
-            <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[11px] font-mono font-semibold text-primary">
-              CLASS TIMETABLE — ACADEMIC YEAR {selectedAcademicYear} ({selectedCycle.toUpperCase()} CYCLE — {selectedSemester.toUpperCase()})
+        <div className="pb-3 border-b-2 border-primary space-y-1">
+          <div className="flex items-center justify-between gap-4">
+            <img
+              src={smvitmLogo}
+              alt="SMVITM Logo"
+              className="h-14 sm:h-16 w-auto object-contain flex-shrink-0"
+            />
+            <div className="text-center flex-1 min-w-0">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light font-semibold">
+                SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
+              </div>
+              <h1 className="font-headline text-base sm:text-lg font-bold text-[#530e21] uppercase tracking-tight leading-tight">
+                SHRI MADHWA VADIRAJA INSTITUTE OF TECHNOLOGY &amp; MANAGEMENT
+              </h1>
+              <div className="text-[10px] text-ink-muted">
+                Vishwothama Nagar, Bantakal, Udupi - 574 115, Karnataka
+              </div>
+              <div className="pt-0.5">
+                <h2 className="font-headline text-xs sm:text-sm font-bold text-primary uppercase tracking-wider">
+                  DEPARTMENT OF BASIC SCIENCE &amp; FOUNDATIONAL ENGINEERING
+                </h2>
+                <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[10px] sm:text-[11px] font-mono font-semibold text-primary border border-border-subtle">
+                  CLASS TIMETABLE — ACADEMIC YEAR {selectedAcademicYear} ({selectedCycle.toUpperCase()} CYCLE — {selectedSemester.toUpperCase()})
+                </div>
+              </div>
             </div>
+            <img
+              src={sodeLogo}
+              alt="Sode Group Logo"
+              className="h-12 sm:h-14 w-auto object-contain flex-shrink-0"
+            />
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1.5">
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1 border-t border-border-subtle/50">
             <span>Class: <strong>First Year</strong></span>
             <span>•</span>
             <span>Cycle: <strong>{selectedCycle}</strong></span>
             <span>•</span>
             <span>Section: <strong>{selectedSection}</strong></span>
-            <span>•</span>
-            <span>Room: <strong>{selectedSection === 'Section C' ? 'AB-103' : 'AB-101'}</strong></span>
+            {(() => {
+              const assignedRoom = placements.find((p) => p.room && p.room.trim() && p.room !== 'AB-101' && p.room !== 'AB-103' && p.room !== 'LH-201' && !p.room.toLowerCase().includes('provisional'))?.room;
+              return assignedRoom ? (
+                <>
+                  <span>•</span>
+                  <span>Room: <strong>{assignedRoom}</strong></span>
+                </>
+              ) : null;
+            })()}
             <span>•</span>
             <span className="text-emerald-700 font-semibold flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" /> Approved by Basic Science Coordinator &amp; Dean
@@ -473,7 +506,7 @@ export const BasicScienceFinalTimetables: React.FC = () => {
                 {courseSummary.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-3 text-center text-ink-muted italic border border-black">
-                      No timetable placements found for this section.
+                      No eligible subjects added to this class timetable yet.
                     </td>
                   </tr>
                 ) : (

@@ -14,6 +14,8 @@ export const BasicScienceHeader: React.FC<BasicScienceHeaderProps> = ({
 }) => {
   const getTabTitle = (tab: BasicScienceTab) => {
     switch (tab) {
+      case 'faculty-allocation':
+        return 'Faculty Management & Access Control';
       case 'subject-allocation':
         return 'Subject & Faculty Allocation';
       case 'faculty-workload':

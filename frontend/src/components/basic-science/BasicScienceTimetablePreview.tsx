@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  Printer,
   CheckCircle2,
   Lock,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
 
 export const BasicScienceTimetablePreview: React.FC = () => {
   const { firstYearSections, basicScienceVersion } = useWorkflow();
   const [selectedSecId, setSelectedSecId] = useState(firstYearSections[0]?.id || '');
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const section = firstYearSections.find((s) => s.id === selectedSecId) || firstYearSections[0];
 
@@ -37,14 +38,11 @@ export const BasicScienceTimetablePreview: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="px-3.5 py-2 bg-surface text-ink hover:bg-canvas-muted text-xs font-semibold rounded-card border border-border-beige transition-colors shadow-crisp-sm flex items-center gap-1.5"
-          >
-            <Printer className="w-3.5 h-3.5 text-primary" />
-            <span>Print Section Schedule</span>
-          </button>
+          <DownloadPdfButton
+            targetRef={previewRef}
+            filename={`Class Timetable ${section?.cycle || 'First Year'}-${section?.sectionName?.replace(/Section\s*/i, '') || 'A'}.pdf`}
+            label="Download PDF"
+          />
         </div>
       </div>
 
@@ -67,14 +65,14 @@ export const BasicScienceTimetablePreview: React.FC = () => {
       </div>
 
       {/* Grid Container */}
-      <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
+      <div ref={previewRef} className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden bg-white p-3">
         <div className="p-4 bg-canvas-paper border-b border-border-subtle flex items-center justify-between">
           <div>
             <h3 className="font-headline text-base font-semibold text-primary">
               {section?.sectionName} — {section?.cycle} Cycle
             </h3>
             <span className="text-xs text-ink-muted">
-              Room: {section?.room} • Student Cohort: {section?.studentCount} Students
+              {section?.room && section.room.trim() && section.room !== 'AB-101' && section.room !== 'AB-103' && !section.room.toLowerCase().includes('provisional') ? `Room: ${section.room} • ` : ''}Student Cohort: {section?.studentCount} Students
             </span>
           </div>
           <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-300">

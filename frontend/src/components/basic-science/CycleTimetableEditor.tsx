@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Save,
   Lock,
@@ -11,18 +11,21 @@ import {
   Calendar,
   X,
   Sparkles,
-  Printer,
+  Loader2,
 } from 'lucide-react';
 import { useWorkflow } from '../../context/WorkflowContext';
 import { useDragAutoScroll } from '../../hooks/useDragAutoScroll';
 import { GeneratorCourseTable, GeneratorCourseItem } from '../common/GeneratorCourseTable';
+import { DownloadPdfButton } from '../common/DownloadPdfButton';
+import { getTimetablePdfFilename } from '../../utils/timetablePdfExport';
+import smvitmLogo from '../../assets/smvitm_logo.webp';
+import sodeLogo from '../../assets/sode_group_logo.png';
 import {
   BasicScienceSubject,
   BasicSciencePlacement,
   CycleSectionTimetable,
-  DEAN_LOCKED_FIRST_YEAR_SLOTS,
-  REGISTERED_FACULTY_NAMES,
 } from '../../data/workflowDemoData';
+import { shouldApplyRemotePlacements, categorizeBasicScienceFaculty } from '../../utils/syncIntegrity';
 
 const ACADEMIC_YEARS = ['2026–2027', '2025–2026', '2027–2028'];
 const STUDENT_YEARS = ['First Year'];
@@ -61,7 +64,37 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
     saveCycleTimetable,
     lockCycleTimetable,
     unlockCycleTimetable,
+    basicScienceFaculty,
+    departmentFaculty,
+    departments,
+    syncStatus,
+    isBackendConnected,
+    backendSyncError,
+    refreshBackendData,
   } = useWorkflow();
+
+  const allAvailableFaculty = useMemo(() => {
+    const combined = [...departmentFaculty, ...basicScienceFaculty];
+    const uniqueMap = new Map<string, any>();
+    for (const f of combined) {
+      const trimmed = f.name?.trim();
+      if (trimmed && !uniqueMap.has(trimmed)) {
+        uniqueMap.set(trimmed, f);
+      }
+    }
+    return Array.from(uniqueMap.values());
+  }, [departmentFaculty, basicScienceFaculty]);
+
+  const { basicScienceNames, otherDepartmentNames } = useMemo(() => {
+    return categorizeBasicScienceFaculty({
+      faculty: allAvailableFaculty,
+      departments,
+    });
+  }, [allAvailableFaculty, departments]);
+
+  const registeredFaculty = useMemo(() => {
+    return [...basicScienceNames, ...otherDepartmentNames];
+  }, [basicScienceNames, otherDepartmentNames]);
 
   // Automatic scrolling during timetable drag-and-drop
   useDragAutoScroll();
@@ -94,6 +127,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
   // Local Placements and Lock State
   const [placements, setPlacements] = useState<BasicSciencePlacement[]>([]);
   const [isLocked, setIsLocked] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Status notifications
   const [toastMsg, setToastMsg] = useState<{
@@ -114,20 +148,47 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
 
   const [modalFaculty, setModalFaculty] = useState<string>('');
   const [modalDuration, setModalDuration] = useState<number>(1);
-  const [modalRoom, setModalRoom] = useState<string>('AB-101');
+  const [modalRoom, setModalRoom] = useState<string>('');
 
   // Drag-over styling tracking
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
-  // Synchronize when selector changes or when cycleTimetables updates
+  const activeScopeRef = useRef<string>(timetableKey);
+  const previousScopeRef = useRef<string | null>(null);
+  const isDirtyRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Synchronize when selector changes or when cycleTimetables updates (preserving unsaved local edits)
+  useEffect(() => {
+    activeScopeRef.current = timetableKey;
+    const scopeChanged = previousScopeRef.current !== timetableKey;
+    previousScopeRef.current = timetableKey;
+
+    if (scopeChanged) {
+      isDirtyRef.current = false;
+    }
+
+    if (!scopeChanged && !shouldApplyRemotePlacements({
+      currentScopeKey: activeScopeRef.current,
+      targetScopeKey: timetableKey,
+      isDirty: isDirtyRef.current,
+    })) {
+      return;
+    }
+
     const existing = cycleTimetables[timetableKey];
     if (existing) {
       setPlacements(existing.placements || []);
       setIsLocked(existing.isLocked || false);
     } else {
-      // Initialize with Dean-locked institutional slots
-      setPlacements(DEAN_LOCKED_FIRST_YEAR_SLOTS);
+      setPlacements([]);
       setIsLocked(false);
     }
     setClashes([]);
@@ -137,54 +198,82 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
   // Available subjects for tray palette
   const availableSubjects = useMemo(() => subjects, [subjects]);
 
-  // Auto-generate course summary for Automatic Timetable Generator
+  // Course Table Data for Automatic Timetable Generator
+  // Strictly includes a subject ONLY if:
+  // 1. The subject has actually been added/placed into the currently selected cycle timetable (placements).
+  // 2. The subject has a valid, non-empty course code (empty course codes are strictly excluded).
+  // 3. The subject belongs to the selected cycle and section.
+  // 4. The subject is a valid active subject in the project data model.
   const generatorCourses = useMemo<GeneratorCourseItem[]>(() => {
-    // 1. All valid defined subjects for this cycle (with or without course code)
-    const list: GeneratorCourseItem[] = subjects.map((sub) => {
-      const matchingPlacements = placements.filter(
-        (p) => (p.subjectId && p.subjectId === sub.id) || p.subjectName === sub.name || (sub.code && p.subjectCode === sub.code)
+    if (!placements || placements.length === 0) {
+      return [];
+    }
+
+    const list: GeneratorCourseItem[] = [];
+    const seenCodes = new Set<string>();
+
+    placements.forEach((p) => {
+      const matchedSub = subjects.find(
+        (s) =>
+          (p.subjectId && s.id === p.subjectId) ||
+          (s.code && p.subjectCode && s.code.trim().toUpperCase() === p.subjectCode.trim().toUpperCase()) ||
+          s.name === p.subjectName
       );
-      const placedFaculty = matchingPlacements.map((p) => p.facultyName).filter(Boolean);
-      const finalFaculty = placedFaculty.length > 0
-        ? Array.from(new Set(placedFaculty)).join(', ')
-        : (sub.facultyNames && sub.facultyNames.length > 0 ? sub.facultyNames.join(', ') : 'Unassigned');
 
-      const ltp = sub.ltp || (sub.type === 'Practical' ? '0:0:2' : sub.type === 'Integrated' ? '3:0:2' : '3:0:0');
-      const credit = sub.credits !== undefined && sub.credits !== null && sub.credits !== ''
-        ? sub.credits
-        : (sub.type === 'Practical' ? 1.5 : sub.type === 'Integrated' ? 4 : 3);
+      // Rule 2: Must have a valid, non-empty course code
+      const courseCode = (matchedSub?.code || p.subjectCode || '').trim();
+      if (!courseCode) {
+        return;
+      }
 
-      return {
-        id: sub.id,
-        courseCode: sub.code ? sub.code.trim() : '',
-        courseName: sub.name,
+      // Rule 3: Must belong to selected cycle and academic year
+      if (matchedSub) {
+        if ((matchedSub as any).academicYear && (matchedSub as any).academicYear !== selectedAcademicYear) {
+          return;
+        }
+        if (matchedSub.cycle && matchedSub.cycle !== cycle) {
+          return;
+        }
+      }
+
+      // Deduplicate by courseCode
+      const codeKey = courseCode.toUpperCase();
+      if (seenCodes.has(codeKey)) {
+        return;
+      }
+      seenCodes.add(codeKey);
+
+      const matchingPlacements = placements.filter(
+        (pl) =>
+          (pl.subjectCode && pl.subjectCode.trim().toUpperCase() === codeKey) ||
+          (pl.subjectId && pl.subjectId === p.subjectId) ||
+          pl.subjectName === p.subjectName
+      );
+      const placedFaculty = Array.from(new Set(matchingPlacements.map((pl) => pl.facultyName).filter(Boolean)));
+      const finalFaculty = placedFaculty.length > 0 ? placedFaculty.join(', ') : (p.facultyName || 'Unassigned');
+
+      const ltp =
+        matchedSub?.ltp ||
+        (matchedSub?.type === 'Practical' ? '0:0:2' : matchedSub?.type === 'Integrated' ? '3:0:2' : '3:0:0');
+      const credit =
+        matchedSub?.credits !== undefined && matchedSub?.credits !== null && matchedSub?.credits !== ''
+          ? matchedSub.credits
+          : (matchedSub?.type === 'Practical' ? 1.5 : matchedSub?.type === 'Integrated' ? 4 : 3);
+      const courseType = matchedSub?.type || (p.isDeanLocked ? 'Institutional' : 'Theory');
+
+      list.push({
+        id: matchedSub?.id || p.subjectId || p.id,
+        courseCode,
+        courseName: matchedSub?.name || p.subjectName,
         ltp,
-        courseType: sub.type,
+        courseType,
         credit,
         facultyName: finalFaculty,
-      };
-    });
-
-    // 2. Also append any placements in the grid not in subjects (e.g. Dean-locked slots)
-    placements.forEach((p) => {
-      const alreadyInList = list.some(
-        (item) => (p.subjectId && item.id === p.subjectId) || item.courseName === p.subjectName || (p.subjectCode && item.courseCode === p.subjectCode)
-      );
-      if (!alreadyInList && p.subjectName) {
-        list.push({
-          id: p.subjectId || p.id,
-          courseCode: p.subjectCode ? p.subjectCode.trim() : '',
-          courseName: p.subjectName,
-          ltp: '3:0:0',
-          courseType: p.isDeanLocked ? 'Institutional Slot' : 'Theory',
-          credit: 3,
-          facultyName: p.facultyName || 'Unassigned',
-        });
-      }
+      });
     });
 
     return list;
-  }, [subjects, placements]);
+  }, [placements, subjects]);
 
   // Handle dynamic section addition
   const handleAddSection = () => {
@@ -270,6 +359,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
             return;
           }
           // Remove colliding placement
+          isDirtyRef.current = true;
           setPlacements((prev) =>
             prev.filter((p) => p.id !== collision.id).map((p) =>
               p.id === moveId ? { ...p, day, startPeriod } : p
@@ -280,6 +370,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
             text: `Moved "${target.subjectCode}" to ${day} Period ${startPeriod}. Replaced overlapping cell.`,
           });
         } else {
+          isDirtyRef.current = true;
           setPlacements((prev) =>
             prev.map((p) => (p.id === moveId ? { ...p, day, startPeriod } : p))
           );
@@ -287,9 +378,9 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
       } else if (data.type === 'TRAY_SUBJECT') {
         const sub: BasicScienceSubject = data.subject;
         setPendingDrop({ day, startPeriod, subject: sub });
-        setModalFaculty(sub.facultyNames[0] || REGISTERED_FACULTY_NAMES[0]);
+        setModalFaculty(sub.facultyNames[0] || registeredFaculty[0]);
         setModalDuration(sub.type === 'Practical' ? 2 : 1);
-        setModalRoom(sub.type === 'Practical' ? `${cycle} Lab` : selectedSection === 'Section C' ? 'AB-103' : 'AB-101');
+        setModalRoom(sub.type === 'Practical' ? `${cycle} Lab` : '');
       }
     } catch {
       // Ignored
@@ -332,6 +423,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
     };
 
     // Filter out any non-locked overlapping placements
+    isDirtyRef.current = true;
     setPlacements((prev) => {
       const filtered = prev.filter(
         (p) =>
@@ -362,6 +454,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
       });
       return;
     }
+    isDirtyRef.current = true;
     setPlacements((prev) => prev.filter((p) => p.id !== id));
   };
 
@@ -498,7 +591,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
     }
 
     // Step 1: Keep Dean-locked institutional slots intact
-    const generated: BasicSciencePlacement[] = [...DEAN_LOCKED_FIRST_YEAR_SLOTS];
+    const generated: BasicSciencePlacement[] = placements.filter((p) => p.isDeanLocked);
 
     // Step 2: Parse optional Gemini soft constraints
     const constraintsLower = (softConstraints || '').toLowerCase();
@@ -574,7 +667,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
               subjectCode: chosenSub.code || '',
               subjectName: chosenSub.name,
               facultyName: chosenSub.facultyNames[0] || 'Faculty Member',
-              room: selectedSection === 'Section C' ? 'AB-103' : 'AB-101',
+              room: undefined,
               isMerged: false,
             });
             theoryIdx++;
@@ -583,21 +676,10 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
       }
     });
 
+    isDirtyRef.current = true;
     setPlacements(generated);
     setClashes([]);
     setHasRunClashCheck(false);
-
-    // Save as draft immediately
-    const updatedData: CycleSectionTimetable = {
-      cycle,
-      academicYear: selectedAcademicYear,
-      studentYear: selectedStudentYear,
-      semester: selectedSemester,
-      section: selectedSection,
-      placements: generated,
-      isLocked: false,
-    };
-    saveCycleTimetable(timetableKey, updatedData);
 
     const softNote = softConstraints.trim()
       ? ' Applied Gemini soft constraints: ' +
@@ -606,13 +688,26 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
       : ' Generated standard balanced schedule.';
 
     setToastMsg({
-      type: 'success',
-      text: `Timetable generated for ${cycle} Cycle (${selectedSection}).${softNote}`,
+      type: 'info',
+      text: `Preview generated for ${cycle} Cycle (${selectedSection}).${softNote} Click "Save Draft" to persist to Firestore.`,
     });
   };
 
   // Save Draft
-  const handleSaveDraft = () => {
+  const canPersistToBackend = isBackendConnected === true && syncStatus !== 'loading' && syncStatus !== 'error';
+
+  const handleSaveDraft = async () => {
+    if (!canPersistToBackend) {
+      setToastMsg({
+        type: 'error',
+        text: 'Cannot save draft: backend synchronization is pending or failed. Please retry sync first.',
+      });
+      return;
+    }
+    const initiatedKey = timetableKey;
+    const initiatedSection = selectedSection;
+
+    setIsSaving(true);
     const data: CycleSectionTimetable = {
       cycle,
       academicYear: selectedAcademicYear,
@@ -622,15 +717,40 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
       placements,
       isLocked,
     };
-    saveCycleTimetable(timetableKey, data);
-    setToastMsg({
-      type: 'success',
-      text: `Draft saved successfully for ${cycle} Cycle (${selectedSection}).`,
-    });
+    try {
+      await saveCycleTimetable(initiatedKey, data);
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedKey) {
+        return;
+      }
+      isDirtyRef.current = false;
+      setToastMsg({
+        type: 'success',
+        text: `Draft saved successfully for ${cycle} Cycle (${initiatedSection}).`,
+      });
+    } catch (err: any) {
+      console.error('Failed to save Cycle draft:', err);
+      if (isMountedRef.current && activeScopeRef.current === initiatedKey) {
+        setToastMsg({
+          type: 'error',
+          text: `Failed to save draft to Firestore: ${err?.message || 'Network/Server Error'}. Your local changes have been preserved.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   // Lock Timetable
-  const handleLockTimetable = () => {
+  const handleLockTimetable = async () => {
+    if (!canPersistToBackend) {
+      setToastMsg({
+        type: 'error',
+        text: 'Cannot lock timetable: backend synchronization is pending or failed. Please retry sync first.',
+      });
+      return;
+    }
     if (clashes.length > 0) {
       alert(`Cannot lock timetable while ${clashes.length} active conflict(s) exist. Please resolve all clashes first.`);
       return;
@@ -641,17 +761,49 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
       return;
     }
 
-    handleSaveDraft();
-    lockCycleTimetable(timetableKey);
-    setIsLocked(true);
-    setToastMsg({
-      type: 'success',
-      text: `Timetable for ${cycle} Cycle (${selectedSection}) is finalized and locked. Certified for publication.`,
-    });
+    const initiatedKey = timetableKey;
+    const initiatedSection = selectedSection;
+
+    setIsSaving(true);
+    const data: CycleSectionTimetable = {
+      cycle,
+      academicYear: selectedAcademicYear,
+      studentYear: selectedStudentYear,
+      semester: selectedSemester,
+      section: selectedSection,
+      placements,
+      isLocked: true,
+    };
+    try {
+      await saveCycleTimetable(initiatedKey, data);
+      if (!isMountedRef.current || activeScopeRef.current !== initiatedKey) {
+        return;
+      }
+      isDirtyRef.current = false;
+      lockCycleTimetable(initiatedKey);
+      setIsLocked(true);
+      setToastMsg({
+        type: 'success',
+        text: `Timetable for ${cycle} Cycle (${initiatedSection}) is finalized and locked. Certified for publication.`,
+      });
+    } catch (err: any) {
+      console.error('Failed to lock Cycle timetable:', err);
+      if (isMountedRef.current && activeScopeRef.current === initiatedKey) {
+        setToastMsg({
+          type: 'error',
+          text: `Failed to lock timetable in Firestore: ${err?.message || 'Network/Server Error'}.`,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   // Unlock Timetable
   const handleUnlockTimetable = () => {
+    isDirtyRef.current = true;
     unlockCycleTimetable(timetableKey);
     setIsLocked(false);
     setToastMsg({
@@ -660,12 +812,35 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
     });
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const printableTimetableRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="space-y-4 animate-fade-in text-ink">
+      {/* Backend Synchronization Status Banner */}
+      {syncStatus === 'loading' && (
+        <div className="px-4 py-2.5 rounded-card border border-border-beige bg-canvas-paper text-xs text-ink-muted flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary flex-shrink-0" />
+          <span>Synchronizing timetable data with Firestore... Draft saving is paused until sync completes.</span>
+        </div>
+      )}
+      {syncStatus === 'error' && (
+        <div className="px-4 py-2.5 rounded-card border border-rose-300 bg-rose-50 text-xs text-rose-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+            <span>
+              <strong>Backend sync failed:</strong> {backendSyncError || 'Unable to reach FastAPI server.'} Draft saving is disabled to protect existing Firestore records.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshBackendData()}
+            className="px-2.5 py-1 rounded bg-white border border-rose-300 text-rose-900 font-semibold hover:bg-rose-100 flex-shrink-0"
+          >
+            Retry Sync
+          </button>
+        </div>
+      )}
+
       {/* Toast Notification Banner */}
       {toastMsg && (
         <div
@@ -752,15 +927,19 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
             <button
               type="button"
               onClick={handleSaveDraft}
-              disabled={isLocked}
+              disabled={isLocked || isSaving || !canPersistToBackend}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded border transition-colors shadow-crisp-sm ${
-                isLocked
+                isLocked || isSaving || !canPersistToBackend
                   ? 'bg-canvas-muted text-ink-light border-border-beige cursor-not-allowed'
                   : 'bg-canvas-paper hover:bg-canvas text-primary border-primary hover:border-primary-hover'
               }`}
             >
-              <Save className="w-3.5 h-3.5 text-primary" />
-              <span>Save Draft</span>
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5 text-primary" />
+              )}
+              <span>{isSaving ? 'Saving Draft...' : 'Save Draft'}</span>
             </button>
 
             {isLocked ? (
@@ -776,22 +955,30 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
               <button
                 type="button"
                 onClick={handleLockTimetable}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded bg-primary hover:bg-primary-hover text-white transition-colors shadow-crisp-sm"
+                disabled={isSaving || !canPersistToBackend}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded transition-colors shadow-crisp-sm ${
+                  isSaving || !canPersistToBackend
+                    ? 'bg-canvas-muted text-ink-light border border-border-beige cursor-not-allowed'
+                    : 'bg-primary hover:bg-primary-hover text-white'
+                }`}
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span>Lock &amp; Finalize</span>
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-canvas-muted hover:bg-canvas-paper text-ink border border-border-beige transition-colors shadow-crisp-sm"
-              title="Print official academic timetable"
-            >
-              <Printer className="w-3.5 h-3.5 text-ink-muted" />
-              <span>Download PDF</span>
-            </button>
+            <DownloadPdfButton
+              targetRef={printableTimetableRef}
+              filename={() =>
+                getTimetablePdfFilename({
+                  cycle: cycle,
+                  studentYear: 'First Year',
+                  semester: selectedSemester,
+                  section: selectedSection,
+                })
+              }
+              label="Download PDF"
+            />
           </div>
         </div>
 
@@ -988,8 +1175,66 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
         )}
       </div>
 
-      {/* Timetable Grid Container (Class Timetable DS-3rd sem.docx format) */}
-      <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
+      {/* Dedicated Printable Timetable Container with Header, Grid, and Allocation Table */}
+      <div ref={printableTimetableRef} className="space-y-4 bg-white p-3 sm:p-5 rounded-card border border-border-beige shadow-crisp">
+        {/* Printable Institutional Header */}
+        <div className="pb-3 border-b-2 border-primary space-y-1">
+          <div className="flex items-center justify-between gap-4">
+            <img
+              src={smvitmLogo}
+              alt="SMVITM Logo"
+              className="h-14 sm:h-16 w-auto object-contain flex-shrink-0"
+            />
+            <div className="text-center flex-1 min-w-0">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-ink-light font-semibold">
+                SHRI SODE VADIRAJA MUTT EDUCATION TRUST (R)
+              </div>
+              <h1 className="font-headline text-base sm:text-lg font-bold text-[#530e21] uppercase tracking-tight leading-tight">
+                SHRI MADHWA VADIRAJA INSTITUTE OF TECHNOLOGY &amp; MANAGEMENT
+              </h1>
+              <div className="text-[10px] text-ink-muted">
+                Vishwothama Nagar, Bantakal, Udupi – 574 115, Karnataka
+              </div>
+              <div className="pt-0.5">
+                <h2 className="font-headline text-xs sm:text-sm font-bold text-primary uppercase tracking-wider">
+                  DEPARTMENT OF BASIC SCIENCE &amp; FOUNDATIONAL ENGINEERING
+                </h2>
+                <div className="inline-block mt-0.5 px-2.5 py-0.5 bg-canvas-muted rounded text-[10px] sm:text-[11px] font-mono font-semibold text-primary border border-border-subtle">
+                  CLASS TIMETABLE — ACADEMIC YEAR {selectedAcademicYear} ({cycle.toUpperCase()} CYCLE — {selectedSemester.toUpperCase()})
+                </div>
+              </div>
+            </div>
+            <img
+              src={sodeLogo}
+              alt="Sode Group Logo"
+              className="h-12 sm:h-14 w-auto object-contain flex-shrink-0"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-mono text-ink-muted pt-1 border-t border-border-subtle/50">
+            <span>Class: <strong>First Year</strong></span>
+            <span>•</span>
+            <span>Cycle: <strong>{cycle}</strong></span>
+            <span>•</span>
+            <span>Section: <strong>{selectedSection}</strong></span>
+            {(() => {
+              const assignedRoom = placements.find((p) => p.room && p.room.trim() && p.room !== 'AB-101' && p.room !== 'AB-103' && p.room !== 'LH-201' && !p.room.toLowerCase().includes('provisional'))?.room;
+              return assignedRoom ? (
+                <>
+                  <span>•</span>
+                  <span>Room: <strong>{assignedRoom}</strong></span>
+                </>
+              ) : null;
+            })()}
+            <span>•</span>
+            <span className="text-emerald-700 font-semibold flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Basic Science Official Timetable
+            </span>
+          </div>
+        </div>
+
+        {/* Timetable Grid Container (Class Timetable DS-3rd sem.docx format) */}
+        <div className="bg-surface rounded-card border border-border-beige shadow-crisp overflow-hidden">
         <div className="py-2.5 px-3.5 bg-canvas-muted border-b border-border-beige flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />
@@ -1111,8 +1356,8 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
                           } ${isLocked || isDeanSlot ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
                           title={
                             isDeanSlot
-                              ? `Dean-Locked Institutional Slot (Read-Only):\n${placement.subjectName}\nFaculty: ${placement.facultyName}\nVenue: ${placement.room || 'Campus'}`
-                              : `Draggable Subject Slot:\n${placement.subjectName}\nFaculty: ${placement.facultyName}\nVenue: ${placement.room || 'AB-101'}`
+                              ? `Dean-Locked Institutional Slot (Read-Only):\n${placement.subjectName}\nFaculty: ${placement.facultyName}${placement.room && placement.room !== 'Campus' ? `\nVenue: ${placement.room}` : ''}`
+                              : `Draggable Subject Slot:\n${placement.subjectName}\nFaculty: ${placement.facultyName}${placement.room && placement.room !== 'AB-101' && placement.room !== 'AB-103' && !placement.room.toLowerCase().includes('provisional') ? `\nVenue: ${placement.room}` : ''}`
                           }
                         >
                           {/* Top Row: Subject Code + Delete Button / Lock Icon */}
@@ -1156,7 +1401,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
                             >
                               {placement.facultyName}
                             </span>
-                            {placement.room && (
+                            {placement.room && placement.room.trim() && placement.room !== 'AB-101' && placement.room !== 'AB-103' && !placement.room.toLowerCase().includes('provisional') && (
                               <span className="text-[8px] px-1 py-0.2 rounded bg-neutral-100 text-neutral-600 ml-0.5 truncate max-w-[65px]">
                                 {placement.room}
                               </span>
@@ -1317,7 +1562,9 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
         courses={generatorCourses}
         title={`Placed Courses & Faculty Assignment Summary — ${cycle} Cycle (${selectedSection})`}
         subtitle="Table 1 (VTU Format)"
+        emptyMessage="No eligible subjects added to this class timetable yet."
       />
+      </div>
 
       {/* Drop Placement Confirmation Modal */}
       {pendingDrop && (
@@ -1366,15 +1613,28 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
                       {fn} (Allocated on Page 1)
                     </option>
                   ))}
-                  <optgroup label="Other Registered Faculty">
-                    {REGISTERED_FACULTY_NAMES.filter(
-                      (r) => !pendingDrop.subject.facultyNames?.includes(r)
-                    ).map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </optgroup>
+                  {basicScienceNames.length > 0 && (
+                    <optgroup label="Basic Science Faculty">
+                      {basicScienceNames
+                        .filter((r) => !pendingDrop.subject.facultyNames?.includes(r))
+                        .map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+                  {otherDepartmentNames.length > 0 && (
+                    <optgroup label="Faculty from Other Departments">
+                      {otherDepartmentNames
+                        .filter((r) => !pendingDrop.subject.facultyNames?.includes(r))
+                        .map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
@@ -1403,7 +1663,7 @@ export const CycleTimetableEditor: React.FC<CycleTimetableEditorProps> = ({ cycl
                   type="text"
                   value={modalRoom}
                   onChange={(e) => setModalRoom(e.target.value)}
-                  placeholder="e.g. AB-101, Physics Lab 1, Chemistry Lab"
+                  placeholder="Optional: leave blank if unassigned"
                   className="w-full px-3 py-2 text-xs bg-canvas rounded border border-border-beige text-ink focus:outline-none focus:border-primary"
                 />
               </div>

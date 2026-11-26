@@ -10,10 +10,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Sliders,
+  Users,
 } from 'lucide-react';
 import smvitmLogo from '../../assets/smvitm_logo.webp';
 
 export type BasicScienceTab =
+  | 'faculty-allocation'
   | 'subject-allocation'
   | 'faculty-workload'
   | 'chemistry-timetable'
@@ -40,6 +42,11 @@ export const BasicScienceSidebar: React.FC<BasicScienceSidebarProps> = ({
   onToggleCollapse,
 }) => {
   const navItems = [
+    {
+      id: 'faculty-allocation' as BasicScienceTab,
+      label: 'Faculty Management',
+      icon: Users,
+    },
     {
       id: 'subject-allocation' as BasicScienceTab,
       label: 'Subject & Faculty Allocation',
